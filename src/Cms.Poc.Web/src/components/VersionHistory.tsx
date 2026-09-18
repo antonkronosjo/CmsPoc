@@ -1,17 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Tooltip, Typography } from "@mui/material";
-import { Cancel, CheckCircle, FiberManualRecord, Schedule } from "@mui/icons-material";
+import { Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { api } from "../api/client";
-import { getPublishStatus } from "../lib/publishStatus";
+import StatusIndicator from "./StatusIndicator";
 import PublishDialog, { usePublishActions } from "./PublishDialog";
 import dayjs from "../lib/dayjs";
-
-const STATUS_ICONS = {
-  success: { icon: CheckCircle, color: "success" },
-  info: { icon: Schedule, color: "info" },
-  warning: { icon: Cancel, color: "warning" },
-  default: { icon: FiberManualRecord, color: "disabled" },
-} as const;
 
 interface VersionHistoryProps {
   id: number;
@@ -52,8 +44,6 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
           <TableBody>
             {history.map((version) => {
               const isLive = version.versionNumber === version.livePublishedVersionNumber;
-              const status = getPublishStatus(version);
-              const { icon: StatusIcon, color: iconColor } = STATUS_ICONS[status.color];
 
               return (
                 <TableRow
@@ -64,35 +54,10 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
                   sx={{ cursor: "pointer" }}
                 >
                   <TableCell>
-                    <Tooltip title={status.label}>
-                      <StatusIcon fontSize="small" color={iconColor} />
-                    </Tooltip>
+                    <StatusIndicator metadata={version} variant="icon" />
                   </TableCell>
                   <TableCell>v{version.versionNumber}</TableCell>
                   <TableCell>{dayjs(version.createdAtUtc).format("YYYY-MM-DD HH:mm")}</TableCell>
-                  <TableCell align="right">
-                    {isLive ? (
-                      <Button
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          unpublish();
-                        }}
-                      >
-                        Unpublish
-                      </Button>
-                    ) : (
-                      <Button
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openPublishDialog(version);
-                        }}
-                      >
-                        Publish
-                      </Button>
-                    )}
-                  </TableCell>
                 </TableRow>
               );
             })}
