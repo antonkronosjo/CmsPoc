@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Box, Button, Card, Drawer, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, Chip, Drawer, Stack, TextField, Typography } from "@mui/material";
 import { History } from "@mui/icons-material";
-import { api, type UpdateContentSchema } from "../../api/client";
+import dayjs from "dayjs";
+import { api, type UpdateContentMetadata, type UpdateContentSchema } from "../../api/client";
 import { useLanguage } from "../../context/LanguageContext";
 import ContentForm from "../../forms/ContentForm";
 import VersionHistory from "../../components/VersionHistory";
@@ -26,6 +27,19 @@ export default function CmsEditPage() {
       onSaved={() => navigate(`/cms/edit/${id}`)}
     />
   );
+}
+
+function getPublishStatus(metadata: UpdateContentMetadata): { label: string; color: "success" | "warning" | "default" | "info" } {
+  if (metadata.startPublish && dayjs(metadata.startPublish).isAfter(dayjs())) {
+    return { label: `Scheduled to publish ${dayjs(metadata.startPublish).format("YYYY-MM-DD HH:mm")}`, color: "info" };
+  }
+  if (metadata.livePublishedVersionNumber == null) {
+    return { label: "Draft", color: "default" };
+  }
+  if (metadata.livePublishedVersionNumber === metadata.versionNumber) {
+    return { label: "Published", color: "success" };
+  }
+  return { label: `Published v${metadata.livePublishedVersionNumber}`, color: "warning" };
 }
 
 function EditPanel({
@@ -67,26 +81,29 @@ function EditPanel({
                 no translation yet in this language
               </Typography>
             ) : (
-              <Button
-                size="small"
-                variant="text"
-                color="primary"
-                endIcon={<History fontSize="small" />}
-                onClick={() => setHistoryOpen(true)}
-                sx={{
-                  minWidth: 0,
-                  ml: 0.5,
-                  py: 0,
-                  px: 0.75,
-                  fontSize: "inherit",
-                  fontWeight: 600,
-                  lineHeight: "inherit",
-                  textTransform: "none",
-                  "& .MuiButton-endIcon": { ml: 0 },
-                }}
-              >
-                v{active.metadata.versionNumber}
-              </Button>
+              <>
+                <Button
+                  size="small"
+                  variant="text"
+                  color="primary"
+                  endIcon={<History fontSize="small" />}
+                  onClick={() => setHistoryOpen(true)}
+                  sx={{
+                    minWidth: 0,
+                    ml: 0.5,
+                    py: 0,
+                    px: 0.75,
+                    fontSize: "inherit",
+                    fontWeight: 600,
+                    lineHeight: "inherit",
+                    textTransform: "none",
+                    "& .MuiButton-endIcon": { ml: 0 },
+                  }}
+                >
+                  v{active.metadata.versionNumber}
+                </Button>
+                <Chip size="small" sx={{ ml: 1 }} color={getPublishStatus(active.metadata).color} label={getPublishStatus(active.metadata).label} />
+              </>
             )}
           </Stack>
         </Box>

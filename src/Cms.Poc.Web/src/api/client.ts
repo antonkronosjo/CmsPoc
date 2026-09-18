@@ -36,6 +36,10 @@ export interface UpdateContentMetadata {
   name: string;
   versionNumber: number;
   createdAtUtc: string;
+  startPublish: string | null;
+  stopPublish: string | null;
+  /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
+  livePublishedVersionNumber: number | null;
 }
 
 /// Returned by the update-schema GET, required as-is for the update PUT
@@ -53,6 +57,10 @@ export interface ContentSummaryDto {
   language: string;
   versionNumber: number;
   createdAtUtc: string;
+  startPublish: string | null;
+  stopPublish: string | null;
+  /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
+  livePublishedVersionNumber: number | null;
   properties: Record<string, unknown>;
 }
 
@@ -65,6 +73,13 @@ export interface SearchContentOptions {
   contentTypeName?: string;
   page?: number;
   pageSize?: number;
+  publishedOnly?: boolean;
+}
+
+export interface PublishContentRequest {
+  versionNumber: number;
+  startPublish?: string | null;
+  stopPublish?: string | null;
 }
 
 async function json<T>(res: Response): Promise<T> {
@@ -72,7 +87,11 @@ async function json<T>(res: Response): Promise<T> {
   return (await res.json()) as T;
 }
 
-function query(params: Record<string, string | number | undefined>): string {
+async function ensureOk(res: Response): Promise<void> {
+  if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+}
+
+function query(params: Record<string, string | number | boolean | undefined>): string {
   const usp = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
     if (value !== undefined) usp.set(key, String(value));
@@ -115,6 +134,7 @@ export const api = {
         contentTypeName: options.contentTypeName,
         page: options.page,
         pageSize: options.pageSize,
+        publishedOnly: options.publishedOnly,
       })}`,
     ).then((r) => json<SearchContentResult>(r)),
 
@@ -127,4 +147,14 @@ export const api = {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(value),
     }).then((r) => json<string[]>(r)),
+
+  publishContent: (id: number, request: PublishContentRequest) =>
+    fetch(`${API_BASE}/api/content/${id}/publish`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    }).then(ensureOk),
+
+  unpublishContent: (id: number) =>
+    fetch(`${API_BASE}/api/content/${id}/unpublish`, { method: "POST" }).then(ensureOk),
 };

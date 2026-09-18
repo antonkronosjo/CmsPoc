@@ -15,12 +15,18 @@ internal sealed class ContentEditingService : IContentEditingService
     private readonly CmsDbContext _db;
     private readonly IContentRepository _contentRepository;
     private readonly List<IContentTypeMetadata> _contentTypes;
+    private readonly List<IContentPublishEventHandler> _publishEventHandlers;
 
-    public ContentEditingService(CmsDbContext db, IContentRepository contentRepository, IEnumerable<IContentTypeMetadata> contentTypes)
+    public ContentEditingService(
+        CmsDbContext db,
+        IContentRepository contentRepository,
+        IEnumerable<IContentTypeMetadata> contentTypes,
+        IEnumerable<IContentPublishEventHandler> publishEventHandlers)
     {
         _db = db;
         _contentRepository = contentRepository;
         _contentTypes = contentTypes.ToList();
+        _publishEventHandlers = publishEventHandlers.ToList();
     }
 
     public IReadOnlyList<string> GetContentTypes()
@@ -46,12 +52,15 @@ internal sealed class ContentEditingService : IContentEditingService
             var historical = metadata.QueryHistory(_db, id, language).SingleOrDefault(x => x.VersionNumber == version.Value)
                 ?? throw new KeyNotFoundException($"Version '{version.Value}' of content '{id}' does not exist in language '{language}'.");
 
-            return ToUpdateSchema(historical, metadata);
+            return ToUpdateSchema(historical, metadata, metadata.GetLivePublishedVersionNumber(_db, id));
         }
 
         var current = _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
         if (current is not null)
-            return ToUpdateSchema(current, ResolveContentTypeByClrType(current.GetType()));
+        {
+            var metadata = ResolveContentTypeByClrType(current.GetType());
+            return ToUpdateSchema(current, metadata, metadata.GetLivePublishedVersionNumber(_db, id));
+        }
 
         // The content exists but has no translation in this language yet -
         // a new language branch. Read root-level identity directly; Update
@@ -71,12 +80,13 @@ internal sealed class ContentEditingService : IContentEditingService
                 Name = newBranchRoot.Name,
                 VersionNumber = 0,
                 CreatedAtUtc = newBranchRoot.CreatedAtUtc,
+                LivePublishedVersionNumber = rootMetadata.GetLivePublishedVersionNumber(_db, id),
             },
             Properties = BuildPropertySchema(rootMetadata.ClrType, instance: null),
         };
     }
 
-    private static UpdateContentSchema ToUpdateSchema(Content content, IContentTypeMetadata metadata)
+    private static UpdateContentSchema ToUpdateSchema(Content content, IContentTypeMetadata metadata, int? livePublishedVersionNumber)
         => new()
         {
             Metadata = new UpdateContentMetadata
@@ -87,6 +97,9 @@ internal sealed class ContentEditingService : IContentEditingService
                 Name = content.Name,
                 VersionNumber = content.VersionNumber,
                 CreatedAtUtc = content.CreatedAtUtc,
+                StartPublish = content.StartPublish,
+                StopPublish = content.StopPublish,
+                LivePublishedVersionNumber = livePublishedVersionNumber,
             },
             Properties = BuildPropertySchema(content.GetType(), content),
         };
@@ -147,18 +160,34 @@ internal sealed class ContentEditingService : IContentEditingService
 
     public ContentSummaryDto? GetSummary(int id, string language)
     {
-        var current = _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
-        return current is null ? null : ToSummary(current);
+        // Prefer the published version for display outside active editing;
+        // fall back to the latest draft when nothing is published yet.
+        var content = _contentRepository.Query<Content>(language, publishedOnly: true).Where(x => x.Id == id).FirstOrDefault()
+            ?? _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
+        if (content is null) return null;
+
+        var metadata = ResolveContentTypeByClrType(content.GetType());
+        return ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id));
     }
 
-    public SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize)
+    public SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize, bool publishedOnly = false)
     {
-        var results = _contentRepository.Query<Content>(language).ToList();
+        var results = _contentRepository.Query<Content>(language, publishedOnly).ToList();
+
+        if (!publishedOnly)
+        {
+            // Admin/list view: show each item's published version when one
+            // exists, falling back to its latest draft otherwise.
+            var publishedById = _contentRepository.Query<Content>(language, publishedOnly: true).ToList().ToDictionary(x => x.Id);
+            results = results.Select(x => publishedById.TryGetValue(x.Id, out var published) ? published : x).ToList();
+        }
 
         if (!string.IsNullOrWhiteSpace(query))
             results = results.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        var summaries = results.Select(ToSummary).ToList();
+        var summaries = results
+            .Select(content => ToSummary(content, ResolveContentTypeByClrType(content.GetType()).GetLivePublishedVersionNumber(_db, content.Id)))
+            .ToList();
 
         if (!string.IsNullOrWhiteSpace(contentTypeName))
             summaries = summaries.Where(x => x.ContentTypeName == contentTypeName).ToList();
@@ -175,11 +204,46 @@ internal sealed class ContentEditingService : IContentEditingService
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
+        var livePublishedVersionNumber = metadata.GetLivePublishedVersionNumber(_db, id);
 
-        return metadata.QueryHistory(_db, id, language).Select(ToSummary).ToList();
+        return metadata.QueryHistory(_db, id, language).Select(content => ToSummary(content, livePublishedVersionNumber)).ToList();
     }
 
-    private ContentSummaryDto ToSummary(Content content)
+    public void Publish(int id, int versionNumber, DateTime? startPublish, DateTime? stopPublish)
+    {
+        var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
+            ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
+        var metadata = ResolveContentType(root.ContentTypeKey);
+        if (!metadata.VersionExists(_db, id, versionNumber))
+            throw new KeyNotFoundException($"Version '{versionNumber}' of content '{id}' does not exist.");
+
+        var start = startPublish ?? DateTime.UtcNow;
+
+        // Whatever was live before this takes effect must stop exactly when
+        // this version's window begins - otherwise it could resurface as
+        // "live" again later (e.g. after this version is unpublished).
+        metadata.StopActivePublish(_db, id, start);
+        metadata.SetPublishSchedule(_db, id, versionNumber, start, stopPublish);
+
+        foreach (var handler in _publishEventHandlers)
+            handler.OnPublished(id, versionNumber, start, stopPublish);
+    }
+
+    public void Unpublish(int id)
+    {
+        var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
+            ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
+        var metadata = ResolveContentType(root.ContentTypeKey);
+        var live = metadata.GetLivePublishedVersionNumber(_db, id);
+        if (live is null) return;
+
+        metadata.StopActivePublish(_db, id, DateTime.UtcNow);
+
+        foreach (var handler in _publishEventHandlers)
+            handler.OnUnpublished(id, live.Value);
+    }
+
+    private ContentSummaryDto ToSummary(Content content, int? livePublishedVersionNumber)
     {
         var metadata = ResolveContentTypeByClrType(content.GetType());
         return new ContentSummaryDto
@@ -190,6 +254,9 @@ internal sealed class ContentEditingService : IContentEditingService
             Language = content.Language,
             VersionNumber = content.VersionNumber,
             CreatedAtUtc = content.CreatedAtUtc,
+            StartPublish = content.StartPublish,
+            StopPublish = content.StopPublish,
+            LivePublishedVersionNumber = livePublishedVersionNumber,
             Properties = GetContentProperties(content.GetType()).ToDictionary(p => p.Name, p => p.GetValue(content)),
         };
     }

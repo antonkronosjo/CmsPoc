@@ -29,7 +29,13 @@ public interface IContentEditingService
 
     ContentSummaryDto? GetSummary(int id, string language);
 
-    SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize);
+    SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize, bool publishedOnly = false);
 
     List<ContentSummaryDto> GetHistory(int id, string language);
+
+    /// <summary>Publishes a specific version, replacing whatever was previously live once its window is reached.</summary>
+    void Publish(int id, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
+
+    /// <summary>Stops whichever version is currently live for this content item. No-op if none is.</summary>
+    void Unpublish(int id);
 }

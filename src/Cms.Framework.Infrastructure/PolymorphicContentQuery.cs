@@ -24,13 +24,15 @@ internal sealed class PolymorphicContentQuery : IContentQuery<Content>
     private readonly CmsDbContext _db;
     private readonly IReadOnlyCollection<IContentTypeMetadata> _contentTypes;
     private readonly string _language;
+    private readonly bool _publishedOnly;
     private IQueryable<ContentRoot> _rootQuery;
 
-    public PolymorphicContentQuery(CmsDbContext db, IReadOnlyCollection<IContentTypeMetadata> contentTypes, string language)
+    public PolymorphicContentQuery(CmsDbContext db, IReadOnlyCollection<IContentTypeMetadata> contentTypes, string language, bool publishedOnly = false)
     {
         _db = db;
         _contentTypes = contentTypes;
         _language = language;
+        _publishedOnly = publishedOnly;
         _rootQuery = db.ContentRoots;
     }
 
@@ -79,7 +81,7 @@ internal sealed class PolymorphicContentQuery : IContentQuery<Content>
             if (metadata is null) continue;
 
             var ids = group.Select(g => g.Id).ToList();
-            foreach (var content in metadata.QueryByIds(_db, ids, _language))
+            foreach (var content in metadata.QueryByIds(_db, ids, _language, _publishedOnly))
             {
                 byId[content.Id] = content;
             }

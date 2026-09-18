@@ -37,17 +37,17 @@ internal sealed class ContentRepository : IContentRepository
     public T Update<T>(T content) where T : Content
         => GetStore<T>().Update(_db, content);
 
-    public IContentQuery<T> Query<T>(string? language = null) where T : Content
+    public IContentQuery<T> Query<T>(string? language = null, bool publishedOnly = false) where T : Content
     {
         var lang = language ?? _defaultLanguage;
 
         if (typeof(T) == typeof(Content))
         {
-            var polymorphic = new PolymorphicContentQuery(_db, _contentTypes, lang);
+            var polymorphic = new PolymorphicContentQuery(_db, _contentTypes, lang, publishedOnly);
             return (IContentQuery<T>)(object)polymorphic;
         }
 
-        return new EfBackedContentQuery<T>(GetStore<T>().QueryCurrent(_db, lang));
+        return new EfBackedContentQuery<T>(GetStore<T>().QueryCurrent(_db, lang, publishedOnly));
     }
 
     public IReadOnlyList<T> QueryHistory<T>(int id, string? language = null) where T : Content

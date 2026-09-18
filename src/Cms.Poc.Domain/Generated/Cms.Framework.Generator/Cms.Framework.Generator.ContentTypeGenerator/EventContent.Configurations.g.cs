@@ -40,6 +40,8 @@ public sealed class EventContentReadConfiguration : IEntityTypeConfiguration<glo
     t.Language AS Language,
     v.VersionNumber AS VersionNumber,
     v.CreatedAtUtc AS CreatedAtUtc,
+    v.StartPublish AS StartPublish,
+    v.StopPublish AS StopPublish,
     v.StartDate AS StartDate,
     t.Title AS Title,
     t.Description AS Description

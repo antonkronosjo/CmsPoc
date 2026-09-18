@@ -34,6 +34,8 @@ internal static class CodeEmitter
         sb.AppendLine("    public global::Cms.Framework.Infrastructure.ContentRoot Root { get; set; } = null!;");
         sb.AppendLine("    public int VersionNumber { get; set; }");
         sb.AppendLine("    public global::System.DateTime CreatedAtUtc { get; set; }");
+        sb.AppendLine("    public global::System.DateTime? StartPublish { get; set; }");
+        sb.AppendLine("    public global::System.DateTime? StopPublish { get; set; }");
         foreach (var property in model.InvariantProperties)
         {
             sb.AppendLine($"    public {property.TypeName} {property.Name} {{ get; set; }}{DefaultValueSuffix(property.TypeName)}");
@@ -238,8 +240,42 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // QueryCurrent
-        sb.AppendLine($"    public global::System.Linq.IQueryable<{model.FullyQualifiedName}> QueryCurrent(CmsDbContext db, string language)");
-        sb.AppendLine($"        => db.Set<{model.FullyQualifiedName}>().Where(x => x.Language == language);");
+        sb.AppendLine($"    public global::System.Linq.IQueryable<{model.FullyQualifiedName}> QueryCurrent(CmsDbContext db, string language, bool publishedOnly = false)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (!publishedOnly)");
+        sb.AppendLine($"            return db.Set<{model.FullyQualifiedName}>().Where(x => x.Language == language);");
+        sb.AppendLine();
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine($"        var eligible = db.Set<{model.VersionTypeName}>()");
+        sb.AppendLine("            .Where(v => v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now))");
+        sb.AppendLine("            .Include(v => v.Translations)");
+        sb.AppendLine("            .Include(v => v.Root)");
+        sb.AppendLine("            .ToList();");
+        sb.AppendLine();
+        sb.AppendLine("        var live = eligible.GroupBy(v => v.RootId).Select(g => g.OrderByDescending(v => v.StartPublish).First());");
+        sb.AppendLine();
+        sb.AppendLine($"        var result = new global::System.Collections.Generic.List<{model.FullyQualifiedName}>();");
+        sb.AppendLine("        foreach (var v in live)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            var translation = v.Translations.FirstOrDefault(t => t.Language == language);");
+        sb.AppendLine("            if (translation is null) continue;");
+        sb.AppendLine($"            result.Add(new {model.FullyQualifiedName}");
+        sb.AppendLine("            {");
+        sb.AppendLine("                Id = v.Root.Id,");
+        sb.AppendLine("                Name = v.Root.Name,");
+        sb.AppendLine("                Language = language,");
+        sb.AppendLine("                VersionNumber = v.VersionNumber,");
+        sb.AppendLine("                CreatedAtUtc = v.CreatedAtUtc,");
+        sb.AppendLine("                StartPublish = v.StartPublish,");
+        sb.AppendLine("                StopPublish = v.StopPublish,");
+        foreach (var p in model.InvariantProperties)
+            sb.AppendLine($"                {p.Name} = v.{p.Name},");
+        foreach (var p in model.CultureSpecificProperties)
+            sb.AppendLine($"                {p.Name} = translation.{p.Name},");
+        sb.AppendLine("            });");
+        sb.AppendLine("        }");
+        sb.AppendLine("        return result.AsQueryable();");
+        sb.AppendLine("    }");
         sb.AppendLine();
 
         // QueryHistory
@@ -264,6 +300,8 @@ internal static class CodeEmitter
         sb.AppendLine("                Language = language,");
         sb.AppendLine("                VersionNumber = v.VersionNumber,");
         sb.AppendLine("                CreatedAtUtc = v.CreatedAtUtc,");
+        sb.AppendLine("                StartPublish = v.StartPublish,");
+        sb.AppendLine("                StopPublish = v.StopPublish,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"                {p.Name} = v.{p.Name},");
         foreach (var p in model.CultureSpecificProperties)
@@ -271,6 +309,48 @@ internal static class CodeEmitter
         sb.AppendLine("            });");
         sb.AppendLine("        }");
         sb.AppendLine("        return result;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // GetLivePublishedVersionNumber
+        sb.AppendLine("    public int? GetLivePublishedVersionNumber(CmsDbContext db, int rootId)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine($"        return db.Set<{model.VersionTypeName}>()");
+        sb.AppendLine("            .Where(v => v.RootId == rootId && v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now))");
+        sb.AppendLine("            .OrderByDescending(v => v.StartPublish)");
+        sb.AppendLine("            .Select(v => (int?)v.VersionNumber)");
+        sb.AppendLine("            .FirstOrDefault();");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // VersionExists
+        sb.AppendLine("    public bool VersionExists(CmsDbContext db, int rootId, int versionNumber)");
+        sb.AppendLine($"        => db.Set<{model.VersionTypeName}>().Any(v => v.RootId == rootId && v.VersionNumber == versionNumber);");
+        sb.AppendLine();
+
+        // SetPublishSchedule
+        sb.AppendLine("    public void SetPublishSchedule(CmsDbContext db, int rootId, int versionNumber, global::System.DateTime? startPublish, global::System.DateTime? stopPublish)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        var version = db.Set<{model.VersionTypeName}>().Single(v => v.RootId == rootId && v.VersionNumber == versionNumber);");
+        sb.AppendLine("        version.StartPublish = startPublish;");
+        sb.AppendLine("        version.StopPublish = stopPublish;");
+        sb.AppendLine("        db.SaveChanges();");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // StopActivePublish
+        sb.AppendLine("    public bool StopActivePublish(CmsDbContext db, int rootId, global::System.DateTime stopAt)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine($"        var active = db.Set<{model.VersionTypeName}>()");
+        sb.AppendLine("            .Where(v => v.RootId == rootId && v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now))");
+        sb.AppendLine("            .OrderByDescending(v => v.StartPublish)");
+        sb.AppendLine("            .FirstOrDefault();");
+        sb.AppendLine("        if (active is null) return false;");
+        sb.AppendLine("        active.StopPublish = stopAt;");
+        sb.AppendLine("        db.SaveChanges();");
+        sb.AppendLine("        return true;");
         sb.AppendLine("    }");
 
         sb.AppendLine("}");
@@ -318,7 +398,9 @@ $@"SELECT
     r.Name AS Name,
     t.Language AS Language,
     v.VersionNumber AS VersionNumber,
-    v.CreatedAtUtc AS CreatedAtUtc{invariantColumns}{cultureColumns}
+    v.CreatedAtUtc AS CreatedAtUtc,
+    v.StartPublish AS StartPublish,
+    v.StopPublish AS StopPublish{invariantColumns}{cultureColumns}
 FROM ContentRoots r
 JOIN {model.VersionTableName} v ON v.RootId = r.Id
     AND v.VersionNumber = (SELECT MAX(v2.VersionNumber) FROM {model.VersionTableName} v2 WHERE v2.RootId = r.Id)

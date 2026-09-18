@@ -28,4 +28,16 @@ public abstract class Content
     public int VersionNumber { get; set; }
 
     public DateTime CreatedAtUtc { get; set; }
+
+    /// <summary>
+    /// When this specific version starts being live, or <c>null</c> if it has
+    /// never been published. All dates in this project are UTC.
+    /// </summary>
+    public DateTime? StartPublish { get; set; }
+
+    /// <summary>
+    /// When this specific version stops being live, or <c>null</c> for no
+    /// scheduled end. All dates in this project are UTC.
+    /// </summary>
+    public DateTime? StopPublish { get; set; }
 }

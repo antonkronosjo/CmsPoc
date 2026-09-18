@@ -37,14 +37,26 @@ public static class ContentEndpoints
                 ? Results.Ok(summary)
                 : Results.NotFound());
 
-        app.MapGet("/api/content/search", (IContentEditingService editing, string? query, string language, string? contentTypeName, int? page, int? pageSize)
-            => editing.Search(query, language, contentTypeName, page ?? 1, pageSize ?? 20));
+        app.MapGet("/api/content/search", (IContentEditingService editing, string? query, string language, string? contentTypeName, int? page, int? pageSize, bool? publishedOnly)
+            => editing.Search(query, language, contentTypeName, page ?? 1, pageSize ?? 20, publishedOnly ?? false));
 
         app.MapGet("/api/content/{id:int}/history", (IContentEditingService editing, int id, string language)
             => editing.GetHistory(id, language));
 
         app.MapPost("/api/content/validate", (IContentEditingService editing, string contentTypeName, string propertyName, ContentPropertyValueDto value)
             => editing.ValidateProperty(contentTypeName, propertyName, value));
+
+        app.MapPost("/api/content/{id:int}/publish", (IContentEditingService editing, int id, PublishContentRequest request) =>
+        {
+            editing.Publish(id, request.VersionNumber, request.StartPublish, request.StopPublish);
+            return Results.NoContent();
+        });
+
+        app.MapPost("/api/content/{id:int}/unpublish", (IContentEditingService editing, int id) =>
+        {
+            editing.Unpublish(id);
+            return Results.NoContent();
+        });
 
         return app;
     }

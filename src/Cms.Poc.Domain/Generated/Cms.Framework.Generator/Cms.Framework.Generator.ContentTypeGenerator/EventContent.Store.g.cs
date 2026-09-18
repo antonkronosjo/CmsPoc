@@ -113,8 +113,41 @@ public sealed class EventContentStore : global::Cms.Framework.Infrastructure.ICo
         };
     }
 
-    public global::System.Linq.IQueryable<global::Cms.Poc.Domain.EventContent> QueryCurrent(CmsDbContext db, string language)
-        => db.Set<global::Cms.Poc.Domain.EventContent>().Where(x => x.Language == language);
+    public global::System.Linq.IQueryable<global::Cms.Poc.Domain.EventContent> QueryCurrent(CmsDbContext db, string language, bool publishedOnly = false)
+    {
+        if (!publishedOnly)
+            return db.Set<global::Cms.Poc.Domain.EventContent>().Where(x => x.Language == language);
+
+        var now = global::System.DateTime.UtcNow;
+        var eligible = db.Set<EventContentVersion>()
+            .Where(v => v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now))
+            .Include(v => v.Translations)
+            .Include(v => v.Root)
+            .ToList();
+
+        var live = eligible.GroupBy(v => v.RootId).Select(g => g.OrderByDescending(v => v.StartPublish).First());
+
+        var result = new global::System.Collections.Generic.List<global::Cms.Poc.Domain.EventContent>();
+        foreach (var v in live)
+        {
+            var translation = v.Translations.FirstOrDefault(t => t.Language == language);
+            if (translation is null) continue;
+            result.Add(new global::Cms.Poc.Domain.EventContent
+            {
+                Id = v.Root.Id,
+                Name = v.Root.Name,
+                Language = language,
+                VersionNumber = v.VersionNumber,
+                CreatedAtUtc = v.CreatedAtUtc,
+                StartPublish = v.StartPublish,
+                StopPublish = v.StopPublish,
+                StartDate = v.StartDate,
+                Title = translation.Title,
+                Description = translation.Description,
+            });
+        }
+        return result.AsQueryable();
+    }
 
     public global::System.Collections.Generic.IReadOnlyList<global::Cms.Poc.Domain.EventContent> QueryHistory(CmsDbContext db, int id, string language)
     {
@@ -137,11 +170,47 @@ public sealed class EventContentStore : global::Cms.Framework.Infrastructure.ICo
                 Language = language,
                 VersionNumber = v.VersionNumber,
                 CreatedAtUtc = v.CreatedAtUtc,
+                StartPublish = v.StartPublish,
+                StopPublish = v.StopPublish,
                 StartDate = v.StartDate,
                 Title = translation.Title,
                 Description = translation.Description,
             });
         }
         return result;
+    }
+
+    public int? GetLivePublishedVersionNumber(CmsDbContext db, int rootId)
+    {
+        var now = global::System.DateTime.UtcNow;
+        return db.Set<EventContentVersion>()
+            .Where(v => v.RootId == rootId && v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now))
+            .OrderByDescending(v => v.StartPublish)
+            .Select(v => (int?)v.VersionNumber)
+            .FirstOrDefault();
+    }
+
+    public bool VersionExists(CmsDbContext db, int rootId, int versionNumber)
+        => db.Set<EventContentVersion>().Any(v => v.RootId == rootId && v.VersionNumber == versionNumber);
+
+    public void SetPublishSchedule(CmsDbContext db, int rootId, int versionNumber, global::System.DateTime? startPublish, global::System.DateTime? stopPublish)
+    {
+        var version = db.Set<EventContentVersion>().Single(v => v.RootId == rootId && v.VersionNumber == versionNumber);
+        version.StartPublish = startPublish;
+        version.StopPublish = stopPublish;
+        db.SaveChanges();
+    }
+
+    public bool StopActivePublish(CmsDbContext db, int rootId, global::System.DateTime stopAt)
+    {
+        var now = global::System.DateTime.UtcNow;
+        var active = db.Set<EventContentVersion>()
+            .Where(v => v.RootId == rootId && v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now))
+            .OrderByDescending(v => v.StartPublish)
+            .FirstOrDefault();
+        if (active is null) return false;
+        active.StopPublish = stopAt;
+        db.SaveChanges();
+        return true;
     }
 }

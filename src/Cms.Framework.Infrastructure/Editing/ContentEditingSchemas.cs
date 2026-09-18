@@ -21,6 +21,11 @@ public sealed class UpdateContentMetadata
     public required string Name { get; set; }
     public required int VersionNumber { get; set; }
     public required DateTime CreatedAtUtc { get; set; }
+    public DateTime? StartPublish { get; set; }
+    public DateTime? StopPublish { get; set; }
+
+    /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
+    public int? LivePublishedVersionNumber { get; set; }
 }
 
 /// <summary>
@@ -49,7 +54,24 @@ public sealed class ContentSummaryDto
     public required string Language { get; set; }
     public required int VersionNumber { get; set; }
     public required DateTime CreatedAtUtc { get; set; }
+    public DateTime? StartPublish { get; set; }
+    public DateTime? StopPublish { get; set; }
+
+    /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
+    public int? LivePublishedVersionNumber { get; set; }
     public Dictionary<string, object?> Properties { get; set; } = new();
+}
+
+/// <summary>Request body for publishing a specific version.</summary>
+public sealed class PublishContentRequest
+{
+    public required int VersionNumber { get; set; }
+
+    /// <summary>When the version should start being live. <c>null</c> means immediately.</summary>
+    public DateTime? StartPublish { get; set; }
+
+    /// <summary>When the version should stop being live. <c>null</c> means no scheduled end.</summary>
+    public DateTime? StopPublish { get; set; }
 }
 
 /// <summary>

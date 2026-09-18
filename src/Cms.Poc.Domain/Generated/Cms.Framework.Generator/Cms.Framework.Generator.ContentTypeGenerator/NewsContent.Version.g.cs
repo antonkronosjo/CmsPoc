@@ -11,6 +11,8 @@ public sealed class NewsContentVersion
     public global::Cms.Framework.Infrastructure.ContentRoot Root { get; set; } = null!;
     public int VersionNumber { get; set; }
     public global::System.DateTime CreatedAtUtc { get; set; }
+    public global::System.DateTime? StartPublish { get; set; }
+    public global::System.DateTime? StopPublish { get; set; }
     public string Color { get; set; } = string.Empty;
     public int? RelatedContentId { get; set; } = default;
     public global::System.Collections.Generic.List<NewsContentTranslation> Translations { get; set; } = new();

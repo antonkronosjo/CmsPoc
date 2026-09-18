@@ -11,6 +11,8 @@ public sealed class EventContentVersion
     public global::Cms.Framework.Infrastructure.ContentRoot Root { get; set; } = null!;
     public int VersionNumber { get; set; }
     public global::System.DateTime CreatedAtUtc { get; set; }
+    public global::System.DateTime? StartPublish { get; set; }
+    public global::System.DateTime? StopPublish { get; set; }
     public System.DateTime StartDate { get; set; }
     public global::System.Collections.Generic.List<EventContentTranslation> Translations { get; set; } = new();
 }

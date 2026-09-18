@@ -16,8 +16,30 @@ public interface IContentTypeStore<T> where T : Content
 
     T Update(CmsDbContext db, T content);
 
-    /// <summary>Current-version, per-language flat read query. Composable - translates to SQL.</summary>
-    IQueryable<T> QueryCurrent(CmsDbContext db, string language);
+    /// <summary>
+    /// Per-language flat read query. When <paramref name="publishedOnly"/> is
+    /// <c>false</c> (the default), this is the latest version of each item -
+    /// composable, translates to SQL. When <c>true</c>, this is whichever
+    /// version is currently live (per its publish window) for each item,
+    /// omitting items with none live right now.
+    /// </summary>
+    IQueryable<T> QueryCurrent(CmsDbContext db, string language, bool publishedOnly = false);
 
     IReadOnlyList<T> QueryHistory(CmsDbContext db, int id, string language);
+
+    /// <summary>The version number currently live for this root, or <c>null</c> if none is.</summary>
+    int? GetLivePublishedVersionNumber(CmsDbContext db, int rootId);
+
+    /// <summary>Whether a version with this number exists for this root.</summary>
+    bool VersionExists(CmsDbContext db, int rootId, int versionNumber);
+
+    /// <summary>Sets (or replaces) the publish window for a specific version.</summary>
+    void SetPublishSchedule(CmsDbContext db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
+
+    /// <summary>
+    /// Stops whichever version is currently live for this root by setting
+    /// its <see cref="Content.StopPublish"/> to <paramref name="stopAt"/>.
+    /// Returns <c>false</c> (no-op) if nothing is currently live.
+    /// </summary>
+    bool StopActivePublish(CmsDbContext db, int rootId, DateTime stopAt);
 }

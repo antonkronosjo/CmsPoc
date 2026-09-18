@@ -24,13 +24,18 @@ const PAGE_SIZE = 10;
 
 interface ContentBrowseListProps {
   language: string;
-  onSelect: (item: ContentSummaryDto) => void;
+  onSelect?: (item: ContentSummaryDto) => void;
   showTypeFilter?: boolean;
+  /// When true, only content with a version currently live is returned (the
+  /// public view). When false (the default), every item is shown, using its
+  /// published version's data when one exists and its latest draft otherwise.
+  publishedOnly?: boolean;
 }
 
 /// Paginated, filterable content list - the shared table behind both the
-/// home page (unfiltered) and the /cms browse page (with a type filter).
-export default function ContentBrowseList({ language, onSelect, showTypeFilter = false }: ContentBrowseListProps) {
+/// home page (published-only) and the /cms browse page (everything, with a
+/// type filter and a publish status badge).
+export default function ContentBrowseList({ language, onSelect, showTypeFilter = false, publishedOnly = false }: ContentBrowseListProps) {
   const [input, setInput] = useState("");
   const [term, setTerm] = useState("");
   const [contentTypeName, setContentTypeName] = useState("");
@@ -43,8 +48,8 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
   const { data: contentTypes = [] } = useQuery({ queryKey: ["content-types"], queryFn: api.getContentTypes });
 
   const { data, isFetching } = useQuery({
-    queryKey: ["content-search", term, language, contentTypeName, page],
-    queryFn: () => api.searchContent(term, language, { contentTypeName: contentTypeName || undefined, page, pageSize: PAGE_SIZE }),
+    queryKey: ["content-search", term, language, contentTypeName, page, publishedOnly],
+    queryFn: () => api.searchContent(term, language, { contentTypeName: contentTypeName || undefined, page, pageSize: PAGE_SIZE, publishedOnly }),
   });
 
   const items = data?.items ?? [];
@@ -100,17 +105,32 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
               <TableCell>Type</TableCell>
               <TableCell>Version</TableCell>
               <TableCell>Created</TableCell>
+              {!publishedOnly && <TableCell>Status</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
             {items.map((item) => (
-              <TableRow key={item.id} hover onClick={() => onSelect(item)} sx={{ cursor: "pointer" }}>
+              <TableRow
+                key={item.id}
+                hover={!!onSelect}
+                onClick={onSelect ? () => onSelect(item) : undefined}
+                sx={onSelect ? { cursor: "pointer" } : undefined}
+              >
                 <TableCell>{item.name || <em>(untitled)</em>}</TableCell>
                 <TableCell>
                   <Chip size="small" label={item.contentTypeName} />
                 </TableCell>
                 <TableCell>v{item.versionNumber}</TableCell>
                 <TableCell>{dayjs(item.createdAtUtc).format("YYYY-MM-DD HH:mm")}</TableCell>
+                {!publishedOnly && (
+                  <TableCell>
+                    {item.livePublishedVersionNumber != null ? (
+                      <Chip size="small" color="success" label="Published" />
+                    ) : (
+                      <Chip size="small" color="default" label="Draft" />
+                    )}
+                  </TableCell>
+                )}
               </TableRow>
             ))}
           </TableBody>
