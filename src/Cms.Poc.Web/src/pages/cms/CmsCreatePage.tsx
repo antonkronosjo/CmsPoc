@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Paper, Stack, TextField, Typography } from "@mui/material";
+import { Card, Stack, TextField, Typography } from "@mui/material";
 import { api, type CreateContentSchema } from "../../api/client";
 import { useLanguage } from "../../context/LanguageContext";
 import ContentForm from "../../forms/ContentForm";
@@ -14,10 +14,10 @@ export default function CmsCreatePage() {
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Create content</Typography>
-      <Paper sx={{ p: 2 }}>
+      <Card sx={{ p: 3 }}>
         <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
         {contentTypeName && <CreateForm key={contentTypeName + language} contentTypeName={contentTypeName} language={language} />}
-      </Paper>
+      </Card>
     </Stack>
   );
 }
@@ -37,7 +37,6 @@ function CreateForm({ contentTypeName, language }: { contentTypeName: string; la
     <Stack spacing={2}>
       <TextField
         label="Name"
-        variant="filled"
         fullWidth
         value={active.metadata.name}
         onChange={(e) => setDraft({ ...active, metadata: { ...active.metadata, name: e.target.value } })}

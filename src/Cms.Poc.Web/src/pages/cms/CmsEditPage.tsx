@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Box, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, Drawer, Stack, TextField, Typography } from "@mui/material";
+import { History } from "@mui/icons-material";
 import { api, type UpdateContentSchema } from "../../api/client";
 import { useLanguage } from "../../context/LanguageContext";
 import ContentForm from "../../forms/ContentForm";
@@ -44,6 +45,7 @@ function EditPanel({
   const queryKey = ["update-schema", id, language, version];
   const { data: schema, isLoading } = useQuery({ queryKey, queryFn: () => api.getUpdateSchema(id, language, version) });
   const [draft, setDraft] = useState<UpdateContentSchema | undefined>(undefined);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const active = draft ?? schema;
 
   if (isLoading || !active) return <Typography color="text.secondary">Loading…</Typography>;
@@ -52,12 +54,43 @@ function EditPanel({
   const isViewingHistoricalVersion = version !== undefined && version !== active.metadata.versionNumber;
 
   return (
-    <Stack spacing={3}>
-      <Box>
-        <Typography variant="subtitle2" color="text.secondary" gutterBottom>
-          #{active.metadata.id} · {active.metadata.contentTypeName} ·{" "}
-          {isNewLanguageBranch ? "no translation yet in this language" : `v${active.metadata.versionNumber}`}
-        </Typography>
+    <>
+      <Card sx={{ p: 3 }}>
+        <Box>
+          <Typography variant="h5">{active.metadata.name || "(untitled)"}</Typography>
+          <Stack direction="row" alignItems="center" sx={{ mt: 0.5 }}>
+            <Typography variant="subtitle2" color="text.secondary">
+              #{active.metadata.id} · {active.metadata.contentTypeName} ·
+            </Typography>
+            {isNewLanguageBranch ? (
+              <Typography variant="subtitle2" color="text.secondary" sx={{ ml: 0.5 }}>
+                no translation yet in this language
+              </Typography>
+            ) : (
+              <Button
+                size="small"
+                variant="text"
+                color="primary"
+                endIcon={<History fontSize="small" />}
+                onClick={() => setHistoryOpen(true)}
+                sx={{
+                  minWidth: 0,
+                  ml: 0.5,
+                  py: 0,
+                  px: 0.75,
+                  fontSize: "inherit",
+                  fontWeight: 600,
+                  lineHeight: "inherit",
+                  textTransform: "none",
+                  "& .MuiButton-endIcon": { ml: 0 },
+                }}
+              >
+                v{active.metadata.versionNumber}
+              </Button>
+            )}
+          </Stack>
+        </Box>
+        <Box sx={{ borderBottom: "1px dotted", borderColor: "divider", my: 2.5 }} />
         {isViewingHistoricalVersion && (
           <Alert severity="info" sx={{ mb: 2 }}>
             You're viewing historical version {version}. Saving will create a new version based on this data.
@@ -66,7 +99,6 @@ function EditPanel({
         <Stack spacing={2}>
           <TextField
             label="Name"
-            variant="filled"
             fullWidth
             value={active.metadata.name}
             onChange={(e) => setDraft({ ...active, metadata: { ...active.metadata, name: e.target.value } })}
@@ -89,13 +121,24 @@ function EditPanel({
             }}
           />
         </Stack>
-      </Box>
-      <Box>
-        <Typography variant="h6" gutterBottom>
-          Version history ({language})
-        </Typography>
-        <VersionHistory id={id} language={language} activeVersion={active.metadata.versionNumber} onSelectVersion={onSelectVersion} />
-      </Box>
-    </Stack>
+      </Card>
+      <Drawer anchor="right" open={historyOpen} onClose={() => setHistoryOpen(false)}>
+        <Box sx={{ width: { xs: "85vw", sm: 380 } }}>
+          <Typography variant="h6" sx={{ p: 3, pb: 2 }}>
+            Version history ({language})
+          </Typography>
+          <Box sx={{ borderBottom: "1px dotted", borderColor: "divider" }} />
+          <VersionHistory
+            id={id}
+            language={language}
+            activeVersion={active.metadata.versionNumber}
+            onSelectVersion={(v) => {
+              setHistoryOpen(false);
+              onSelectVersion(v);
+            }}
+          />
+        </Box>
+      </Drawer>
+    </>
   );
 }

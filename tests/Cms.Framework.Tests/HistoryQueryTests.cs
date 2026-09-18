@@ -8,7 +8,7 @@ public sealed class HistoryQueryTests : IDisposable
     private readonly ContentTestFixture _fixture = new();
 
     [Fact]
-    public void QueryHistory_returns_every_version_oldest_first()
+    public void QueryHistory_returns_every_version_newest_first()
     {
         var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", Color = "red" }, "en");
 
@@ -21,8 +21,8 @@ public sealed class HistoryQueryTests : IDisposable
         var history = _fixture.Repository.QueryHistory<NewsContent>(created.Id, "en");
 
         Assert.Equal(3, history.Count);
-        Assert.Equal(new[] { 1, 2, 3 }, history.Select(h => h.VersionNumber));
-        Assert.Equal(new[] { "red", "blue", "green" }, history.Select(h => h.Color));
+        Assert.Equal(new[] { 3, 2, 1 }, history.Select(h => h.VersionNumber));
+        Assert.Equal(new[] { "green", "blue", "red" }, history.Select(h => h.Color));
     }
 
     public void Dispose() => _fixture.Dispose();

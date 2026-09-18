@@ -247,7 +247,7 @@ internal static class CodeEmitter
         sb.AppendLine("    {");
         sb.AppendLine($"        var versions = db.Set<{model.VersionTypeName}>()");
         sb.AppendLine("            .Where(v => v.RootId == id)");
-        sb.AppendLine("            .OrderBy(v => v.VersionNumber)");
+        sb.AppendLine("            .OrderByDescending(v => v.VersionNumber)");
         sb.AppendLine("            .Include(v => v.Translations)");
         sb.AppendLine("            .Include(v => v.Root)");
         sb.AppendLine("            .ToList();");

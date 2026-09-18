@@ -10,7 +10,7 @@ export default function AppLayout() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <AppBar position="static" color="default" elevation={1}>
+      <AppBar position="static">
         <Toolbar sx={{ gap: 2 }}>
           <Typography
             variant="h6"

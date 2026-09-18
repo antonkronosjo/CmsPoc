@@ -98,7 +98,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
 
     const commonProps = {
       label,
-      variant: "filled",
+      variant: "outlined",
       fullWidth: true,
       error: errors.length > 0,
       helperText: errors[0] ?? null,
@@ -140,7 +140,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
             disabled={disabled}
             slotProps={{
               textField: {
-                variant: "filled",
+                variant: "outlined",
                 fullWidth: true,
                 required: valueDto.required,
                 error: errors.length > 0,
@@ -160,7 +160,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
             disabled={disabled}
             slotProps={{
               textField: {
-                variant: "filled",
+                variant: "outlined",
                 fullWidth: true,
                 required: valueDto.required,
                 error: errors.length > 0,

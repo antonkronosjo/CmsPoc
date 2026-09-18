@@ -29,11 +29,11 @@ public sealed class UpdateVersioningTests : IDisposable
         var history = _fixture.Repository.QueryHistory<NewsContent>(created.Id, "en");
         Assert.Equal(2, history.Count);
 
-        var version1 = history[0];
+        var version1 = history[1];
         Assert.Equal(1, version1.VersionNumber);
         Assert.Equal("red", version1.Color); // untouched
 
-        var version2 = history[1];
+        var version2 = history[0];
         Assert.Equal(2, version2.VersionNumber);
         Assert.Equal("blue", version2.Color);
 

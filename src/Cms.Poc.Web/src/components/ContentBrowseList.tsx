@@ -16,6 +16,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import dayjs from "dayjs";
 import { api, type ContentSummaryDto } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 
@@ -54,7 +55,6 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <TextField
           label="Search by name"
-          variant="filled"
           size="small"
           fullWidth
           value={input}
@@ -99,7 +99,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
               <TableCell>Name</TableCell>
               <TableCell>Type</TableCell>
               <TableCell>Version</TableCell>
-              <TableCell>Created (UTC)</TableCell>
+              <TableCell>Created</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -110,7 +110,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                   <Chip size="small" label={item.contentTypeName} />
                 </TableCell>
                 <TableCell>v{item.versionNumber}</TableCell>
-                <TableCell>{new Date(item.createdAtUtc).toLocaleString()}</TableCell>
+                <TableCell>{dayjs(item.createdAtUtc).format("YYYY-MM-DD HH:mm")}</TableCell>
               </TableRow>
             ))}
           </TableBody>

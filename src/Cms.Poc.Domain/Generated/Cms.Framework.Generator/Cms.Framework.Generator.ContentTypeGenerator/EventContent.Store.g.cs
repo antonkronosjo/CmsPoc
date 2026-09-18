@@ -120,7 +120,7 @@ public sealed class EventContentStore : global::Cms.Framework.Infrastructure.ICo
     {
         var versions = db.Set<EventContentVersion>()
             .Where(v => v.RootId == id)
-            .OrderBy(v => v.VersionNumber)
+            .OrderByDescending(v => v.VersionNumber)
             .Include(v => v.Translations)
             .Include(v => v.Root)
             .ToList();

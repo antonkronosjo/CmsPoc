@@ -124,7 +124,7 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
     {
         var versions = db.Set<NewsContentVersion>()
             .Where(v => v.RootId == id)
-            .OrderBy(v => v.VersionNumber)
+            .OrderByDescending(v => v.VersionNumber)
             .Include(v => v.Translations)
             .Include(v => v.Root)
             .ToList();

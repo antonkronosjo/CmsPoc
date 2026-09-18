@@ -1,4 +1,4 @@
-import { Container, Paper, Stack, Typography } from "@mui/material";
+import { Card, Container, Stack, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 import ContentBrowseList from "../components/ContentBrowseList";
 import { useLanguage } from "../context/LanguageContext";
@@ -18,9 +18,9 @@ export default function HomePage() {
           edit an existing item.
         </Typography>
       </Stack>
-      <Paper sx={{ p: 2 }}>
+      <Card sx={{ p: 3 }}>
         <ContentBrowseList language={language} onSelect={(item) => navigate(`/cms/edit/${item.id}`)} />
-      </Paper>
+      </Card>
     </Container>
   );
 }

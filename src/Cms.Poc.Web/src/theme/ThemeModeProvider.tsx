@@ -8,7 +8,7 @@ const STORAGE_KEY = "cms-poc-theme-mode";
 function getInitialMode(): ThemeMode {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark") return stored;
-  return window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+  return "dark";
 }
 
 interface ThemeModeContextValue {
@@ -35,7 +35,102 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const theme = useMemo(() => createTheme({ palette: { mode } }), [mode]);
+  const theme = useMemo(() => {
+    const isLight = mode === "light";
+    const cardShadow = isLight
+      ? "0px 2px 8px rgba(16,24,40,0.06), 0px 1px 2px rgba(16,24,40,0.04)"
+      : "0px 2px 8px rgba(0,0,0,0.4), 0px 1px 2px rgba(0,0,0,0.3)";
+    const cellBorder = isLight ? "1px solid rgba(16,24,40,0.06)" : "1px solid rgba(255,255,255,0.06)";
+    const backgroundDefault = isLight ? "#F6F7F9" : "#0B0B0D";
+    const backgroundPaper = isLight ? "#FFFFFF" : "#161618";
+
+    return createTheme({
+      palette: {
+        mode,
+        background: { default: backgroundDefault, paper: backgroundPaper },
+        primary: { main: isLight ? "#5B6EF5" : "#8A93FF" },
+        divider: isLight ? "rgba(16,24,40,0.06)" : "rgba(255,255,255,0.08)",
+      },
+      shape: { borderRadius: 0 },
+      typography: {
+        fontFamily: `"Inter", "Roboto", "Helvetica", "Arial", sans-serif`,
+        fontSize: 14,
+        h4: { fontSize: "1.75rem", fontWeight: 700, letterSpacing: "-0.02em" },
+        h5: { fontSize: "1.375rem", fontWeight: 700, letterSpacing: "-0.01em" },
+        h6: { fontSize: "1.0625rem", fontWeight: 600 },
+        subtitle2: { fontSize: "0.8125rem", fontWeight: 500 },
+        body1: { fontSize: "0.9375rem" },
+        body2: { fontSize: "0.8125rem" },
+        button: { fontWeight: 600 },
+      },
+      components: {
+        MuiSvgIcon: {
+          defaultProps: { fontSize: "small" },
+        },
+        MuiCssBaseline: {
+          styleOverrides: { body: { backgroundColor: backgroundDefault } },
+        },
+        MuiPaper: {
+          styleOverrides: {
+            root: { backgroundImage: "none", border: "none" },
+            elevation1: { boxShadow: cardShadow },
+          },
+        },
+        MuiCard: {
+          defaultProps: { elevation: 1 },
+          styleOverrides: {
+            root: { borderRadius: 0, border: "none", boxShadow: cardShadow },
+          },
+        },
+        MuiAppBar: {
+          defaultProps: { elevation: 0, color: "transparent" },
+          styleOverrides: {
+            root: { boxShadow: "none", backgroundColor: backgroundPaper, backgroundImage: "none" },
+          },
+        },
+        MuiDrawer: {
+          styleOverrides: {
+            paper: { border: "none" },
+          },
+        },
+        MuiTableCell: {
+          styleOverrides: {
+            root: { borderBottom: cellBorder, padding: "12px 16px" },
+            head: { fontWeight: 600, color: isLight ? "#6B7280" : "#9CA3AF" },
+          },
+        },
+        MuiTableRow: {
+          styleOverrides: {
+            root: { "&:last-child .MuiTableCell-root": { borderBottom: "none" } },
+          },
+        },
+        MuiListItemButton: {
+          styleOverrides: {
+            root: { borderRadius: 0, marginBottom: 4 },
+          },
+        },
+        MuiTextField: {
+          defaultProps: { variant: "outlined" },
+        },
+        MuiOutlinedInput: {
+          styleOverrides: {
+            root: {
+              "&.Mui-focused .MuiOutlinedInput-notchedOutline": { borderWidth: 1 },
+            },
+          },
+        },
+        MuiButton: {
+          defaultProps: { disableElevation: true },
+          styleOverrides: {
+            root: { borderRadius: 0, textTransform: "none" },
+          },
+        },
+        MuiChip: {
+          styleOverrides: { root: { borderRadius: 0 } },
+        },
+      },
+    });
+  }, [mode]);
 
   return (
     <ThemeModeContext.Provider value={{ mode, toggleMode }}>

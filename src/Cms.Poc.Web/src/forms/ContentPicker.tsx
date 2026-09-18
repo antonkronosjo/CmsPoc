@@ -30,7 +30,6 @@ export default function ContentPicker({ label, language, value, onChange, disabl
     <>
       <TextField
         label={label}
-        variant="filled"
         fullWidth
         value=""
         disabled={disabled}

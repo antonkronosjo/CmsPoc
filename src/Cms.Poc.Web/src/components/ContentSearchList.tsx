@@ -29,7 +29,6 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
     <Stack spacing={1}>
       <TextField
         label="Search by name"
-        variant="filled"
         size="small"
         fullWidth
         value={input}
@@ -41,7 +40,7 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
       {isFetching && <Typography variant="caption" color="text.secondary">Searching…</Typography>}
       <List dense disablePadding sx={{ maxHeight: 360, overflowY: "auto" }}>
         {filtered.map((item) => (
-          <ListItemButton key={item.id} onClick={() => onSelect(item)} divider>
+          <ListItemButton key={item.id} onClick={() => onSelect(item)}>
             <ListItemText
               primary={
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
