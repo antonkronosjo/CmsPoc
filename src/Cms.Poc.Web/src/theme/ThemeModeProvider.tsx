@@ -41,15 +41,20 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
       ? "0px 2px 8px rgba(16,24,40,0.06), 0px 1px 2px rgba(16,24,40,0.04)"
       : "0px 2px 8px rgba(0,0,0,0.4), 0px 1px 2px rgba(0,0,0,0.3)";
     const cellBorder = isLight ? "1px solid rgba(16,24,40,0.06)" : "1px solid rgba(255,255,255,0.06)";
-    const backgroundDefault = isLight ? "#F6F7F9" : "#0B0B0D";
-    const backgroundPaper = isLight ? "#FFFFFF" : "#161618";
+    const backgroundDefault = isLight ? "#F6F7F9" : "#1E1E1E";
+    const backgroundPaper = isLight ? "#FFFFFF" : "#252526";
 
     return createTheme({
       palette: {
         mode,
         background: { default: backgroundDefault, paper: backgroundPaper },
-        primary: { main: isLight ? "#5B6EF5" : "#8A93FF" },
-        divider: isLight ? "rgba(16,24,40,0.06)" : "rgba(255,255,255,0.08)",
+        primary: { main: isLight ? "#5B6EF5" : "#007ACC" },
+        divider: isLight ? "rgba(16,24,40,0.06)" : "rgba(255,255,255,0.09)",
+        ...(isLight
+          ? {}
+          : {
+              text: { primary: "#D4D4D4", secondary: "#9D9D9D" },
+            }),
       },
       shape: { borderRadius: 0 },
       typography: {
