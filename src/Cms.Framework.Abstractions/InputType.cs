@@ -1,0 +1,26 @@
+namespace Cms.Framework.Abstractions;
+
+/// <summary>
+/// Identifies which editor template the frontend should render for a
+/// <see cref="ContentPropertyAttribute"/>-decorated property. Adding a new
+/// field type to the editing UI is: add a value here, add one case to the
+/// frontend's <c>FormElementTemplate</c> switch. Nothing else in the
+/// pipeline (source generator, persistence, API) needs to know about it.
+/// </summary>
+public enum InputType
+{
+    Text = 0,
+    TextArea = 1,
+    Number = 2,
+    Date = 3,
+    DateTime = 4,
+
+    /// <summary>
+    /// Renders as a searchable picker for another content item. Backed by a
+    /// plain nullable <c>int</c> property holding the referenced item's
+    /// <see cref="Content.Id"/> - no dedicated value type or EF value
+    /// converter is required, the "reference-ness" is purely a frontend
+    /// concern driven by this enum value.
+    /// </summary>
+    ContentReference = 5,
+}

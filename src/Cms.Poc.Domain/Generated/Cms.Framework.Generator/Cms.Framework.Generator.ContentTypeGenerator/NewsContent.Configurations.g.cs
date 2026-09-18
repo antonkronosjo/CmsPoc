@@ -41,6 +41,7 @@ public sealed class NewsContentReadConfiguration : IEntityTypeConfiguration<glob
     v.VersionNumber AS VersionNumber,
     v.CreatedAtUtc AS CreatedAtUtc,
     v.Color AS Color,
+    v.RelatedContentId AS RelatedContentId,
     t.Heading AS Heading,
     t.Body AS Body
 FROM ContentRoots r

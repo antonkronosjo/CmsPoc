@@ -18,6 +18,26 @@ public interface IContentTypeMetadata
     /// never a full table scan.
     /// </summary>
     IReadOnlyList<Content> QueryByIds(CmsDbContext db, IReadOnlyCollection<int> ids, string language);
+
+    /// <summary>
+    /// Type-erased entry point for creating content when the concrete type
+    /// is only known at runtime (e.g. by name, from an HTTP request).
+    /// <paramref name="content"/> must be an instance of <see cref="ClrType"/>.
+    /// </summary>
+    Content Create(CmsDbContext db, Content content, string language);
+
+    /// <summary>
+    /// Type-erased entry point for updating content when the concrete type
+    /// is only known at runtime. <paramref name="content"/> must be an
+    /// instance of <see cref="ClrType"/>.
+    /// </summary>
+    Content Update(CmsDbContext db, Content content);
+
+    /// <summary>
+    /// Type-erased entry point for fetching version history when the
+    /// concrete type is only known at runtime.
+    /// </summary>
+    IReadOnlyList<Content> QueryHistory(CmsDbContext db, int id, string language);
 }
 
 /// <summary>
@@ -45,4 +65,13 @@ public sealed class ContentTypeMetadata<T> : IContentTypeMetadata where T : Cont
             .ToList()
             .Cast<Content>()
             .ToList();
+
+    public Content Create(CmsDbContext db, Content content, string language)
+        => _store.Create(db, (T)content, language);
+
+    public Content Update(CmsDbContext db, Content content)
+        => _store.Update(db, (T)content);
+
+    public IReadOnlyList<Content> QueryHistory(CmsDbContext db, int id, string language)
+        => _store.QueryHistory(db, id, language).Cast<Content>().ToList();
 }

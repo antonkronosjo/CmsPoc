@@ -1,6 +1,7 @@
 using Cms.Framework.Abstractions;
 using Cms.Framework.Generated;
 using Cms.Framework.Infrastructure;
+using Cms.Framework.Infrastructure.Editing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -30,16 +31,19 @@ public sealed class ContentTestFixture : IDisposable
         // Pooling=False so the underlying file handle is released as soon as the
         // DbContext is disposed, letting each test clean up its own temp database.
         services.AddCmsDbContext($"Data Source={_dbPath};Pooling=False");
+        services.AddContentEditing();
         _provider = services.BuildServiceProvider();
 
         _scope = _provider.CreateScope();
         Db = _scope.ServiceProvider.GetRequiredService<CmsDbContext>();
         Db.Database.EnsureCreated();
         Repository = _scope.ServiceProvider.GetRequiredService<IContentRepository>();
+        Editing = _scope.ServiceProvider.GetRequiredService<IContentEditingService>();
     }
 
     public CmsDbContext Db { get; }
     public IContentRepository Repository { get; }
+    public IContentEditingService Editing { get; }
 
     public void Dispose()
     {

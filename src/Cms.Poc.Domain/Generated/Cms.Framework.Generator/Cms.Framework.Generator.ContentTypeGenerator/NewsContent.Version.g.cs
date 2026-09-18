@@ -12,5 +12,6 @@ public sealed class NewsContentVersion
     public int VersionNumber { get; set; }
     public global::System.DateTime CreatedAtUtc { get; set; }
     public string Color { get; set; } = string.Empty;
+    public int? RelatedContentId { get; set; } = default;
     public global::System.Collections.Generic.List<NewsContentTranslation> Translations { get; set; } = new();
 }

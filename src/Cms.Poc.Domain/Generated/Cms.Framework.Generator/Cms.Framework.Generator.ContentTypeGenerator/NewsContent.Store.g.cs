@@ -28,6 +28,7 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             VersionNumber = 1,
             CreatedAtUtc = root.CreatedAtUtc,
             Color = content.Color,
+            RelatedContentId = content.RelatedContentId,
         };
         db.Set<NewsContentVersion>().Add(version);
 
@@ -50,6 +51,7 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             VersionNumber = version.VersionNumber,
             CreatedAtUtc = version.CreatedAtUtc,
             Color = version.Color,
+            RelatedContentId = version.RelatedContentId,
             Heading = translation.Heading,
             Body = translation.Body,
         };
@@ -70,6 +72,7 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             VersionNumber = currentVersion.VersionNumber + 1,
             CreatedAtUtc = global::System.DateTime.UtcNow,
             Color = content.Color,
+            RelatedContentId = content.RelatedContentId,
         };
         db.Set<NewsContentVersion>().Add(newVersion);
 
@@ -108,6 +111,7 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             VersionNumber = newVersion.VersionNumber,
             CreatedAtUtc = newVersion.CreatedAtUtc,
             Color = newVersion.Color,
+            RelatedContentId = newVersion.RelatedContentId,
             Heading = content.Heading,
             Body = content.Body,
         };
@@ -138,6 +142,7 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
                 VersionNumber = v.VersionNumber,
                 CreatedAtUtc = v.CreatedAtUtc,
                 Color = v.Color,
+                RelatedContentId = v.RelatedContentId,
                 Heading = translation.Heading,
                 Body = translation.Body,
             });
