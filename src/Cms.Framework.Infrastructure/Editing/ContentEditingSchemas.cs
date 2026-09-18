@@ -51,3 +51,13 @@ public sealed class ContentSummaryDto
     public required DateTime CreatedAtUtc { get; set; }
     public Dictionary<string, object?> Properties { get; set; } = new();
 }
+
+/// <summary>
+/// Paged search results, plus the total count of matches across all pages
+/// (post-filtering) so callers can render pagination controls.
+/// </summary>
+public sealed class SearchContentResult
+{
+    public required List<ContentSummaryDto> Items { get; set; }
+    public required int TotalCount { get; set; }
+}

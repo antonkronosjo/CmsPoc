@@ -108,5 +108,64 @@ public sealed class ContentEditingServiceTests : IDisposable
         Assert.Equal("Hello", english.Properties["Heading"].Value);
     }
 
+    [Fact]
+    public void Search_filters_by_content_type_and_paginates_results()
+    {
+        for (var i = 0; i < 3; i++)
+        {
+            var news = _fixture.Editing.GetCreationSchema(nameof(NewsContent), "en");
+            news.Metadata.Name = $"News {i}";
+            news.Properties["Heading"].Value = $"Heading {i}";
+            news.Properties["Body"].Value = "Body";
+            news.Properties["Color"].Value = "red";
+            _fixture.Editing.Create(news);
+        }
+
+        var eventSchema = _fixture.Editing.GetCreationSchema(nameof(EventContent), "en");
+        eventSchema.Metadata.Name = "Event 0";
+        eventSchema.Properties["Title"].Value = "Title";
+        eventSchema.Properties["Description"].Value = "Description";
+        _fixture.Editing.Create(eventSchema);
+
+        var filtered = _fixture.Editing.Search(query: null, language: "en", contentTypeName: nameof(NewsContent), page: 1, pageSize: 20);
+        Assert.Equal(3, filtered.TotalCount);
+        Assert.All(filtered.Items, x => Assert.Equal(nameof(NewsContent), x.ContentTypeName));
+
+        var firstPage = _fixture.Editing.Search(query: null, language: "en", contentTypeName: nameof(NewsContent), page: 1, pageSize: 2);
+        var secondPage = _fixture.Editing.Search(query: null, language: "en", contentTypeName: nameof(NewsContent), page: 2, pageSize: 2);
+        Assert.Equal(3, firstPage.TotalCount);
+        Assert.Equal(2, firstPage.Items.Count);
+        Assert.Equal(3, secondPage.TotalCount);
+        Assert.Single(secondPage.Items);
+
+        var unfiltered = _fixture.Editing.Search(query: null, language: "en", contentTypeName: null, page: 1, pageSize: 20);
+        Assert.Equal(4, unfiltered.TotalCount);
+    }
+
+    [Fact]
+    public void GetUpdateSchema_with_a_version_number_returns_that_version_not_the_current_one()
+    {
+        var creationSchema = _fixture.Editing.GetCreationSchema(nameof(NewsContent), "en");
+        creationSchema.Metadata.Name = "HEJ";
+        creationSchema.Properties["Heading"].Value = "Hello";
+        creationSchema.Properties["Body"].Value = "World";
+        creationSchema.Properties["Color"].Value = "red";
+        var created = _fixture.Editing.Create(creationSchema);
+
+        var updateSchema = _fixture.Editing.GetUpdateSchema(created.Id, "en");
+        updateSchema.Properties["Color"].Value = "blue";
+        _fixture.Editing.Update(updateSchema);
+
+        var version1 = _fixture.Editing.GetUpdateSchema(created.Id, "en", version: 1);
+        Assert.Equal(1, version1.Metadata.VersionNumber);
+        Assert.Equal("red", version1.Properties["Color"].Value);
+
+        var version2 = _fixture.Editing.GetUpdateSchema(created.Id, "en", version: 2);
+        Assert.Equal(2, version2.Metadata.VersionNumber);
+        Assert.Equal("blue", version2.Properties["Color"].Value);
+
+        Assert.Throws<KeyNotFoundException>(() => _fixture.Editing.GetUpdateSchema(created.Id, "en", version: 99));
+    }
+
     public void Dispose() => _fixture.Dispose();
 }

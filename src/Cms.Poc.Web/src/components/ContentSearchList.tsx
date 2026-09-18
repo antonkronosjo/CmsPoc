@@ -17,10 +17,11 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
   const [term, setTerm] = useState("");
   const debouncedSetTerm = useDebouncedCallback(setTerm, 250);
 
-  const { data: results = [], isFetching } = useQuery({
+  const { data, isFetching } = useQuery({
     queryKey: ["content-search", term, language],
-    queryFn: () => api.searchContent(term, language),
+    queryFn: () => api.searchContent(term, language, { pageSize: 50 }),
   });
+  const results = data?.items ?? [];
 
   const filtered = excludeId ? results.filter((r) => r.id !== excludeId) : results;
 

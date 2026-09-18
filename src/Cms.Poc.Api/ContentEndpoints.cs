@@ -23,8 +23,8 @@ public static class ContentEndpoints
             return editing.GetUpdateSchema(created.Id, created.Language);
         });
 
-        app.MapGet("/api/content/{id:int}/updateschema", (IContentEditingService editing, int id, string language)
-            => editing.GetUpdateSchema(id, language));
+        app.MapGet("/api/content/{id:int}/updateschema", (IContentEditingService editing, int id, string language, int? version)
+            => editing.GetUpdateSchema(id, language, version));
 
         app.MapPut("/api/content/{id:int}", (IContentEditingService editing, int id, UpdateContentSchema request) =>
         {
@@ -37,8 +37,8 @@ public static class ContentEndpoints
                 ? Results.Ok(summary)
                 : Results.NotFound());
 
-        app.MapGet("/api/content/search", (IContentEditingService editing, string? query, string language)
-            => editing.Search(query, language));
+        app.MapGet("/api/content/search", (IContentEditingService editing, string? query, string language, string? contentTypeName, int? page, int? pageSize)
+            => editing.Search(query, language, contentTypeName, page ?? 1, pageSize ?? 20));
 
         app.MapGet("/api/content/{id:int}/history", (IContentEditingService editing, int id, string language)
             => editing.GetHistory(id, language));

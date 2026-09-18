@@ -19,7 +19,7 @@ public interface IContentEditingService
 
     CreateContentSchema GetCreationSchema(string contentTypeName, string language);
 
-    UpdateContentSchema GetUpdateSchema(int id, string language);
+    UpdateContentSchema GetUpdateSchema(int id, string language, int? version = null);
 
     Content Create(CreateContentSchema request);
 
@@ -29,7 +29,7 @@ public interface IContentEditingService
 
     ContentSummaryDto? GetSummary(int id, string language);
 
-    List<ContentSummaryDto> Search(string? query, string language);
+    SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize);
 
     List<ContentSummaryDto> GetHistory(int id, string language);
 }

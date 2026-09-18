@@ -56,6 +56,17 @@ export interface ContentSummaryDto {
   properties: Record<string, unknown>;
 }
 
+export interface SearchContentResult {
+  items: ContentSummaryDto[];
+  totalCount: number;
+}
+
+export interface SearchContentOptions {
+  contentTypeName?: string;
+  page?: number;
+  pageSize?: number;
+}
+
 async function json<T>(res: Response): Promise<T> {
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
   return (await res.json()) as T;
@@ -83,8 +94,8 @@ export const api = {
       body: JSON.stringify(request),
     }).then((r) => json<UpdateContentSchema>(r)),
 
-  getUpdateSchema: (id: number, language: string) =>
-    fetch(`${API_BASE}/api/content/${id}/updateschema${query({ language })}`).then((r) => json<UpdateContentSchema>(r)),
+  getUpdateSchema: (id: number, language: string, version?: number) =>
+    fetch(`${API_BASE}/api/content/${id}/updateschema${query({ language, version })}`).then((r) => json<UpdateContentSchema>(r)),
 
   updateContent: (id: number, request: UpdateContentSchema) =>
     fetch(`${API_BASE}/api/content/${id}`, {
@@ -96,8 +107,16 @@ export const api = {
   getContentSummary: (id: number, language: string) =>
     fetch(`${API_BASE}/api/content/${id}${query({ language })}`).then((r) => json<ContentSummaryDto>(r)),
 
-  searchContent: (searchQuery: string, language: string) =>
-    fetch(`${API_BASE}/api/content/search${query({ query: searchQuery, language })}`).then((r) => json<ContentSummaryDto[]>(r)),
+  searchContent: (searchQuery: string, language: string, options: SearchContentOptions = {}) =>
+    fetch(
+      `${API_BASE}/api/content/search${query({
+        query: searchQuery,
+        language,
+        contentTypeName: options.contentTypeName,
+        page: options.page,
+        pageSize: options.pageSize,
+      })}`,
+    ).then((r) => json<SearchContentResult>(r)),
 
   getHistory: (id: number, language: string) =>
     fetch(`${API_BASE}/api/content/${id}/history${query({ language })}`).then((r) => json<ContentSummaryDto[]>(r)),

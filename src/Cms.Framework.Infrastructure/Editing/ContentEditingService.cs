@@ -36,49 +36,60 @@ internal sealed class ContentEditingService : IContentEditingService
         };
     }
 
-    public UpdateContentSchema GetUpdateSchema(int id, string language)
+    public UpdateContentSchema GetUpdateSchema(int id, string language, int? version = null)
     {
+        if (version.HasValue)
+        {
+            var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
+                ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
+            var metadata = ResolveContentType(root.ContentTypeKey);
+            var historical = metadata.QueryHistory(_db, id, language).SingleOrDefault(x => x.VersionNumber == version.Value)
+                ?? throw new KeyNotFoundException($"Version '{version.Value}' of content '{id}' does not exist in language '{language}'.");
+
+            return ToUpdateSchema(historical, metadata);
+        }
+
         var current = _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
         if (current is not null)
-        {
-            var metadata = ResolveContentTypeByClrType(current.GetType());
-            return new UpdateContentSchema
-            {
-                Metadata = new UpdateContentMetadata
-                {
-                    Id = current.Id,
-                    ContentTypeName = metadata.ContentTypeKey,
-                    Language = current.Language,
-                    Name = current.Name,
-                    VersionNumber = current.VersionNumber,
-                    CreatedAtUtc = current.CreatedAtUtc,
-                },
-                Properties = BuildPropertySchema(current.GetType(), current),
-            };
-        }
+            return ToUpdateSchema(current, ResolveContentTypeByClrType(current.GetType()));
 
         // The content exists but has no translation in this language yet -
         // a new language branch. Read root-level identity directly; Update
         // will copy every other language's data forward unchanged the
         // first time this branch is saved.
-        var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
+        var newBranchRoot = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
-        var rootMetadata = ResolveContentType(root.ContentTypeKey);
+        var rootMetadata = ResolveContentType(newBranchRoot.ContentTypeKey);
 
         return new UpdateContentSchema
         {
             Metadata = new UpdateContentMetadata
             {
-                Id = root.Id,
-                ContentTypeName = root.ContentTypeKey,
+                Id = newBranchRoot.Id,
+                ContentTypeName = newBranchRoot.ContentTypeKey,
                 Language = language,
-                Name = root.Name,
+                Name = newBranchRoot.Name,
                 VersionNumber = 0,
-                CreatedAtUtc = root.CreatedAtUtc,
+                CreatedAtUtc = newBranchRoot.CreatedAtUtc,
             },
             Properties = BuildPropertySchema(rootMetadata.ClrType, instance: null),
         };
     }
+
+    private static UpdateContentSchema ToUpdateSchema(Content content, IContentTypeMetadata metadata)
+        => new()
+        {
+            Metadata = new UpdateContentMetadata
+            {
+                Id = content.Id,
+                ContentTypeName = metadata.ContentTypeKey,
+                Language = content.Language,
+                Name = content.Name,
+                VersionNumber = content.VersionNumber,
+                CreatedAtUtc = content.CreatedAtUtc,
+            },
+            Properties = BuildPropertySchema(content.GetType(), content),
+        };
 
     public Content Create(CreateContentSchema request)
     {
@@ -140,14 +151,23 @@ internal sealed class ContentEditingService : IContentEditingService
         return current is null ? null : ToSummary(current);
     }
 
-    public List<ContentSummaryDto> Search(string? query, string language)
+    public SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize)
     {
         var results = _contentRepository.Query<Content>(language).ToList();
 
         if (!string.IsNullOrWhiteSpace(query))
             results = results.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
 
-        return results.Select(ToSummary).ToList();
+        var summaries = results.Select(ToSummary).ToList();
+
+        if (!string.IsNullOrWhiteSpace(contentTypeName))
+            summaries = summaries.Where(x => x.ContentTypeName == contentTypeName).ToList();
+
+        return new SearchContentResult
+        {
+            Items = summaries.Skip((page - 1) * pageSize).Take(pageSize).ToList(),
+            TotalCount = summaries.Count,
+        };
     }
 
     public List<ContentSummaryDto> GetHistory(int id, string language)

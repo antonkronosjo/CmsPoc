@@ -5,9 +5,11 @@ import { api } from "../api/client";
 interface VersionHistoryProps {
   id: number;
   language: string;
+  activeVersion?: number;
+  onSelectVersion: (versionNumber: number) => void;
 }
 
-export default function VersionHistory({ id, language }: VersionHistoryProps) {
+export default function VersionHistory({ id, language, activeVersion, onSelectVersion }: VersionHistoryProps) {
   const { data: history = [] } = useQuery({
     queryKey: ["content-history", id, language],
     queryFn: () => api.getHistory(id, language),
@@ -29,7 +31,13 @@ export default function VersionHistory({ id, language }: VersionHistoryProps) {
         </TableHead>
         <TableBody>
           {history.map((version) => (
-            <TableRow key={version.versionNumber}>
+            <TableRow
+              key={version.versionNumber}
+              hover
+              selected={version.versionNumber === activeVersion}
+              onClick={() => onSelectVersion(version.versionNumber)}
+              sx={{ cursor: "pointer" }}
+            >
               <TableCell>v{version.versionNumber}</TableCell>
               <TableCell>{new Date(version.createdAtUtc).toLocaleString()}</TableCell>
               <TableCell>
