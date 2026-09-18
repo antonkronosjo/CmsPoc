@@ -197,7 +197,7 @@ function EditPanel({
             contentTypeName={active.metadata.contentTypeName}
             language={active.metadata.language}
             properties={active.properties}
-            submitText={isNewLanguageBranch ? `Add ${language} translation` : "Save (creates a new version)"}
+            submitText={isNewLanguageBranch ? `Add ${language} translation` : "Save"}
             onChange={(key, value) =>
               setDraft({ ...active, properties: { ...active.properties, [key]: { ...active.properties[key], value } } })
             }

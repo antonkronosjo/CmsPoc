@@ -10,19 +10,19 @@ public sealed class HistoryQueryTests : IDisposable
     [Fact]
     public void QueryHistory_returns_every_version_newest_first()
     {
-        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", Color = "red" }, "en");
+        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", RelatedContentId = 1 }, "en");
 
-        created.Color = "blue";
+        created.RelatedContentId = 2;
         _fixture.Repository.Update(created);
 
-        created.Color = "green";
+        created.RelatedContentId = 3;
         _fixture.Repository.Update(created);
 
         var history = _fixture.Repository.QueryHistory<NewsContent>(created.Id, "en");
 
         Assert.Equal(3, history.Count);
         Assert.Equal(new[] { 3, 2, 1 }, history.Select(h => h.VersionNumber));
-        Assert.Equal(new[] { "green", "blue", "red" }, history.Select(h => h.Color));
+        Assert.Equal(new int?[] { 3, 2, 1 }, history.Select(h => h.RelatedContentId));
     }
 
     public void Dispose() => _fixture.Dispose();

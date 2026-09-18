@@ -10,9 +10,9 @@ public sealed class GlobalIdUniquenessTests : IDisposable
     [Fact]
     public void Ids_never_collide_across_different_content_types()
     {
-        var news = _fixture.Repository.Create(new NewsContent { Name = "News", Heading = "H", Body = "B", Color = "red" }, "en");
+        var news = _fixture.Repository.Create(new NewsContent { Name = "News", Heading = "H", Body = "B", RelatedContentId = 1 }, "en");
         var @event = _fixture.Repository.Create(new EventContent { Name = "Event", Title = "T", Description = "D", StartDate = DateTime.UtcNow }, "en");
-        var news2 = _fixture.Repository.Create(new NewsContent { Name = "News2", Heading = "H2", Body = "B2", Color = "blue" }, "en");
+        var news2 = _fixture.Repository.Create(new NewsContent { Name = "News2", Heading = "H2", Body = "B2", RelatedContentId = 2 }, "en");
 
         Assert.NotEqual(news.Id, @event.Id);
         Assert.NotEqual(@event.Id, news2.Id);

@@ -14,7 +14,7 @@ interface StatusIndicatorProps extends Omit<ChipProps, "color" | "label" | "vari
   variant?: "chip" | "icon";
 }
 
-export default function StatusIndicator({ metadata, variant = "chip", ...chipProps }: StatusIndicatorProps) {
+export default function StatusIndicator({ metadata, variant = "chip", sx, ...chipProps }: StatusIndicatorProps) {
   const status = getPublishStatus(metadata);
 
   if (variant === "icon") {
@@ -26,5 +26,19 @@ export default function StatusIndicator({ metadata, variant = "chip", ...chipPro
     );
   }
 
-  return <Chip size="small" {...chipProps} color={status.color} label={status.label} />;
+  return (
+    <Chip
+      size="small"
+      {...chipProps}
+      color={status.color}
+      label={status.label}
+      sx={[
+        {
+          height: "auto",
+          "& .MuiChip-label": { px: "0.6em", py: "0.2em", lineHeight: 1.4 },
+        },
+        ...(Array.isArray(sx) ? sx : [sx]),
+      ]}
+    />
+  );
 }

@@ -15,14 +15,14 @@ public sealed class UpdateVersioningTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            Color = "red",
+            RelatedContentId = 1,
         }, "en");
 
-        created.Color = "blue";
+        created.RelatedContentId = 2;
         var updated = _fixture.Repository.Update(created);
 
         Assert.Equal(2, updated.VersionNumber);
-        Assert.Equal("blue", updated.Color);
+        Assert.Equal(2, updated.RelatedContentId);
         Assert.Equal(created.Id, updated.Id);
         Assert.Equal("HEJ", updated.Name); // Name lives on the (unversioned) root and must still be populated after Update
 
@@ -31,11 +31,11 @@ public sealed class UpdateVersioningTests : IDisposable
 
         var version1 = history[1];
         Assert.Equal(1, version1.VersionNumber);
-        Assert.Equal("red", version1.Color); // untouched
+        Assert.Equal(1, version1.RelatedContentId); // untouched
 
         var version2 = history[0];
         Assert.Equal(2, version2.VersionNumber);
-        Assert.Equal("blue", version2.Color);
+        Assert.Equal(2, version2.RelatedContentId);
 
         // Unchanged culture-specific fields are copied forward into the new version, not left behind.
         Assert.Equal("Hello", version2.Heading);
@@ -45,19 +45,19 @@ public sealed class UpdateVersioningTests : IDisposable
     [Fact]
     public void Current_version_query_always_reflects_the_latest_update()
     {
-        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "H", Body = "B", Color = "red" }, "en");
+        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "H", Body = "B", RelatedContentId = 1 }, "en");
 
-        created.Color = "blue";
+        created.RelatedContentId = 2;
         _fixture.Repository.Update(created);
 
-        created.Color = "green";
+        created.RelatedContentId = 3;
         var third = _fixture.Repository.Update(created);
 
         Assert.Equal(3, third.VersionNumber);
 
         var current = _fixture.Repository.Query<NewsContent>("en").Where(x => x.Id == created.Id).First();
         Assert.Equal(3, current.VersionNumber);
-        Assert.Equal("green", current.Color);
+        Assert.Equal(3, current.RelatedContentId);
     }
 
     public void Dispose() => _fixture.Dispose();

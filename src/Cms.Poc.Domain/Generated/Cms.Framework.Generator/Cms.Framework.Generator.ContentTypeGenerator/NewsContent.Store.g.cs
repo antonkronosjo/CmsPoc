@@ -27,7 +27,6 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             Root = root,
             VersionNumber = 1,
             CreatedAtUtc = root.CreatedAtUtc,
-            Color = content.Color,
             RelatedContentId = content.RelatedContentId,
         };
         db.Set<NewsContentVersion>().Add(version);
@@ -50,7 +49,6 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             Language = language,
             VersionNumber = version.VersionNumber,
             CreatedAtUtc = version.CreatedAtUtc,
-            Color = version.Color,
             RelatedContentId = version.RelatedContentId,
             Heading = translation.Heading,
             Body = translation.Body,
@@ -71,7 +69,6 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             RootId = content.Id,
             VersionNumber = currentVersion.VersionNumber + 1,
             CreatedAtUtc = global::System.DateTime.UtcNow,
-            Color = content.Color,
             RelatedContentId = content.RelatedContentId,
         };
         db.Set<NewsContentVersion>().Add(newVersion);
@@ -110,7 +107,6 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
             Language = content.Language,
             VersionNumber = newVersion.VersionNumber,
             CreatedAtUtc = newVersion.CreatedAtUtc,
-            Color = newVersion.Color,
             RelatedContentId = newVersion.RelatedContentId,
             Heading = content.Heading,
             Body = content.Body,
@@ -145,7 +141,6 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
                 CreatedAtUtc = v.CreatedAtUtc,
                 StartPublish = v.StartPublish,
                 StopPublish = v.StopPublish,
-                Color = v.Color,
                 RelatedContentId = v.RelatedContentId,
                 Heading = translation.Heading,
                 Body = translation.Body,
@@ -177,7 +172,6 @@ public sealed class NewsContentStore : global::Cms.Framework.Infrastructure.ICon
                 CreatedAtUtc = v.CreatedAtUtc,
                 StartPublish = v.StartPublish,
                 StopPublish = v.StopPublish,
-                Color = v.Color,
                 RelatedContentId = v.RelatedContentId,
                 Heading = translation.Heading,
                 Body = translation.Body,

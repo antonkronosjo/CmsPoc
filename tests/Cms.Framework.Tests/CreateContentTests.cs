@@ -14,14 +14,14 @@ public sealed class CreateContentTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            Color = "red",
+            RelatedContentId = 1,
         }, language: "en");
 
         Assert.True(created.Id > 0);
         Assert.Equal("HEJ", created.Name);
         Assert.Equal(1, created.VersionNumber);
         Assert.Equal("en", created.Language);
-        Assert.Equal("red", created.Color);
+        Assert.Equal(1, created.RelatedContentId);
         Assert.Equal("Hello", created.Heading);
         Assert.Equal("World", created.Body);
 

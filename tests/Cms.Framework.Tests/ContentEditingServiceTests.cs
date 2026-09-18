@@ -29,7 +29,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         schema.Metadata.Name = "HEJ";
         schema.Properties["Heading"].Value = "Hello";
         schema.Properties["Body"].Value = "World";
-        schema.Properties["Color"].Value = "red";
+        schema.Properties["RelatedContentId"].Value = 1;
 
         var created = _fixture.Editing.Create(schema);
 
@@ -38,7 +38,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         Assert.Equal(1, news.VersionNumber);
         Assert.Equal("Hello", news.Heading);
         Assert.Equal("World", news.Body);
-        Assert.Equal("red", news.Color);
+        Assert.Equal(1, news.RelatedContentId);
     }
 
     [Fact]
@@ -48,23 +48,23 @@ public sealed class ContentEditingServiceTests : IDisposable
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
         creationSchema.Properties["Body"].Value = "World";
-        creationSchema.Properties["Color"].Value = "red";
+        creationSchema.Properties["RelatedContentId"].Value = 1;
         var created = _fixture.Editing.Create(creationSchema);
 
         var updateSchema = _fixture.Editing.GetUpdateSchema(created.Id, "en");
-        Assert.Equal("red", updateSchema.Properties["Color"].Value);
+        Assert.Equal(1, updateSchema.Properties["RelatedContentId"].Value);
 
-        updateSchema.Properties["Color"].Value = "blue";
+        updateSchema.Properties["RelatedContentId"].Value = 2;
         var updated = _fixture.Editing.Update(updateSchema);
 
         var news = Assert.IsType<NewsContent>(updated);
         Assert.Equal(2, news.VersionNumber);
-        Assert.Equal("blue", news.Color);
+        Assert.Equal(2, news.RelatedContentId);
 
         // The same GET shape reflects the update immediately.
         var reread = _fixture.Editing.GetUpdateSchema(created.Id, "en");
         Assert.Equal(2, reread.Metadata.VersionNumber);
-        Assert.Equal("blue", reread.Properties["Color"].Value);
+        Assert.Equal(2, reread.Properties["RelatedContentId"].Value);
     }
 
     [Fact]
@@ -86,7 +86,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
         creationSchema.Properties["Body"].Value = "World";
-        creationSchema.Properties["Color"].Value = "red";
+        creationSchema.Properties["RelatedContentId"].Value = 1;
         var created = _fixture.Editing.Create(creationSchema);
 
         var swedishSchema = _fixture.Editing.GetUpdateSchema(created.Id, "sv");
@@ -98,7 +98,7 @@ public sealed class ContentEditingServiceTests : IDisposable
 
         swedishSchema.Properties["Heading"].Value = "Hej";
         swedishSchema.Properties["Body"].Value = "Varlden";
-        swedishSchema.Properties["Color"].Value = "red";
+        swedishSchema.Properties["RelatedContentId"].Value = 1;
         var updated = _fixture.Editing.Update(swedishSchema);
 
         Assert.Equal(2, updated.VersionNumber);
@@ -117,7 +117,7 @@ public sealed class ContentEditingServiceTests : IDisposable
             news.Metadata.Name = $"News {i}";
             news.Properties["Heading"].Value = $"Heading {i}";
             news.Properties["Body"].Value = "Body";
-            news.Properties["Color"].Value = "red";
+            news.Properties["RelatedContentId"].Value = 1;
             _fixture.Editing.Create(news);
         }
 
@@ -149,20 +149,20 @@ public sealed class ContentEditingServiceTests : IDisposable
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
         creationSchema.Properties["Body"].Value = "World";
-        creationSchema.Properties["Color"].Value = "red";
+        creationSchema.Properties["RelatedContentId"].Value = 1;
         var created = _fixture.Editing.Create(creationSchema);
 
         var updateSchema = _fixture.Editing.GetUpdateSchema(created.Id, "en");
-        updateSchema.Properties["Color"].Value = "blue";
+        updateSchema.Properties["RelatedContentId"].Value = 2;
         _fixture.Editing.Update(updateSchema);
 
         var version1 = _fixture.Editing.GetUpdateSchema(created.Id, "en", version: 1);
         Assert.Equal(1, version1.Metadata.VersionNumber);
-        Assert.Equal("red", version1.Properties["Color"].Value);
+        Assert.Equal(1, version1.Properties["RelatedContentId"].Value);
 
         var version2 = _fixture.Editing.GetUpdateSchema(created.Id, "en", version: 2);
         Assert.Equal(2, version2.Metadata.VersionNumber);
-        Assert.Equal("blue", version2.Properties["Color"].Value);
+        Assert.Equal(2, version2.Properties["RelatedContentId"].Value);
 
         Assert.Throws<KeyNotFoundException>(() => _fixture.Editing.GetUpdateSchema(created.Id, "en", version: 99));
     }

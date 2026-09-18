@@ -15,9 +15,6 @@ public class NewsContent : Content
     [Required]
     public string Body { get; set; } = string.Empty;
 
-    [ContentProperty(InputType.Text)]
-    public string Color { get; set; } = string.Empty;
-
     /// <summary>
     /// Id of another content item this article relates to, or null. Just a
     /// plain nullable int - "this is a reference" is entirely a frontend

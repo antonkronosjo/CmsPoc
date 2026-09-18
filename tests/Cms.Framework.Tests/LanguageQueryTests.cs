@@ -15,7 +15,7 @@ public sealed class LanguageQueryTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            Color = "red",
+            RelatedContentId = 1,
         }, "en");
 
         _fixture.Repository.Update(new NewsContent
@@ -23,7 +23,7 @@ public sealed class LanguageQueryTests : IDisposable
             Id = created.Id,
             Name = created.Name,
             Language = "sv",
-            Color = created.Color,
+            RelatedContentId = created.RelatedContentId,
             Heading = "Hej",
             Body = "Varlden",
         });

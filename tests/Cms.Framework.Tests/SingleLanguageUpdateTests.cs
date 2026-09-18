@@ -15,7 +15,7 @@ public sealed class SingleLanguageUpdateTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            Color = "red",
+            RelatedContentId = 1,
         }, "en");
 
         // add a Swedish translation as its own update
@@ -24,7 +24,7 @@ public sealed class SingleLanguageUpdateTests : IDisposable
             Id = created.Id,
             Name = created.Name,
             Language = "sv",
-            Color = created.Color,
+            RelatedContentId = created.RelatedContentId,
             Heading = "Hej",
             Body = "Varlden",
         };

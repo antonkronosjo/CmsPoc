@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
 import { api } from "../api/client";
 import StatusIndicator from "./StatusIndicator";
 import PublishDialog, { usePublishActions } from "./PublishDialog";
@@ -19,7 +19,6 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
   });
 
   const publishActions = usePublishActions({ id, language });
-  const { openPublishDialog, unpublish } = publishActions;
 
   if (history.length === 0) {
     return (
@@ -43,8 +42,6 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
           </TableHead>
           <TableBody>
             {history.map((version) => {
-              const isLive = version.versionNumber === version.livePublishedVersionNumber;
-
               return (
                 <TableRow
                   key={version.versionNumber}
