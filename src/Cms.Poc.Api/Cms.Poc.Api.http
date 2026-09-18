@@ -1,0 +1,6 @@
+@Cms.Poc.Api_HostAddress = http://localhost:5075
+
+GET {{Cms.Poc.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

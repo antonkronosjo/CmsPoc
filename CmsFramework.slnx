@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Cms.Framework.Abstractions/Cms.Framework.Abstractions.csproj" />
+    <Project Path="src/Cms.Framework.Generator/Cms.Framework.Generator.csproj" />
+    <Project Path="src/Cms.Framework.Infrastructure/Cms.Framework.Infrastructure.csproj" />
+    <Project Path="src/Cms.Poc.Api/Cms.Poc.Api.csproj" />
+    <Project Path="src/Cms.Poc.Domain/Cms.Poc.Domain.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Cms.Framework.Tests/Cms.Framework.Tests.csproj" />
+  </Folder>
+</Solution>
