@@ -4,6 +4,8 @@ obj/
 *.db-shm
 *.db-wal
 
+src/Cms.Poc.Domain/Generated/
+
 node_modules/
 dist/
 

@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Button, Dialog, DialogActions, DialogContent, DialogTitle, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Button, Drawer, IconButton, Stack, Typography } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { api } from "../api/client";
 import dayjs from "../lib/dayjs";
+import ConfirmDialog, { useConfirmDialog } from "./ConfirmDialog";
 
 interface PublishTarget {
   versionNumber: number;
+  currentLiveVersionNumber?: number | null;
 }
 
 interface UsePublishActionsOptions {
@@ -20,6 +22,7 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
   const [publishTarget, setPublishTarget] = useState<PublishTarget | undefined>(undefined);
   const [startPublish, setStartPublish] = useState<string | null>(null);
   const [stopPublish, setStopPublish] = useState<string | null>(null);
+  const { confirm, confirmDialogProps } = useConfirmDialog();
 
   async function invalidateAfterPublishChange() {
     await queryClient.invalidateQueries({ queryKey: ["update-schema", id, language] });
@@ -39,12 +42,29 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
 
   async function confirmPublish() {
     if (!publishTarget) return;
-    await api.publishContent(id, { versionNumber: publishTarget.versionNumber, startPublish, stopPublish });
+    const { versionNumber, currentLiveVersionNumber } = publishTarget;
+    if (currentLiveVersionNumber != null && versionNumber < currentLiveVersionNumber) {
+      const ok = await confirm({
+        title: "Publish an older version?",
+        message: `Version ${versionNumber} is older than the currently published version ${currentLiveVersionNumber}. Publishing it will replace the live content with this older version. Are you sure you want to continue?`,
+        confirmText: "Publish anyway",
+        confirmColor: "warning",
+      });
+      if (!ok) return;
+    }
+    await api.publishContent(id, { versionNumber, startPublish, stopPublish });
     setPublishTarget(undefined);
     await invalidateAfterPublishChange();
   }
 
   async function unpublish() {
+    const ok = await confirm({
+      title: "Unpublish content?",
+      message: "This will take the currently live version offline immediately. Are you sure you want to continue?",
+      confirmText: "Unpublish",
+      confirmColor: "warning",
+    });
+    if (!ok) return;
     await api.unpublishContent(id);
     await invalidateAfterPublishChange();
   }
@@ -59,6 +79,7 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
     closePublishDialog,
     confirmPublish,
     unpublish,
+    confirmDialogProps,
   };
 }
 
@@ -72,39 +93,45 @@ export default function PublishDialog({
   setStopPublish,
   closePublishDialog,
   confirmPublish,
+  confirmDialogProps,
 }: PublishActions) {
   return (
-    <Dialog open={!!publishTarget} onClose={closePublishDialog} maxWidth="xs" fullWidth>
-      <DialogTitle>
-        <Typography variant="h6">Publish v{publishTarget?.versionNumber}</Typography>
-        <IconButton aria-label="close" onClick={closePublishDialog} sx={{ position: "absolute", right: 8, top: 8 }}>
-          <Close />
-        </IconButton>
-      </DialogTitle>
-      <DialogContent>
-        <Stack spacing={2} sx={{ mt: 1 }}>
-          <DateTimePicker
-            label="Publish at"
-            ampm={false}
-            value={startPublish ? dayjs.utc(startPublish).local() : null}
-            onChange={(v) => setStartPublish(v ? v.utc().toISOString() : null)}
-            slotProps={{ textField: { fullWidth: true, helperText: "Defaults to now - clear to publish immediately" } }}
-          />
-          <DateTimePicker
-            label="Unpublish at"
-            ampm={false}
-            value={stopPublish ? dayjs.utc(stopPublish).local() : null}
-            onChange={(v) => setStopPublish(v ? v.utc().toISOString() : null)}
-            slotProps={{ textField: { fullWidth: true, helperText: "Leave empty for no scheduled end" } }}
-          />
-        </Stack>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={closePublishDialog}>Cancel</Button>
-        <Button variant="contained" onClick={confirmPublish}>
-          Publish
-        </Button>
-      </DialogActions>
-    </Dialog>
+    <>
+      <Drawer anchor="right" open={!!publishTarget} onClose={closePublishDialog}>
+        <Box sx={{ width: { xs: "85vw", sm: 380 }, display: "flex", flexDirection: "column", height: "100%" }}>
+          <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", p: 3, pb: 2 }}>
+            <Typography variant="h6">Publish v{publishTarget?.versionNumber}</Typography>
+            <IconButton aria-label="close" onClick={closePublishDialog}>
+              <Close />
+            </IconButton>
+          </Stack>
+          <Box sx={{ borderBottom: "1px dotted", borderColor: "divider" }} />
+          <Stack spacing={2} sx={{ p: 3, flex: 1 }}>
+            <DateTimePicker
+              label="Publish at"
+              ampm={false}
+              value={startPublish ? dayjs.utc(startPublish).local() : null}
+              onChange={(v) => setStartPublish(v ? v.utc().toISOString() : null)}
+              slotProps={{ textField: { fullWidth: true, helperText: "Defaults to now - clear to publish immediately" } }}
+            />
+            <DateTimePicker
+              label="Unpublish at"
+              ampm={false}
+              value={stopPublish ? dayjs.utc(stopPublish).local() : null}
+              onChange={(v) => setStopPublish(v ? v.utc().toISOString() : null)}
+              slotProps={{ textField: { fullWidth: true, helperText: "Leave empty for no scheduled end" } }}
+            />
+          </Stack>
+          <Box sx={{ borderBottom: "1px dotted", borderColor: "divider" }} />
+          <Stack direction="row" spacing={1} sx={{ p: 2, justifyContent: "flex-end" }}>
+            <Button onClick={closePublishDialog}>Cancel</Button>
+            <Button variant="contained" onClick={confirmPublish}>
+              Publish
+            </Button>
+          </Stack>
+        </Box>
+      </Drawer>
+      <ConfirmDialog {...confirmDialogProps} />
+    </>
   );
 }

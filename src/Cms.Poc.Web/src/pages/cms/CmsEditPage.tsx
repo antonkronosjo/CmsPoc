@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Box, Button, Card, Drawer, Stack, TextField, Typography } from "@mui/material";
+import { Alert, Box, Button, Card, Drawer, Stack, TextField, Tooltip, Typography } from "@mui/material";
 import { Edit, History } from "@mui/icons-material";
 import dayjs from "../../lib/dayjs";
 import { api, type UpdateContentSchema } from "../../api/client";
@@ -102,6 +102,7 @@ function EditPanel({
   const [historyOpen, setHistoryOpen] = useState(false);
   const publishActions = usePublishActions({ id, language });
   const active = draft ?? schema;
+  const hasChanges = draft !== undefined && JSON.stringify(draft) !== JSON.stringify(schema);
 
   if (isLoading || !active) return <Typography color="text.secondary">Loading…</Typography>;
 
@@ -132,12 +133,22 @@ function EditPanel({
                   Unpublish
                 </Button>
               ) : (
-                <Button
-                  variant="contained"
-                  onClick={() => publishActions.openPublishDialog({ versionNumber: active.metadata.versionNumber })}
-                >
-                  Publish
-                </Button>
+                <Tooltip title={hasChanges ? "You have pending changes, save before publishing" : ""}>
+                  <span>
+                    <Button
+                      variant="contained"
+                      disabled={hasChanges}
+                      onClick={() =>
+                        publishActions.openPublishDialog({
+                          versionNumber: active.metadata.versionNumber,
+                          currentLiveVersionNumber: active.metadata.livePublishedVersionNumber,
+                        })
+                      }
+                    >
+                      Publish
+                    </Button>
+                  </span>
+                </Tooltip>
               ))}
           </Stack>
           {isNewLanguageBranch ? (
@@ -198,6 +209,8 @@ function EditPanel({
             language={active.metadata.language}
             properties={active.properties}
             submitText={isNewLanguageBranch ? `Add ${language} translation` : "Save"}
+            submitDisabled={!hasChanges}
+            submitDisabledReason="No changes detected"
             onChange={(key, value) =>
               setDraft({ ...active, properties: { ...active.properties, [key]: { ...active.properties[key], value } } })
             }

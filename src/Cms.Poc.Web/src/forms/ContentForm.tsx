@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
-import { Button, Stack, TextField, type TextFieldProps } from "@mui/material";
+import { Button, Stack, TextField, Tooltip, type TextFieldProps } from "@mui/material";
 import { DatePicker, DateTimePicker } from "@mui/x-date-pickers";
 import { api, InputType, type ContentPropertyValueDto } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
@@ -14,12 +14,24 @@ interface ContentFormProps {
   onSubmit: () => Promise<void> | void;
   submitText: string;
   disabled?: boolean;
+  submitDisabled?: boolean;
+  submitDisabledReason?: string;
 }
 
 /// One generic form for every content type. Adding a field to a content
 /// type on the backend never touches this file - it just shows up here,
 /// rendered by whichever InputType case matches its schema.
-export default function ContentForm({ properties, contentTypeName, language, onChange, onSubmit, submitText, disabled }: ContentFormProps) {
+export default function ContentForm({
+  properties,
+  contentTypeName,
+  language,
+  onChange,
+  onSubmit,
+  submitText,
+  disabled,
+  submitDisabled,
+  submitDisabledReason,
+}: ContentFormProps) {
   const fieldRefs = useRef<Record<string, FormElementHandle | null>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -53,9 +65,13 @@ export default function ContentForm({ properties, contentTypeName, language, onC
           onChange={(value) => onChange(key, value)}
         />
       ))}
-      <Button variant="contained" sx={{ alignSelf: "flex-end" }} disabled={disabled || submitting} onClick={handleSubmit}>
-        {submitText}
-      </Button>
+      <Tooltip title={!disabled && !submitting && submitDisabled ? submitDisabledReason ?? "" : ""}>
+        <span style={{ alignSelf: "flex-end" }}>
+          <Button variant="contained" fullWidth disabled={disabled || submitting || submitDisabled} onClick={handleSubmit}>
+            {submitText}
+          </Button>
+        </span>
+      </Tooltip>
     </Stack>
   );
 }
