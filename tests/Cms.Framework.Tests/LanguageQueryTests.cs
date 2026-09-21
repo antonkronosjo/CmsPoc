@@ -1,3 +1,4 @@
+using Cms.Framework.Abstractions;
 using Cms.Poc.Domain;
 
 namespace Cms.Framework.Tests;
@@ -15,7 +16,7 @@ public sealed class LanguageQueryTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            RelatedContentId = 1,
+            RelatedContent = new ContentReference(1, "NewsContent"),
         }, "en");
 
         _fixture.Repository.Update(new NewsContent
@@ -23,7 +24,7 @@ public sealed class LanguageQueryTests : IDisposable
             Id = created.Id,
             Name = created.Name,
             Language = "sv",
-            RelatedContentId = created.RelatedContentId,
+            RelatedContent = created.RelatedContent,
             Heading = "Hej",
             Body = "Varlden",
         });

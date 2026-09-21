@@ -17,10 +17,8 @@ public class NewsContent : Content
     public string Body { get; set; } = string.Empty;
 
     /// <summary>
-    /// Id of another content item this article relates to, or null. Just a
-    /// plain nullable int - "this is a reference" is entirely a frontend
-    /// concern driven by <see cref="InputType.ContentReference"/>.
+    /// The content item this article relates to, or null.
     /// </summary>
     [ContentProperty(InputType.ContentReference)]
-    public int? RelatedContentId { get; set; }
+    public ContentReference? RelatedContent { get; set; }
 }

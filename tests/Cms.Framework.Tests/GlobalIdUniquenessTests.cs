@@ -1,3 +1,4 @@
+using Cms.Framework.Abstractions;
 using Cms.Poc.Domain;
 
 namespace Cms.Framework.Tests;
@@ -10,9 +11,9 @@ public sealed class GlobalIdUniquenessTests : IDisposable
     [Fact]
     public void Ids_never_collide_across_different_content_types()
     {
-        var news = _fixture.Repository.Create(new NewsContent { Name = "News", Heading = "H", Body = "B", RelatedContentId = 1 }, "en");
+        var news = _fixture.Repository.Create(new NewsContent { Name = "News", Heading = "H", Body = "B", RelatedContent = new ContentReference(1, "NewsContent") }, "en");
         var @event = _fixture.Repository.Create(new EventContent { Name = "Event", Title = "T", Description = "D", StartDate = DateTime.UtcNow }, "en");
-        var news2 = _fixture.Repository.Create(new NewsContent { Name = "News2", Heading = "H2", Body = "B2", RelatedContentId = 2 }, "en");
+        var news2 = _fixture.Repository.Create(new NewsContent { Name = "News2", Heading = "H2", Body = "B2", RelatedContent = new ContentReference(2, "NewsContent") }, "en");
 
         Assert.NotEqual(news.Id, @event.Id);
         Assert.NotEqual(@event.Id, news2.Id);

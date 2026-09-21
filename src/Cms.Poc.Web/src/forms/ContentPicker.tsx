@@ -2,14 +2,14 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Chip, Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
 import { Close } from "@mui/icons-material";
-import { api } from "../api/client";
+import { api, type ContentReference } from "../api/client";
 import ContentSearchList from "../components/ContentSearchList";
 
 interface ContentPickerProps {
   label: string;
   language: string;
-  value: number | null | undefined;
-  onChange: (value: number | null) => void;
+  value: ContentReference | null | undefined;
+  onChange: (value: ContentReference | null) => void;
   disabled?: boolean;
 }
 
@@ -21,8 +21,8 @@ export default function ContentPicker({ label, language, value, onChange, disabl
   const [open, setOpen] = useState(false);
 
   const { data: resolved } = useQuery({
-    queryKey: ["content-summary", value, language],
-    queryFn: () => api.getContentSummary(value!, language),
+    queryKey: ["content-summary", value?.id, language],
+    queryFn: () => api.getContentSummary(value!.id, language),
     enabled: value != null,
   });
 
@@ -44,7 +44,7 @@ export default function ContentPicker({ label, language, value, onChange, disabl
                   <Chip
                     color="primary"
                     size="small"
-                    label={resolved ? `${resolved.name || "(untitled)"} · ${resolved.contentTypeName}` : `#${value}`}
+                    label={resolved ? `${resolved.name || "(untitled)"} · ${resolved.contentTypeName}` : `#${value.id}`}
                     onDelete={
                       disabled
                         ? undefined
@@ -71,9 +71,9 @@ export default function ContentPicker({ label, language, value, onChange, disabl
         <DialogContent>
           <ContentSearchList
             language={language}
-            excludeId={value ?? undefined}
+            excludeId={value?.id}
             onSelect={(item) => {
-              onChange(item.id);
+              onChange({ id: item.id, contentType: item.contentTypeName });
               setOpen(false);
             }}
           />

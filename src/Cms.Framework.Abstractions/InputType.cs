@@ -20,10 +20,7 @@ public enum InputType
 
     /// <summary>
     /// Renders as a searchable picker for another content item. Backed by a
-    /// plain nullable <c>int</c> property holding the referenced item's
-    /// <see cref="Content.Id"/> - no dedicated value type or EF value
-    /// converter is required, the "reference-ness" is purely a frontend
-    /// concern driven by this enum value.
+    /// <see cref="ContentReference"/> property.
     /// </summary>
     ContentReference = 5,
 }

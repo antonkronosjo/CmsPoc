@@ -10,6 +10,12 @@ export const InputType = {
 } as const;
 export type InputType = (typeof InputType)[keyof typeof InputType];
 
+/// Mirrors the backend ContentReference struct: which content item, and its content type key.
+export interface ContentReference {
+  id: number;
+  contentType: string;
+}
+
 /// Both the metadata needed to render a field and the field's current
 /// value - the same shape flows from schema to edited state to submit body.
 export interface ContentPropertyValueDto {

@@ -1,7 +1,7 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Button, Stack, TextField, Tooltip, type TextFieldProps } from "@mui/material";
 import { DatePicker, DateTimePicker } from "@mui/x-date-pickers";
-import { api, InputType, type ContentPropertyValueDto } from "../api/client";
+import { api, InputType, type ContentPropertyValueDto, type ContentReference } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import ContentPicker from "./ContentPicker";
 import dayjs from "../lib/dayjs";
@@ -192,7 +192,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
             label={label}
             language={language}
             disabled={disabled}
-            value={valueDto.value as number | null}
+            value={valueDto.value as ContentReference | null}
             onChange={(v) => handleChange(v)}
           />
         );
