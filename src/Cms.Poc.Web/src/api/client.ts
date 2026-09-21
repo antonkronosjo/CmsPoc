@@ -24,6 +24,12 @@ export interface ContentPropertyValueDto {
   value: unknown;
 }
 
+/// A registered content type. color is the hex code from the backend's [ContentType(Color = ...)], or null if none was set.
+export interface ContentTypeInfo {
+  key: string;
+  color: string | null;
+}
+
 export interface CreateContentMetadata {
   contentTypeKey: string;
   language: string;
@@ -118,7 +124,7 @@ function query(params: Record<string, string | number | boolean | undefined>): s
 }
 
 export const api = {
-  getContentTypes: () => fetch(`${API_BASE}/api/content/types`).then((r) => json<string[]>(r)),
+  getContentTypes: () => fetch(`${API_BASE}/api/content/types`).then((r) => json<ContentTypeInfo[]>(r)),
 
   getCreationSchema: (contentTypeKey: string, language: string) =>
     fetch(`${API_BASE}/api/content/creationschema${query({ contentTypeKey, language })}`).then((r) => json<CreateContentSchema>(r)),

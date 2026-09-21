@@ -3,7 +3,7 @@ using Cms.Framework.Abstractions;
 
 namespace Cms.Poc.Domain;
 
-[ContentType]
+[ContentType(Color = "#6B7280")]
 public class NewsContent : Content
 {
     [CultureSpecific]

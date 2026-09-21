@@ -48,8 +48,8 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return user.Id;
     }
 
-    public IReadOnlyList<string> GetContentTypes()
-        => _contentTypes.Select(x => x.ContentTypeKey.ToString()).ToList();
+    public IReadOnlyList<ContentTypeInfoDto> GetContentTypes()
+        => _contentTypes.Select(x => new ContentTypeInfoDto { Key = x.ContentTypeKey.ToString(), Color = x.Color }).ToList();
 
     public CreateContentSchema<TContentType> GetCreationSchema(TContentType contentTypeKey, string language)
     {

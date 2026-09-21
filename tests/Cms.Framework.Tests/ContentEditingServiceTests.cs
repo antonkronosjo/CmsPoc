@@ -16,10 +16,19 @@ public sealed class ContentEditingServiceTests : IDisposable
     [Fact]
     public void GetContentTypes_lists_every_registered_type()
     {
-        var types = _fixture.Editing.GetContentTypes();
+        var types = _fixture.Editing.GetContentTypes().Select(t => t.Key).ToList();
 
         Assert.Contains(nameof(NewsContent), types);
         Assert.Contains(nameof(EventContent), types);
+    }
+
+    [Fact]
+    public void GetContentTypes_exposes_the_color_from_the_ContentType_attribute()
+    {
+        var types = _fixture.Editing.GetContentTypes().ToDictionary(t => t.Key, t => t.Color);
+
+        Assert.Equal("#6B7280", types[nameof(NewsContent)]);
+        Assert.Equal("#5B6EF5", types[nameof(EventContent)]);
     }
 
     [Fact]

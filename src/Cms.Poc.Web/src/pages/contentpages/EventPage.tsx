@@ -1,6 +1,7 @@
-import { Chip, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import { getProperty } from "../../components/ContentArea/types";
+import ContentTypeChip from "../../components/ContentTypeChip";
 import ContentPageShell from "./ContentPageShell";
 
 export default function EventPage() {
@@ -10,7 +11,7 @@ export default function EventPage() {
         const startDate = getProperty(content, "StartDate");
         return (
           <Stack spacing={2}>
-            <Chip size="small" color="primary" label="Event" sx={{ alignSelf: "flex-start" }} />
+            <ContentTypeChip contentTypeKey={content.contentTypeKey} label="Event" sx={{ alignSelf: "flex-start" }} />
             <Typography variant="h3" component="h1">
               {getProperty(content, "Title") || content.name}
             </Typography>

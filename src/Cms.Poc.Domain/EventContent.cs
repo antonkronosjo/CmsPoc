@@ -3,7 +3,7 @@ using Cms.Framework.Abstractions;
 
 namespace Cms.Poc.Domain;
 
-[ContentType]
+[ContentType(Color = "#5B6EF5")]
 public class EventContent : Content
 {
     [CultureSpecific]

@@ -9,6 +9,7 @@ import { useLanguage } from "../../context/LanguageContext";
 import ContentForm from "../../forms/ContentForm";
 import VersionHistory from "../../components/VersionHistory";
 import StatusIndicator from "../../components/StatusIndicator";
+import ContentTypeChip from "../../components/ContentTypeChip";
 import PublishDialog, { usePublishActions } from "../../components/PublishDialog";
 
 export default function CmsEditPage() {
@@ -166,7 +167,7 @@ function EditPanel({
               }}
             >
               <MetaItem label="Id" value={active.metadata.id} />
-              <MetaItem label="Content type" value={active.metadata.contentTypeKey} />
+              <MetaItem label="Content type" value={<ContentTypeChip contentTypeKey={active.metadata.contentTypeKey} />} />
               <MetaItem
                 label="Version"
                 value={

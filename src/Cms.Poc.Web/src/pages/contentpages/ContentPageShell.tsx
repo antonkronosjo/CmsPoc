@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Container, Typography } from "@mui/material";
-import { ArrowBack } from "@mui/icons-material";
+import { Alert, Button, Container, Stack, Typography } from "@mui/material";
+import { ArrowBack, Edit } from "@mui/icons-material";
 import { api, type ContentSummaryDto } from "../../api/client";
 import { useLanguage } from "../../context/LanguageContext";
 
@@ -31,9 +31,16 @@ export default function ContentPageShell({ contentTypeKey, children }: ContentPa
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Button component={RouterLink} to="/" startIcon={<ArrowBack />} sx={{ mb: 2 }}>
-        Back
-      </Button>
+      <Stack direction="row" sx={{ justifyContent: "space-between", mb: 2 }}>
+        <Button component={RouterLink} to="/" startIcon={<ArrowBack />}>
+          Back
+        </Button>
+        {found && (
+          <Button component={RouterLink} to={`/cms/edit/${contentId}`} startIcon={<Edit />} variant="outlined">
+            Edit
+          </Button>
+        )}
+      </Stack>
       {isLoading ? (
         <Typography color="text.secondary">Loading…</Typography>
       ) : found ? (

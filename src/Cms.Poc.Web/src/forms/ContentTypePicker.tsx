@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
 import { MenuItem, Select } from "@mui/material";
-import { api } from "../api/client";
+import ContentTypeChip from "../components/ContentTypeChip";
+import { useContentTypes } from "../hooks/useContentTypes";
 
 interface ContentTypePickerProps {
   value: string;
@@ -8,7 +8,7 @@ interface ContentTypePickerProps {
 }
 
 export default function ContentTypePicker({ value, onChange }: ContentTypePickerProps) {
-  const { data: contentTypes = [] } = useQuery({ queryKey: ["content-types"], queryFn: api.getContentTypes });
+  const { data: contentTypes = [] } = useContentTypes();
 
   return (
     <Select displayEmpty value={value} onChange={(e) => onChange(e.target.value)} size="small" sx={{ minWidth: 220, mb: 2 }}>
@@ -16,8 +16,8 @@ export default function ContentTypePicker({ value, onChange }: ContentTypePicker
         <em>Choose a content type</em>
       </MenuItem>
       {contentTypes.map((t) => (
-        <MenuItem key={t} value={t}>
-          {t}
+        <MenuItem key={t.key} value={t.key}>
+          <ContentTypeChip contentTypeKey={t.key} />
         </MenuItem>
       ))}
     </Select>

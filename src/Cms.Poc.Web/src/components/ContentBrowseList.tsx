@@ -18,7 +18,9 @@ import {
 } from "@mui/material";
 import dayjs from "dayjs";
 import { api, type ContentSummaryDto } from "../api/client";
+import { useContentTypes } from "../hooks/useContentTypes";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
+import ContentTypeChip from "./ContentTypeChip";
 
 const PAGE_SIZE = 10;
 
@@ -45,7 +47,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
     setPage(1);
   }, 250);
 
-  const { data: contentTypes = [] } = useQuery({ queryKey: ["content-types"], queryFn: api.getContentTypes });
+  const { data: contentTypes = [] } = useContentTypes();
 
   const { data, isFetching } = useQuery({
     queryKey: ["content-search", term, language, contentTypeName, page, publishedOnly],
@@ -83,8 +85,8 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
               <em>All content types</em>
             </MenuItem>
             {contentTypes.map((t) => (
-              <MenuItem key={t} value={t}>
-                {t}
+              <MenuItem key={t.key} value={t.key}>
+                {t.key}
               </MenuItem>
             ))}
           </Select>
@@ -118,7 +120,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
               >
                 <TableCell>{item.name || <em>(untitled)</em>}</TableCell>
                 <TableCell>
-                  <Chip size="small" label={item.contentTypeKey} />
+                  <ContentTypeChip contentTypeKey={item.contentTypeKey} />
                 </TableCell>
                 <TableCell>v{item.versionNumber}</TableCell>
                 <TableCell>{dayjs(item.created).format("YYYY-MM-DD HH:mm")}</TableCell>

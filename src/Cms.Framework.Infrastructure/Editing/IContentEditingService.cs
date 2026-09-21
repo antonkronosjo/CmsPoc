@@ -24,7 +24,7 @@ namespace Cms.Framework.Infrastructure.Editing;
 public interface IContentEditingService<TContentType>
     where TContentType : struct, Enum
 {
-    IReadOnlyList<string> GetContentTypes();
+    IReadOnlyList<ContentTypeInfoDto> GetContentTypes();
 
     CreateContentSchema<TContentType> GetCreationSchema(TContentType contentTypeKey, string language);
 
