@@ -3,6 +3,7 @@ using Cms.Framework.Abstractions;
 
 namespace Cms.Poc.Domain;
 
+[ContentType]
 public class NewsContent : Content
 {
     [CultureSpecific]

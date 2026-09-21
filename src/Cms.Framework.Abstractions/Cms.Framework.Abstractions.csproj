@@ -1,9 +1,18 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <Description>Content model and repository abstractions for the CMS framework. Also ships the source generator that emits persistence code for [ContentType] classes.</Description>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Build the generator first, but don't reference its assembly; it ships as an
+         analyzer inside this package so consumers get it just by referencing Abstractions. -->
+    <ProjectReference Include="..\Cms.Framework.Generator\Cms.Framework.Generator.csproj" ReferenceOutputAssembly="false" PrivateAssets="all" />
+    <None Include="..\Cms.Framework.Generator\bin\$(Configuration)\netstandard2.0\Cms.Framework.Generator.dll"
+          Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+  </ItemGroup>
 
 </Project>

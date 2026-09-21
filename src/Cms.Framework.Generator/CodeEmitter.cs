@@ -364,24 +364,25 @@ internal static class CodeEmitter
         sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
         sb.AppendLine("using Cms.Framework.Infrastructure;");
         sb.AppendLine();
+        sb.AppendLine($"[assembly: global::Cms.Framework.Infrastructure.ContentTypeRegistrar(typeof({GeneratedNamespace}.GeneratedContentTypeRegistrar))]");
+        sb.AppendLine();
         sb.AppendLine($"namespace {GeneratedNamespace};");
         sb.AppendLine();
-        sb.AppendLine("public static class ContentFrameworkServiceCollectionExtensions");
+        sb.AppendLine("/// <summary>");
+        sb.AppendLine("/// Registers every [ContentType] class discovered in this assembly - one");
+        sb.AppendLine("/// generated IContentTypeStore&lt;T&gt; and IContentTypeMetadata per type.");
+        sb.AppendLine("/// Internal, so each content assembly gets its own copy without clashing;");
+        sb.AppendLine("/// AddCms finds it through the assembly-level attribute above.");
+        sb.AppendLine("/// </summary>");
+        sb.AppendLine("internal sealed class GeneratedContentTypeRegistrar : IContentTypeRegistrar");
         sb.AppendLine("{");
-        sb.AppendLine("    /// <summary>");
-        sb.AppendLine("    /// Registers every content type discovered in this compilation - one");
-        sb.AppendLine("    /// generated IContentTypeStore&lt;T&gt; and IContentTypeMetadata per type.");
-        sb.AppendLine("    /// Nothing here is written by hand; recompiling after adding a new");
-        sb.AppendLine("    /// Content-derived class regenerates this method to include it.");
-        sb.AppendLine("    /// </summary>");
-        sb.AppendLine("    public static IServiceCollection AddContentFramework(this IServiceCollection services)");
+        sb.AppendLine("    public void Register(IServiceCollection services)");
         sb.AppendLine("    {");
         foreach (var model in models)
         {
             sb.AppendLine($"        services.AddSingleton<IContentTypeStore<{model.FullyQualifiedName}>, {model.StoreTypeName}>();");
             sb.AppendLine($"        services.AddSingleton<IContentTypeMetadata, ContentTypeMetadata<{model.FullyQualifiedName}>>();");
         }
-        sb.AppendLine("        return services;");
         sb.AppendLine("    }");
         sb.AppendLine("}");
         return sb.ToString();

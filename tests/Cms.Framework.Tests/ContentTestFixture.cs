@@ -1,8 +1,7 @@
 using Cms.Framework.Abstractions;
-using Cms.Framework.Generated;
 using Cms.Framework.Infrastructure;
 using Cms.Framework.Infrastructure.Editing;
-using Microsoft.EntityFrameworkCore;
+using Cms.Framework.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Cms.Framework.Tests;
@@ -10,8 +9,8 @@ namespace Cms.Framework.Tests;
 /// <summary>
 /// Spins up a real, file-based SQLite database and wires the framework
 /// exactly the way a real application would: register generated content
-/// types via <c>AddContentFramework()</c>, register the DbContext via
-/// <c>AddCmsDbContext()</c>, and resolve <see cref="IContentRepository"/>
+/// everything via the single <c>AddCms()</c> call (content types are
+/// discovered from <c>[ContentType]</c>), and resolve <see cref="IContentRepository"/>
 /// from DI. No test-only shortcuts around the framework's own entry points.
 /// A new instance is created per test method (xUnit's default when a test
 /// class owns one directly), so tests never see each other's data.
@@ -27,11 +26,9 @@ public sealed class ContentTestFixture : IDisposable
         _dbPath = Path.Combine(Path.GetTempPath(), $"cms-tests-{Guid.NewGuid():N}.db");
 
         var services = new ServiceCollection();
-        services.AddContentFramework();
         // Pooling=False so the underlying file handle is released as soon as the
         // DbContext is disposed, letting each test clean up its own temp database.
-        services.AddCmsDbContext($"Data Source={_dbPath};Pooling=False");
-        services.AddContentEditing();
+        services.AddCms(cms => cms.UseSqlite($"Data Source={_dbPath};Pooling=False"));
         _provider = services.BuildServiceProvider();
 
         _scope = _provider.CreateScope();

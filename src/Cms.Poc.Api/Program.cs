@@ -1,14 +1,15 @@
-using Cms.Framework.Generated;
+using Cms.Framework.AspNetCore;
 using Cms.Framework.Infrastructure;
-using Cms.Framework.Infrastructure.Editing;
-using Cms.Poc.Api;
+using Cms.Framework.Sqlite;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddContentFramework();
-builder.Services.AddCmsDbContext("Data Source=cms-poc.db");
-builder.Services.AddContentEditing();
+builder.Services.AddCms(cms =>
+{
+    cms.UseSqlite("Data Source=cms-poc.db");
+    cms.EnsureDatabaseCreated = true;
+});
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy => policy
@@ -21,11 +22,6 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    scope.ServiceProvider.GetRequiredService<CmsDbContext>().Database.EnsureCreated();
-}
-
 if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
@@ -33,6 +29,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.MapContentEndpoints();
+app.MapCms("/api/content");
 
 app.Run();

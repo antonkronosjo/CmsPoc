@@ -8,6 +8,7 @@ namespace Cms.Framework.Generator;
 internal static class ContentTypeDiscovery
 {
     private const string ContentTypeFullName = "Cms.Framework.Abstractions.Content";
+    private const string ContentTypeAttributeFullName = "Cms.Framework.Abstractions.ContentTypeAttribute";
     private const string CultureSpecificAttributeFullName = "Cms.Framework.Abstractions.CultureSpecificAttribute";
 
     /// <summary>Names declared on <see cref="Cms.Framework.Abstractions.Content"/> itself - never re-emitted as Version/Translation columns.</summary>
@@ -17,7 +18,7 @@ internal static class ContentTypeDiscovery
     };
 
     public static bool IsCandidate(SyntaxNode node)
-        => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0 };
+        => node is ClassDeclarationSyntax { BaseList.Types.Count: > 0, AttributeLists.Count: > 0 };
 
     public static ContentTypeModel? TryGetContentTypeModel(GeneratorSyntaxContext context)
     {
@@ -37,7 +38,14 @@ internal static class ContentTypeDiscovery
         if (!DerivesFrom(classSymbol, contentTypeSymbol))
             return null;
 
-        var cultureSpecificAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName(CultureSpecificAttributeFullName);
+        var contentTypeAttributeSymbol = semanticModel.Compilation.GetTypeByMetadataName(ContentTypeAttributeFullName);
+        if (contentTypeAttributeSymbol is null)
+            return null;
+
+        if (!classSymbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, contentTypeAttributeSymbol)))
+            return null;
+
+        var cultureSpecificAttributeSymbol =semanticModel.Compilation.GetTypeByMetadataName(CultureSpecificAttributeFullName);
 
         var invariant = new List<PropertyModel>();
         var cultureSpecific = new List<PropertyModel>();

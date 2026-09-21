@@ -6,7 +6,8 @@ namespace Cms.Framework.Generator;
 
 /// <summary>
 /// Discovers every non-abstract class deriving from
-/// <c>Cms.Framework.Abstractions.Content</c> in the compilation and emits
+/// <c>Cms.Framework.Abstractions.Content</c> and marked with
+/// <c>[ContentType]</c> in the compilation and emits
 /// its Root/Version/Translation persistence shape, EF Core configuration,
 /// and DI registration. This is the only thing a developer needs to have
 /// happen automatically for a new content type to "just work" - they write
@@ -42,6 +43,7 @@ public sealed class ContentTypeGenerator : IIncrementalGenerator
             context.AddSource($"{model.ClassName}.Store.g.cs", CodeEmitter.EmitStore(model));
         }
 
-        context.AddSource("ContentFrameworkRegistration.g.cs", CodeEmitter.EmitRegistration(distinct));
+        if (distinct.Count > 0)
+            context.AddSource("ContentFrameworkRegistration.g.cs", CodeEmitter.EmitRegistration(distinct));
     }
 }

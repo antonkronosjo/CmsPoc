@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Cms.Framework.Infrastructure\Cms.Framework.Infrastructure.csproj" />
+    <ProjectReference Include="..\..\src\Cms.Framework.Sqlite\Cms.Framework.Sqlite.csproj" />
     <ProjectReference Include="..\..\src\Cms.Poc.Domain\Cms.Poc.Domain.csproj" />
   </ItemGroup>
 

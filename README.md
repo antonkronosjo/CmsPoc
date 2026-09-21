@@ -11,15 +11,39 @@ the only hand-written "persistence" code in the whole solution - everything
 else under `Cms.Poc.Domain/Generated/` (visible after a build) is produced by
 `Cms.Framework.Generator`.
 
+## Using the framework
+
+Mark each content class you want stored with `[ContentType]`:
+
+```csharp
+[ContentType]
+public class NewsContent : Content { ... }
+```
+
+Then register everything with one call - content types are discovered
+automatically, no assembly needs to be named:
+
+```csharp
+builder.Services.AddCms(cms =>
+{
+    cms.UseSqlite("Data Source=cms.db");   // or cms.UseDatabase(db => db.UseXxx(...))
+    cms.EnsureDatabaseCreated = true;       // optional: create the schema on startup
+});
+
+app.MapCms("/api/content");                 // optional HTTP endpoints
+```
+
 ## Solution layout
 
 ```
 src/
-  Cms.Framework.Abstractions/   Content, [CultureSpecific], IContentRepository, IContentQuery<T>
+  Cms.Framework.Abstractions/   Content, [ContentType], [CultureSpecific], IContentRepository, IContentQuery<T> (ships the generator as an analyzer)
   Cms.Framework.Generator/      the Roslyn incremental source generator
-  Cms.Framework.Infrastructure/ ContentRoot, CmsDbContext, ContentRepository, versioning, polymorphic query
+  Cms.Framework.Infrastructure/ AddCms, ContentRoot, CmsDbContext, ContentRepository, IContentEditingService, versioning, polymorphic query
+  Cms.Framework.Sqlite/         UseSqlite(...) provider shortcut
+  Cms.Framework.AspNetCore/     MapCms(...) - the generic HTTP endpoints
   Cms.Poc.Domain/               NewsContent, EventContent - the only flat models a developer writes
-  Cms.Poc.Api/                  minimal ASP.NET Core API exposing the repository over HTTP
+  Cms.Poc.Api/                  sample host: AddCms + MapCms plus CORS/OpenAPI
   Cms.Poc.Web/                  minimal React (Vite + TS) demo UI
 tests/
   Cms.Framework.Tests/          xUnit tests proving the framework end-to-end against real SQLite
