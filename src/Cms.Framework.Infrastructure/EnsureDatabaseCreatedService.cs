@@ -4,7 +4,8 @@ using Microsoft.Extensions.Hosting;
 
 namespace Cms.Framework.Infrastructure;
 
-internal sealed class EnsureDatabaseCreatedService : IHostedService
+internal sealed class EnsureDatabaseCreatedService<TContentType> : IHostedService
+    where TContentType : struct, Enum
 {
     private readonly IServiceProvider _services;
     private readonly bool _migrate;
@@ -18,7 +19,7 @@ internal sealed class EnsureDatabaseCreatedService : IHostedService
     public Task StartAsync(CancellationToken cancellationToken)
     {
         using var scope = _services.CreateScope();
-        var database = scope.ServiceProvider.GetRequiredService<CmsDbContext>().Database;
+        var database = scope.ServiceProvider.GetRequiredService<CmsDbContext<TContentType>>().Database;
         if (_migrate)
             database.Migrate();
         else

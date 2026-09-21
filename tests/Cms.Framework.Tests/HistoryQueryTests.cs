@@ -11,19 +11,19 @@ public sealed class HistoryQueryTests : IDisposable
     [Fact]
     public void QueryHistory_returns_every_version_newest_first()
     {
-        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", RelatedContent = new ContentReference(1, "NewsContent") }, "en");
+        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
 
-        created.RelatedContent = new ContentReference(2, "NewsContent");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent);
         _fixture.Repository.Update(created);
 
-        created.RelatedContent = new ContentReference(3, "NewsContent");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(3, ContentTypeKey.NewsContent);
         _fixture.Repository.Update(created);
 
         var history = _fixture.Repository.QueryHistory<NewsContent>(created.Id, "en");
 
         Assert.Equal(3, history.Count);
         Assert.Equal(new[] { 3, 2, 1 }, history.Select(h => h.VersionNumber));
-        Assert.Equal(new ContentReference?[] { new ContentReference(3, "NewsContent"), new ContentReference(2, "NewsContent"), new ContentReference(1, "NewsContent") }, history.Select(h => h.RelatedContent));
+        Assert.Equal(new ContentReference<ContentTypeKey>?[] { new ContentReference<ContentTypeKey>(3, ContentTypeKey.NewsContent), new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent), new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, history.Select(h => h.RelatedContent));
     }
 
     public void Dispose() => _fixture.Dispose();

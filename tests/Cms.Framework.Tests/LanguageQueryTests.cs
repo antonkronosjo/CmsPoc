@@ -16,7 +16,7 @@ public sealed class LanguageQueryTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            RelatedContent = new ContentReference(1, "NewsContent"),
+            RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent),
         }, "en");
 
         _fixture.Repository.Update(new NewsContent

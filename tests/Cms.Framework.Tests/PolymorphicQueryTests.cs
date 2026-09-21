@@ -11,14 +11,14 @@ public sealed class PolymorphicQueryTests : IDisposable
     [Fact]
     public void Query_over_Content_finds_matching_instances_across_types_without_knowing_their_concrete_type()
     {
-        var news = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", RelatedContent = new ContentReference(1, "NewsContent") }, "en");
+        var news = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
         var @event = _fixture.Repository.Create(new EventContent { Name = "HEJ", Title = "T", Description = "D", StartDate = DateTime.UtcNow }, "en");
-        _fixture.Repository.Create(new NewsContent { Name = "SOMETHING_ELSE", Heading = "X", Body = "Y", RelatedContent = new ContentReference(2, "NewsContent") }, "en");
+        _fixture.Repository.Create(new NewsContent { Name = "SOMETHING_ELSE", Heading = "X", Body = "Y", RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent) }, "en");
 
         var results = _fixture.Repository.Query<Content>("en").Where(x => x.Name == "HEJ").ToList();
 
         Assert.Equal(2, results.Count);
-        Assert.Contains(results, c => c is NewsContent nc && nc.Id == news.Id && nc.RelatedContent == new ContentReference(1, "NewsContent"));
+        Assert.Contains(results, c => c is NewsContent nc && nc.Id == news.Id && nc.RelatedContent == new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent));
         Assert.Contains(results, c => c is EventContent ec && ec.Id == @event.Id);
         Assert.DoesNotContain(results, c => c.Name == "SOMETHING_ELSE");
     }
@@ -26,7 +26,7 @@ public sealed class PolymorphicQueryTests : IDisposable
     [Fact]
     public void Query_over_Content_can_filter_by_Id()
     {
-        var news = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference(1, "NewsContent") }, "en");
+        var news = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
         _fixture.Repository.Create(new EventContent { Name = "B", Title = "T", Description = "D", StartDate = DateTime.UtcNow }, "en");
 
         var result = _fixture.Repository.Query<Content>("en").Where(x => x.Id == news.Id).First();

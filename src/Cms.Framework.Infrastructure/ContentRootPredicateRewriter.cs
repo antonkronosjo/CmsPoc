@@ -5,7 +5,7 @@ namespace Cms.Framework.Infrastructure;
 
 /// <summary>
 /// Retargets a predicate written against the flat <see cref="Content"/> base
-/// class onto <see cref="ContentRoot"/>, the real EF entity it is answered
+/// class onto <see cref="ContentRoot{TContentType}"/>, the real EF entity it is answered
 /// against for <c>Query&lt;Content&gt;()</c>. Only <see cref="Content.Id"/>,
 /// <see cref="Content.Name"/> and <see cref="Content.Created"/> are
 /// supported: they are the only members that mean the same thing before a
@@ -15,7 +15,8 @@ namespace Cms.Framework.Infrastructure;
 /// but semantically meaningless query - rejected explicitly rather than
 /// silently mismapped.
 /// </summary>
-internal sealed class ContentRootPredicateRewriter : ExpressionVisitor
+internal sealed class ContentRootPredicateRewriter<TContentType> : ExpressionVisitor
+    where TContentType : struct, Enum
 {
     private static readonly HashSet<string> SupportedMembers = new()
     {
@@ -24,14 +25,14 @@ internal sealed class ContentRootPredicateRewriter : ExpressionVisitor
         nameof(Content.Created),
     };
 
-    private readonly ParameterExpression _rootParameter = Expression.Parameter(typeof(ContentRoot), "x");
+    private readonly ParameterExpression _rootParameter = Expression.Parameter(typeof(ContentRoot<TContentType>), "x");
     private ParameterExpression? _contentParameter;
 
-    public Expression<Func<ContentRoot, bool>> Rewrite(Expression<Func<Content, bool>> predicate)
+    public Expression<Func<ContentRoot<TContentType>, bool>> Rewrite(Expression<Func<Content, bool>> predicate)
     {
         _contentParameter = predicate.Parameters[0];
         var body = Visit(predicate.Body);
-        return Expression.Lambda<Func<ContentRoot, bool>>(body, _rootParameter);
+        return Expression.Lambda<Func<ContentRoot<TContentType>, bool>>(body, _rootParameter);
     }
 
     protected override Expression VisitParameter(ParameterExpression node)
@@ -49,7 +50,7 @@ internal sealed class ContentRootPredicateRewriter : ExpressionVisitor
                     $"language - query the concrete content type instead, or filter after the results are materialized.");
             }
 
-            var rootProperty = typeof(ContentRoot).GetProperty(node.Member.Name)!;
+            var rootProperty = typeof(ContentRoot<TContentType>).GetProperty(node.Member.Name)!;
             return Expression.Property(_rootParameter, rootProperty);
         }
 

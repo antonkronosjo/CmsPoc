@@ -7,22 +7,23 @@ namespace Cms.Framework.Infrastructure;
 /// <summary>
 /// The generic repository the service layer talks to. Knows nothing about
 /// any concrete content type at compile time - for concrete types it
-/// resolves the generated <see cref="IContentTypeStore{T}"/> for
+/// resolves the generated <see cref="IContentTypeStore{T, TContentType}"/> for
 /// <typeparamref name="T"/> from DI (a normal, typed generic resolution,
 /// not reflection-based scanning), and for the polymorphic base
 /// <see cref="Content"/> type it delegates to <see cref="PolymorphicContentQuery"/>.
 /// </summary>
-internal sealed class ContentRepository : IContentRepository
+internal sealed class ContentRepository<TContentType> : IContentRepository
+    where TContentType : struct, Enum
 {
-    private readonly CmsDbContext _db;
+    private readonly CmsDbContext<TContentType> _db;
     private readonly IServiceProvider _services;
-    private readonly List<IContentTypeMetadata> _contentTypes;
+    private readonly List<IContentTypeMetadata<TContentType>> _contentTypes;
     private readonly string _defaultLanguage;
 
     public ContentRepository(
-        CmsDbContext db,
+        CmsDbContext<TContentType> db,
         IServiceProvider services,
-        IEnumerable<IContentTypeMetadata> contentTypes,
+        IEnumerable<IContentTypeMetadata<TContentType>> contentTypes,
         IOptions<ContentRepositoryOptions> options)
     {
         _db = db;
@@ -43,7 +44,7 @@ internal sealed class ContentRepository : IContentRepository
 
         if (typeof(T) == typeof(Content))
         {
-            var polymorphic = new PolymorphicContentQuery(_db, _contentTypes, lang, publishedOnly);
+            var polymorphic = new PolymorphicContentQuery<TContentType>(_db, _contentTypes, lang, publishedOnly);
             return (IContentQuery<T>)(object)polymorphic;
         }
 
@@ -53,6 +54,6 @@ internal sealed class ContentRepository : IContentRepository
     public IReadOnlyList<T> QueryHistory<T>(int id, string? language = null) where T : Content
         => GetStore<T>().QueryHistory(_db, id, language ?? _defaultLanguage);
 
-    private IContentTypeStore<T> GetStore<T>() where T : Content
-        => _services.GetRequiredService<IContentTypeStore<T>>();
+    private IContentTypeStore<T, TContentType> GetStore<T>() where T : Content
+        => _services.GetRequiredService<IContentTypeStore<T, TContentType>>();
 }

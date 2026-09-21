@@ -5,22 +5,23 @@ using Cms.Framework.Abstractions;
 
 namespace Cms.Framework.Infrastructure.Editing;
 
-internal sealed class ContentEditingService : IContentEditingService
+internal sealed class ContentEditingService<TContentType> : IContentEditingService
+    where TContentType : struct, Enum
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNameCaseInsensitive = true,
     };
 
-    private readonly CmsDbContext _db;
+    private readonly CmsDbContext<TContentType> _db;
     private readonly IContentRepository _contentRepository;
-    private readonly List<IContentTypeMetadata> _contentTypes;
+    private readonly List<IContentTypeMetadata<TContentType>> _contentTypes;
     private readonly List<IContentPublishEventHandler> _publishEventHandlers;
 
     public ContentEditingService(
-        CmsDbContext db,
+        CmsDbContext<TContentType> db,
         IContentRepository contentRepository,
-        IEnumerable<IContentTypeMetadata> contentTypes,
+        IEnumerable<IContentTypeMetadata<TContentType>> contentTypes,
         IEnumerable<IContentPublishEventHandler> publishEventHandlers)
     {
         _db = db;
@@ -30,11 +31,11 @@ internal sealed class ContentEditingService : IContentEditingService
     }
 
     public IReadOnlyList<string> GetContentTypes()
-        => _contentTypes.Select(x => x.ContentTypeKey).ToList();
+        => _contentTypes.Select(x => x.ContentTypeKey.ToString()).ToList();
 
     public CreateContentSchema GetCreationSchema(string contentTypeName, string language)
     {
-        var metadata = ResolveContentType(contentTypeName);
+        var metadata = ResolveContentType(ParseContentType(contentTypeName));
         return new CreateContentSchema
         {
             Metadata = new CreateContentMetadata { ContentTypeName = contentTypeName, Language = language },
@@ -75,7 +76,7 @@ internal sealed class ContentEditingService : IContentEditingService
             Metadata = new UpdateContentMetadata
             {
                 Id = newBranchRoot.Id,
-                ContentTypeName = newBranchRoot.ContentTypeKey,
+                ContentTypeName = newBranchRoot.ContentTypeKey.ToString(),
                 Language = language,
                 Name = newBranchRoot.Name,
                 VersionNumber = 0,
@@ -86,13 +87,13 @@ internal sealed class ContentEditingService : IContentEditingService
         };
     }
 
-    private static UpdateContentSchema ToUpdateSchema(Content content, IContentTypeMetadata metadata, int? livePublishedVersionNumber)
+    private static UpdateContentSchema ToUpdateSchema(Content content, IContentTypeMetadata<TContentType> metadata, int? livePublishedVersionNumber)
         => new()
         {
             Metadata = new UpdateContentMetadata
             {
                 Id = content.Id,
-                ContentTypeName = metadata.ContentTypeKey,
+                ContentTypeName = metadata.ContentTypeKey.ToString(),
                 Language = content.Language,
                 Name = content.Name,
                 VersionNumber = content.VersionNumber,
@@ -106,7 +107,7 @@ internal sealed class ContentEditingService : IContentEditingService
 
     public Content Create(CreateContentSchema request)
     {
-        var metadata = ResolveContentType(request.Metadata.ContentTypeName);
+        var metadata = ResolveContentType(ParseContentType(request.Metadata.ContentTypeName));
         var instance = (Content)Activator.CreateInstance(metadata.ClrType)!;
         instance.Name = request.Metadata.Name;
         instance.Language = request.Metadata.Language;
@@ -143,7 +144,7 @@ internal sealed class ContentEditingService : IContentEditingService
 
     public List<string> ValidateProperty(string contentTypeName, string propertyName, ContentPropertyValueDto value)
     {
-        var metadata = ResolveContentType(contentTypeName);
+        var metadata = ResolveContentType(ParseContentType(contentTypeName));
         var property = GetContentProperties(metadata.ClrType).SingleOrDefault(p => p.Name == propertyName)
             ?? throw new KeyNotFoundException($"'{propertyName}' is not an editable property of '{contentTypeName}'.");
 
@@ -249,7 +250,7 @@ internal sealed class ContentEditingService : IContentEditingService
         return new ContentSummaryDto
         {
             Id = content.Id,
-            ContentTypeName = metadata.ContentTypeKey,
+            ContentTypeName = metadata.ContentTypeKey.ToString(),
             Name = content.Name,
             Language = content.Language,
             VersionNumber = content.VersionNumber,
@@ -300,10 +301,15 @@ internal sealed class ContentEditingService : IContentEditingService
         return rawValue;
     }
 
-    private IContentTypeMetadata ResolveContentType(string contentTypeName)
-        => _contentTypes.SingleOrDefault(x => x.ContentTypeKey == contentTypeName)
-            ?? throw new KeyNotFoundException($"Content type '{contentTypeName}' is not registered.");
+    private static TContentType ParseContentType(string contentTypeName)
+        => Enum.TryParse<TContentType>(contentTypeName, out var key) && key.ToString() == contentTypeName
+            ? key
+            : throw new KeyNotFoundException($"Content type '{contentTypeName}' is not registered.");
 
-    private IContentTypeMetadata ResolveContentTypeByClrType(Type clrType)
+    private IContentTypeMetadata<TContentType> ResolveContentType(TContentType contentType)
+        => _contentTypes.SingleOrDefault(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, contentType))
+            ?? throw new KeyNotFoundException($"Content type '{contentType}' is not registered.");
+
+    private IContentTypeMetadata<TContentType> ResolveContentTypeByClrType(Type clrType)
         => _contentTypes.Single(x => x.ClrType == clrType);
 }

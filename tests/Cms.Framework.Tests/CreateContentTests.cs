@@ -15,14 +15,14 @@ public sealed class CreateContentTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            RelatedContent = new ContentReference(1, "NewsContent"),
+            RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent),
         }, language: "en");
 
         Assert.True(created.Id > 0);
         Assert.Equal("HEJ", created.Name);
         Assert.Equal(1, created.VersionNumber);
         Assert.Equal("en", created.Language);
-        Assert.Equal(new ContentReference(1, "NewsContent"), created.RelatedContent);
+        Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), created.RelatedContent);
         Assert.Equal("Hello", created.Heading);
         Assert.Equal("World", created.Body);
 

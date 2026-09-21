@@ -5,7 +5,7 @@ using Cms.Framework.Sqlite;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddCms(cms =>
+builder.Services.AddCms<Cms.Poc.Domain.ContentTypeKey>(cms =>
 {
     cms.UseSqlite("Data Source=cms-poc.db", typeof(Program).Assembly);
     cms.MigrateDatabase = true;

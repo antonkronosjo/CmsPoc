@@ -11,10 +11,11 @@ public static class CmsServiceCollectionExtensions
     /// <summary>
     /// The single entry point for wiring up the CMS: registers every
     /// <c>[ContentType]</c> class found in the application's assemblies,
-    /// <see cref="CmsDbContext"/>, <see cref="IContentRepository"/> and
+    /// <see cref="CmsDbContext{TContentType}"/>, <see cref="IContentRepository"/> and
     /// <see cref="IContentEditingService"/>.
     /// </summary>
-    public static IServiceCollection AddCms(this IServiceCollection services, Action<CmsBuilder> configure)
+    public static IServiceCollection AddCms<TContentType>(this IServiceCollection services, Action<CmsBuilder> configure)
+        where TContentType : struct, Enum
     {
         var builder = new CmsBuilder();
         configure(builder);
@@ -33,9 +34,9 @@ public static class CmsServiceCollectionExtensions
             }
         }
 
-        services.AddDbContext<CmsDbContext>(databaseConfiguration);
-        services.AddScoped<IContentRepository, ContentRepository>();
-        services.AddScoped<IContentEditingService, ContentEditingService>();
+        services.AddDbContext<CmsDbContext<TContentType>>(databaseConfiguration);
+        services.AddScoped<IContentRepository, ContentRepository<TContentType>>();
+        services.AddScoped<IContentEditingService, ContentEditingService<TContentType>>();
         services.Configure<ContentRepositoryOptions>(o => o.DefaultLanguage = builder.DefaultLanguage);
 
         if (builder.EnsureDatabaseCreated && builder.MigrateDatabase)
@@ -45,7 +46,7 @@ public static class CmsServiceCollectionExtensions
         if (builder.EnsureDatabaseCreated || builder.MigrateDatabase)
         {
             var migrate = builder.MigrateDatabase;
-            services.AddHostedService(sp => new EnsureDatabaseCreatedService(sp, migrate));
+            services.AddHostedService(sp => new EnsureDatabaseCreatedService<TContentType>(sp, migrate));
         }
 
         return services;

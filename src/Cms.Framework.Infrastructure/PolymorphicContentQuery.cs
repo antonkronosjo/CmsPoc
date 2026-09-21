@@ -19,15 +19,16 @@ namespace Cms.Framework.Infrastructure;
 /// single filtered query, phase 2's queries are each scoped to an
 /// <c>Id IN (...)</c> list built from phase 1's results.
 /// </summary>
-internal sealed class PolymorphicContentQuery : IContentQuery<Content>
+internal sealed class PolymorphicContentQuery<TContentType> : IContentQuery<Content>
+    where TContentType : struct, Enum
 {
-    private readonly CmsDbContext _db;
-    private readonly IReadOnlyCollection<IContentTypeMetadata> _contentTypes;
+    private readonly CmsDbContext<TContentType> _db;
+    private readonly IReadOnlyCollection<IContentTypeMetadata<TContentType>> _contentTypes;
     private readonly string _language;
     private readonly bool _publishedOnly;
-    private IQueryable<ContentRoot> _rootQuery;
+    private IQueryable<ContentRoot<TContentType>> _rootQuery;
 
-    public PolymorphicContentQuery(CmsDbContext db, IReadOnlyCollection<IContentTypeMetadata> contentTypes, string language, bool publishedOnly = false)
+    public PolymorphicContentQuery(CmsDbContext<TContentType> db, IReadOnlyCollection<IContentTypeMetadata<TContentType>> contentTypes, string language, bool publishedOnly = false)
     {
         _db = db;
         _contentTypes = contentTypes;
@@ -38,7 +39,7 @@ internal sealed class PolymorphicContentQuery : IContentQuery<Content>
 
     public IContentQuery<Content> Where(Expression<Func<Content, bool>> predicate)
     {
-        var rewritten = new ContentRootPredicateRewriter().Rewrite(predicate);
+        var rewritten = new ContentRootPredicateRewriter<TContentType>().Rewrite(predicate);
         _rootQuery = _rootQuery.Where(rewritten);
         return this;
     }
@@ -77,7 +78,7 @@ internal sealed class PolymorphicContentQuery : IContentQuery<Content>
 
         foreach (var group in matched.GroupBy(m => m.ContentTypeKey))
         {
-            var metadata = _contentTypes.FirstOrDefault(m => m.ContentTypeKey == group.Key);
+            var metadata = _contentTypes.FirstOrDefault(m => EqualityComparer<TContentType>.Default.Equals(m.ContentTypeKey, group.Key));
             if (metadata is null) continue;
 
             var ids = group.Select(g => g.Id).ToList();
@@ -90,5 +91,5 @@ internal sealed class PolymorphicContentQuery : IContentQuery<Content>
         return orderedIds.Where(byId.ContainsKey).Select(id => byId[id]).ToList();
     }
 
-    private sealed record MatchedRoot(int Id, string ContentTypeKey);
+    private sealed record MatchedRoot(int Id, TContentType ContentTypeKey);
 }

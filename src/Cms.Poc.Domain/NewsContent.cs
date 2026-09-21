@@ -20,5 +20,5 @@ public class NewsContent : Content
     /// The content item this article relates to, or null.
     /// </summary>
     [ContentProperty(InputType.ContentReference)]
-    public ContentReference? RelatedContent { get; set; }
+    public ContentReference<ContentTypeKey>? RelatedContent { get; set; }
 }

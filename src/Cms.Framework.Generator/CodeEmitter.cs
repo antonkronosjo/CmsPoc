@@ -21,17 +21,44 @@ internal static class CodeEmitter
         "System.DateTime", "System.DateTimeOffset", "System.Guid", "System.TimeSpan",
     };
 
-    public static string EmitVersionEntity(ContentTypeModel model)
+    private const string ContentTypeEnumName = "ContentTypeKey";
+
+    /// <summary>Fully qualified name of the enum <see cref="EmitContentTypeEnum"/> emits into <paramref name="enumNamespace"/>.</summary>
+    public static string ContentTypeEnumFullName(string enumNamespace) => $"global::{enumNamespace}.{ContentTypeEnumName}";
+
+    public static string EmitContentTypeEnum(string enumNamespace, IReadOnlyList<ContentTypeModel> models)
     {
         var sb = new StringBuilder();
         AppendHeader(sb);
+        sb.AppendLine($"namespace {enumNamespace};");
+        sb.AppendLine();
+        sb.AppendLine("/// <summary>");
+        sb.AppendLine("/// One member per [ContentType] class in this assembly. Persisted by name, so");
+        sb.AppendLine("/// adding, removing or reordering content types never changes what a stored value means.");
+        sb.AppendLine("/// </summary>");
+        sb.AppendLine("[global::System.Text.Json.Serialization.JsonConverter(typeof(global::System.Text.Json.Serialization.JsonStringEnumConverter))]");
+        sb.AppendLine($"public enum {ContentTypeEnumName}");
+        sb.AppendLine("{");
+        foreach (var model in models)
+            sb.AppendLine($"    {model.ClassName},");
+        sb.AppendLine("}");
+        return sb.ToString();
+    }
+
+    public static string EmitVersionEntity(ContentTypeModel model, string enumNamespace)
+    {
+        var contentTypeEnum = ContentTypeEnumFullName(enumNamespace);
+        var sb = new StringBuilder();
+        AppendHeader(sb);
+        sb.AppendLine($"using {enumNamespace};");
+        sb.AppendLine();
         sb.AppendLine($"namespace {GeneratedNamespace};");
         sb.AppendLine();
         sb.AppendLine($"public sealed class {model.VersionTypeName}");
         sb.AppendLine("{");
         sb.AppendLine("    public int Id { get; set; }");
         sb.AppendLine("    public int RootId { get; set; }");
-        sb.AppendLine("    public global::Cms.Framework.Infrastructure.ContentRoot Root { get; set; } = null!;");
+        sb.AppendLine($"    public global::Cms.Framework.Infrastructure.ContentRoot<{contentTypeEnum}> Root {{ get; set; }} = null!;");
         sb.AppendLine("    public int VersionNumber { get; set; }");
         sb.AppendLine("    public global::System.DateTime Created { get; set; }");
         sb.AppendLine("    public global::System.DateTime? StartPublish { get; set; }");
@@ -45,10 +72,12 @@ internal static class CodeEmitter
         return sb.ToString();
     }
 
-    public static string EmitTranslationEntity(ContentTypeModel model)
+    public static string EmitTranslationEntity(ContentTypeModel model, string enumNamespace)
     {
         var sb = new StringBuilder();
         AppendHeader(sb);
+        sb.AppendLine($"using {enumNamespace};");
+        sb.AppendLine();
         sb.AppendLine($"namespace {GeneratedNamespace};");
         sb.AppendLine();
         sb.AppendLine($"public sealed class {model.TranslationTypeName}");
@@ -115,8 +144,9 @@ internal static class CodeEmitter
         return sb.ToString();
     }
 
-    public static string EmitStore(ContentTypeModel model)
+    public static string EmitStore(ContentTypeModel model, string enumNamespace)
     {
+        var contentTypeEnum = ContentTypeEnumFullName(enumNamespace);
         var sb = new StringBuilder();
         AppendHeader(sb);
         sb.AppendLine("using System.Linq;");
@@ -125,15 +155,15 @@ internal static class CodeEmitter
         sb.AppendLine();
         sb.AppendLine($"namespace {GeneratedNamespace};");
         sb.AppendLine();
-        sb.AppendLine($"public sealed class {model.StoreTypeName} : global::Cms.Framework.Infrastructure.IContentTypeStore<{model.FullyQualifiedName}>");
+        sb.AppendLine($"public sealed class {model.StoreTypeName} : global::Cms.Framework.Infrastructure.IContentTypeStore<{model.FullyQualifiedName}, {contentTypeEnum}>");
         sb.AppendLine("{");
-        sb.AppendLine($"    public string ContentTypeKey => \"{model.ClassName}\";");
+        sb.AppendLine($"    public {contentTypeEnum} ContentTypeKey => {contentTypeEnum}.{model.ClassName};");
         sb.AppendLine();
 
         // Create
-        sb.AppendLine($"    public {model.FullyQualifiedName} Create(CmsDbContext db, {model.FullyQualifiedName} content, string language)");
+        sb.AppendLine($"    public {model.FullyQualifiedName} Create(CmsDbContext<{contentTypeEnum}> db, {model.FullyQualifiedName} content, string language)");
         sb.AppendLine("    {");
-        sb.AppendLine("        var root = new global::Cms.Framework.Infrastructure.ContentRoot");
+        sb.AppendLine($"        var root = new global::Cms.Framework.Infrastructure.ContentRoot<{contentTypeEnum}>");
         sb.AppendLine("        {");
         sb.AppendLine("            Name = content.Name,");
         sb.AppendLine("            ContentTypeKey = ContentTypeKey,");
@@ -178,7 +208,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // Update
-        sb.AppendLine($"    public {model.FullyQualifiedName} Update(CmsDbContext db, {model.FullyQualifiedName} content)");
+        sb.AppendLine($"    public {model.FullyQualifiedName} Update(CmsDbContext<{contentTypeEnum}> db, {model.FullyQualifiedName} content)");
         sb.AppendLine("    {");
         sb.AppendLine($"        var currentVersion = db.Set<{model.VersionTypeName}>()");
         sb.AppendLine("            .Where(v => v.RootId == content.Id)");
@@ -241,7 +271,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // QueryCurrent
-        sb.AppendLine($"    public global::System.Linq.IQueryable<{model.FullyQualifiedName}> QueryCurrent(CmsDbContext db, string language, bool publishedOnly = false)");
+        sb.AppendLine($"    public global::System.Linq.IQueryable<{model.FullyQualifiedName}> QueryCurrent(CmsDbContext<{contentTypeEnum}> db, string language, bool publishedOnly = false)");
         sb.AppendLine("    {");
         sb.AppendLine("        if (!publishedOnly)");
         sb.AppendLine($"            return db.Set<{model.FullyQualifiedName}>().Where(x => x.Language == language);");
@@ -280,7 +310,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // QueryHistory
-        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyList<{model.FullyQualifiedName}> QueryHistory(CmsDbContext db, int id, string language)");
+        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyList<{model.FullyQualifiedName}> QueryHistory(CmsDbContext<{contentTypeEnum}> db, int id, string language)");
         sb.AppendLine("    {");
         sb.AppendLine($"        var versions = db.Set<{model.VersionTypeName}>()");
         sb.AppendLine("            .Where(v => v.RootId == id)");
@@ -314,7 +344,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // GetLivePublishedVersionNumber
-        sb.AppendLine("    public int? GetLivePublishedVersionNumber(CmsDbContext db, int rootId)");
+        sb.AppendLine($"    public int? GetLivePublishedVersionNumber(CmsDbContext<{contentTypeEnum}> db, int rootId)");
         sb.AppendLine("    {");
         sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
         sb.AppendLine($"        return db.Set<{model.VersionTypeName}>()");
@@ -326,12 +356,12 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // VersionExists
-        sb.AppendLine("    public bool VersionExists(CmsDbContext db, int rootId, int versionNumber)");
+        sb.AppendLine($"    public bool VersionExists(CmsDbContext<{contentTypeEnum}> db, int rootId, int versionNumber)");
         sb.AppendLine($"        => db.Set<{model.VersionTypeName}>().Any(v => v.RootId == rootId && v.VersionNumber == versionNumber);");
         sb.AppendLine();
 
         // SetPublishSchedule
-        sb.AppendLine("    public void SetPublishSchedule(CmsDbContext db, int rootId, int versionNumber, global::System.DateTime? startPublish, global::System.DateTime? stopPublish)");
+        sb.AppendLine($"    public void SetPublishSchedule(CmsDbContext<{contentTypeEnum}> db, int rootId, int versionNumber, global::System.DateTime? startPublish, global::System.DateTime? stopPublish)");
         sb.AppendLine("    {");
         sb.AppendLine($"        var version = db.Set<{model.VersionTypeName}>().Single(v => v.RootId == rootId && v.VersionNumber == versionNumber);");
         sb.AppendLine("        version.StartPublish = startPublish;");
@@ -341,7 +371,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // StopActivePublish
-        sb.AppendLine("    public bool StopActivePublish(CmsDbContext db, int rootId, global::System.DateTime stopAt)");
+        sb.AppendLine($"    public bool StopActivePublish(CmsDbContext<{contentTypeEnum}> db, int rootId, global::System.DateTime stopAt)");
         sb.AppendLine("    {");
         sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
         sb.AppendLine($"        var active = db.Set<{model.VersionTypeName}>()");
@@ -358,8 +388,9 @@ internal static class CodeEmitter
         return sb.ToString();
     }
 
-    public static string EmitRegistration(IReadOnlyList<ContentTypeModel> models)
+    public static string EmitRegistration(IReadOnlyList<ContentTypeModel> models, string enumNamespace)
     {
+        var contentTypeEnum = ContentTypeEnumFullName(enumNamespace);
         var sb = new StringBuilder();
         AppendHeader(sb);
         sb.AppendLine("using Microsoft.Extensions.DependencyInjection;");
@@ -381,8 +412,8 @@ internal static class CodeEmitter
         sb.AppendLine("    {");
         foreach (var model in models)
         {
-            sb.AppendLine($"        services.AddSingleton<IContentTypeStore<{model.FullyQualifiedName}>, {model.StoreTypeName}>();");
-            sb.AppendLine($"        services.AddSingleton<IContentTypeMetadata, ContentTypeMetadata<{model.FullyQualifiedName}>>();");
+            sb.AppendLine($"        services.AddSingleton<IContentTypeStore<{model.FullyQualifiedName}, {contentTypeEnum}>, {model.StoreTypeName}>();");
+            sb.AppendLine($"        services.AddSingleton<IContentTypeMetadata<{contentTypeEnum}>, ContentTypeMetadata<{model.FullyQualifiedName}, {contentTypeEnum}>>();");
         }
         sb.AppendLine("    }");
         sb.AppendLine("}");

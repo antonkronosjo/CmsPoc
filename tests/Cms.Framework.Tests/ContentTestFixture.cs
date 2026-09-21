@@ -2,6 +2,7 @@ using Cms.Framework.Abstractions;
 using Cms.Framework.Infrastructure;
 using Cms.Framework.Infrastructure.Editing;
 using Cms.Framework.Sqlite;
+using Cms.Poc.Domain;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Cms.Framework.Tests;
@@ -28,17 +29,17 @@ public sealed class ContentTestFixture : IDisposable
         var services = new ServiceCollection();
         // Pooling=False so the underlying file handle is released as soon as the
         // DbContext is disposed, letting each test clean up its own temp database.
-        services.AddCms(cms => cms.UseSqlite($"Data Source={_dbPath};Pooling=False"));
+        services.AddCms<ContentTypeKey>(cms => cms.UseSqlite($"Data Source={_dbPath};Pooling=False"));
         _provider = services.BuildServiceProvider();
 
         _scope = _provider.CreateScope();
-        Db = _scope.ServiceProvider.GetRequiredService<CmsDbContext>();
+        Db = _scope.ServiceProvider.GetRequiredService<CmsDbContext<ContentTypeKey>>();
         Db.Database.EnsureCreated();
         Repository = _scope.ServiceProvider.GetRequiredService<IContentRepository>();
         Editing = _scope.ServiceProvider.GetRequiredService<IContentEditingService>();
     }
 
-    public CmsDbContext Db { get; }
+    public CmsDbContext<ContentTypeKey> Db { get; }
     public IContentRepository Repository { get; }
     public IContentEditingService Editing { get; }
 

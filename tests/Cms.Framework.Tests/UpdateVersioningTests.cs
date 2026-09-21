@@ -16,14 +16,14 @@ public sealed class UpdateVersioningTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            RelatedContent = new ContentReference(1, "NewsContent"),
+            RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent),
         }, "en");
 
-        created.RelatedContent = new ContentReference(2, "NewsContent");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent);
         var updated = _fixture.Repository.Update(created);
 
         Assert.Equal(2, updated.VersionNumber);
-        Assert.Equal(new ContentReference(2, "NewsContent"), updated.RelatedContent);
+        Assert.Equal(new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent), updated.RelatedContent);
         Assert.Equal(created.Id, updated.Id);
         Assert.Equal("HEJ", updated.Name); // Name lives on the (unversioned) root and must still be populated after Update
 
@@ -32,11 +32,11 @@ public sealed class UpdateVersioningTests : IDisposable
 
         var version1 = history[1];
         Assert.Equal(1, version1.VersionNumber);
-        Assert.Equal(new ContentReference(1, "NewsContent"), version1.RelatedContent); // untouched
+        Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), version1.RelatedContent); // untouched
 
         var version2 = history[0];
         Assert.Equal(2, version2.VersionNumber);
-        Assert.Equal(new ContentReference(2, "NewsContent"), version2.RelatedContent);
+        Assert.Equal(new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent), version2.RelatedContent);
 
         // Unchanged culture-specific fields are copied forward into the new version, not left behind.
         Assert.Equal("Hello", version2.Heading);
@@ -46,19 +46,19 @@ public sealed class UpdateVersioningTests : IDisposable
     [Fact]
     public void Current_version_query_always_reflects_the_latest_update()
     {
-        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "H", Body = "B", RelatedContent = new ContentReference(1, "NewsContent") }, "en");
+        var created = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
 
-        created.RelatedContent = new ContentReference(2, "NewsContent");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent);
         _fixture.Repository.Update(created);
 
-        created.RelatedContent = new ContentReference(3, "NewsContent");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(3, ContentTypeKey.NewsContent);
         var third = _fixture.Repository.Update(created);
 
         Assert.Equal(3, third.VersionNumber);
 
         var current = _fixture.Repository.Query<NewsContent>("en").Where(x => x.Id == created.Id).First();
         Assert.Equal(3, current.VersionNumber);
-        Assert.Equal(new ContentReference(3, "NewsContent"), current.RelatedContent);
+        Assert.Equal(new ContentReference<ContentTypeKey>(3, ContentTypeKey.NewsContent), current.RelatedContent);
     }
 
     public void Dispose() => _fixture.Dispose();

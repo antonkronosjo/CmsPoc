@@ -5,11 +5,11 @@ namespace Cms.Framework.Infrastructure.Editing;
 /// <summary>
 /// The single service the generic content-editing API talks to. Knows
 /// nothing about any concrete content type at compile time - resolves them
-/// by name (<see cref="IContentTypeMetadata.ContentTypeKey"/>) via
+/// by name (<see cref="IContentTypeMetadata{TContentType}.ContentTypeKey"/>) via
 /// reflection over each type's <see cref="ContentPropertyAttribute"/>-decorated
 /// properties. Everything below this service (root/version/translation
 /// tables, versioning) is still handled by <see cref="IContentRepository"/>
-/// and the generated <see cref="IContentTypeStore{T}"/> per type - this
+/// and the generated <see cref="IContentTypeStore{T, TContentType}"/> per type - this
 /// service only adds the schema/reflection layer needed to create and
 /// update content generically.
 /// </summary>

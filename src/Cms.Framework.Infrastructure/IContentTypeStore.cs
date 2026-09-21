@@ -7,14 +7,16 @@ namespace Cms.Framework.Infrastructure;
 /// mapping between a flat content type and its generated Root/Version/
 /// Translation persistence shape - the only place that mapping exists.
 /// </summary>
-public interface IContentTypeStore<T> where T : Content
+public interface IContentTypeStore<T, TContentType>
+    where T : Content
+    where TContentType : struct, Enum
 {
-    /// <summary>The discriminator stored on <see cref="ContentRoot.ContentTypeKey"/> for this type.</summary>
-    string ContentTypeKey { get; }
+    /// <summary>The discriminator stored on <see cref="ContentRoot{TContentType}.ContentTypeKey"/> for this type.</summary>
+    TContentType ContentTypeKey { get; }
 
-    T Create(CmsDbContext db, T content, string language);
+    T Create(CmsDbContext<TContentType> db, T content, string language);
 
-    T Update(CmsDbContext db, T content);
+    T Update(CmsDbContext<TContentType> db, T content);
 
     /// <summary>
     /// Per-language flat read query. When <paramref name="publishedOnly"/> is
@@ -23,23 +25,23 @@ public interface IContentTypeStore<T> where T : Content
     /// version is currently live (per its publish window) for each item,
     /// omitting items with none live right now.
     /// </summary>
-    IQueryable<T> QueryCurrent(CmsDbContext db, string language, bool publishedOnly = false);
+    IQueryable<T> QueryCurrent(CmsDbContext<TContentType> db, string language, bool publishedOnly = false);
 
-    IReadOnlyList<T> QueryHistory(CmsDbContext db, int id, string language);
+    IReadOnlyList<T> QueryHistory(CmsDbContext<TContentType> db, int id, string language);
 
     /// <summary>The version number currently live for this root, or <c>null</c> if none is.</summary>
-    int? GetLivePublishedVersionNumber(CmsDbContext db, int rootId);
+    int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId);
 
     /// <summary>Whether a version with this number exists for this root.</summary>
-    bool VersionExists(CmsDbContext db, int rootId, int versionNumber);
+    bool VersionExists(CmsDbContext<TContentType> db, int rootId, int versionNumber);
 
     /// <summary>Sets (or replaces) the publish window for a specific version.</summary>
-    void SetPublishSchedule(CmsDbContext db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
+    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
 
     /// <summary>
     /// Stops whichever version is currently live for this root by setting
     /// its <see cref="Content.StopPublish"/> to <paramref name="stopAt"/>.
     /// Returns <c>false</c> (no-op) if nothing is currently live.
     /// </summary>
-    bool StopActivePublish(CmsDbContext db, int rootId, DateTime stopAt);
+    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt);
 }

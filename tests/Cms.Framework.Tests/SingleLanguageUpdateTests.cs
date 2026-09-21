@@ -16,7 +16,7 @@ public sealed class SingleLanguageUpdateTests : IDisposable
             Name = "HEJ",
             Heading = "Hello",
             Body = "World",
-            RelatedContent = new ContentReference(1, "NewsContent"),
+            RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent),
         }, "en");
 
         // add a Swedish translation as its own update

@@ -8,13 +8,14 @@ namespace Cms.Framework.Infrastructure;
 /// from this one table's identity column, content Ids are globally unique
 /// across types by construction - the database enforces it, not application code.
 /// </summary>
-public class ContentRoot
+/// <typeparam name="TContentType">The enum the source generator emits, one member per content type.</typeparam>
+public class ContentRoot<TContentType> where TContentType : struct, Enum
 {
     public int Id { get; set; }
     public string Name { get; set; } = string.Empty;
 
-    /// <summary>Discriminator identifying the concrete content type (e.g. "NewsContent").</summary>
-    public string ContentTypeKey { get; set; } = string.Empty;
+    /// <summary>Discriminator identifying the concrete content type. Stored by name as text.</summary>
+    public TContentType ContentTypeKey { get; set; }
 
     public DateTime Created { get; set; }
 }
