@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Cms.Framework.Abstractions;
 
 /// <summary>
@@ -7,6 +9,7 @@ namespace Cms.Framework.Abstractions;
 /// frontend's <c>FormElementTemplate</c> switch. Nothing else in the
 /// pipeline (source generator, persistence, API) needs to know about it.
 /// </summary>
+[JsonConverter(typeof(JsonStringEnumConverter))]
 public enum InputType
 {
     Text = 0,

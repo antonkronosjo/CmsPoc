@@ -43,7 +43,7 @@ public sealed class ContentGenerationTests
         var properties = typeof(NewsContent).GetProperties().Select(p => p.Name).OrderBy(n => n).ToArray();
 
         Assert.Equal(
-            new[] { "Body", "CreatedAtUtc", "Heading", "Id", "Language", "Name", "RelatedContentId", "StartPublish", "StopPublish", "VersionNumber" },
+            new[] { "Body", "Created", "Heading", "Id", "Language", "Name", "RelatedContentId", "StartPublish", "StopPublish", "VersionNumber" },
             properties);
     }
 }

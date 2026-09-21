@@ -54,7 +54,7 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
                     <StatusIndicator metadata={version} variant="icon" />
                   </TableCell>
                   <TableCell>v{version.versionNumber}</TableCell>
-                  <TableCell>{dayjs(version.createdAtUtc).format("YYYY-MM-DD HH:mm")}</TableCell>
+                  <TableCell>{dayjs(version.created).format("YYYY-MM-DD HH:mm")}</TableCell>
                 </TableRow>
               );
             })}

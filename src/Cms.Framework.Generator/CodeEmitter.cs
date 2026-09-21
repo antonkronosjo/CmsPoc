@@ -33,7 +33,7 @@ internal static class CodeEmitter
         sb.AppendLine("    public int RootId { get; set; }");
         sb.AppendLine("    public global::Cms.Framework.Infrastructure.ContentRoot Root { get; set; } = null!;");
         sb.AppendLine("    public int VersionNumber { get; set; }");
-        sb.AppendLine("    public global::System.DateTime CreatedAtUtc { get; set; }");
+        sb.AppendLine("    public global::System.DateTime Created { get; set; }");
         sb.AppendLine("    public global::System.DateTime? StartPublish { get; set; }");
         sb.AppendLine("    public global::System.DateTime? StopPublish { get; set; }");
         foreach (var property in model.InvariantProperties)
@@ -137,7 +137,7 @@ internal static class CodeEmitter
         sb.AppendLine("        {");
         sb.AppendLine("            Name = content.Name,");
         sb.AppendLine("            ContentTypeKey = ContentTypeKey,");
-        sb.AppendLine("            CreatedAtUtc = global::System.DateTime.UtcNow,");
+        sb.AppendLine("            Created = global::System.DateTime.UtcNow,");
         sb.AppendLine("        };");
         sb.AppendLine("        db.ContentRoots.Add(root);");
         sb.AppendLine();
@@ -145,7 +145,7 @@ internal static class CodeEmitter
         sb.AppendLine("        {");
         sb.AppendLine("            Root = root,");
         sb.AppendLine("            VersionNumber = 1,");
-        sb.AppendLine("            CreatedAtUtc = root.CreatedAtUtc,");
+        sb.AppendLine("            Created = root.Created,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = content.{p.Name},");
         sb.AppendLine("        };");
@@ -168,7 +168,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Name = root.Name,");
         sb.AppendLine("            Language = language,");
         sb.AppendLine("            VersionNumber = version.VersionNumber,");
-        sb.AppendLine("            CreatedAtUtc = version.CreatedAtUtc,");
+        sb.AppendLine("            Created = version.Created,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = version.{p.Name},");
         foreach (var p in model.CultureSpecificProperties)
@@ -191,7 +191,7 @@ internal static class CodeEmitter
         sb.AppendLine("        {");
         sb.AppendLine("            RootId = content.Id,");
         sb.AppendLine("            VersionNumber = currentVersion.VersionNumber + 1,");
-        sb.AppendLine("            CreatedAtUtc = global::System.DateTime.UtcNow,");
+        sb.AppendLine("            Created = global::System.DateTime.UtcNow,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = content.{p.Name},");
         sb.AppendLine("        };");
@@ -230,7 +230,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Name = currentVersion.Root.Name,");
         sb.AppendLine("            Language = content.Language,");
         sb.AppendLine("            VersionNumber = newVersion.VersionNumber,");
-        sb.AppendLine("            CreatedAtUtc = newVersion.CreatedAtUtc,");
+        sb.AppendLine("            Created = newVersion.Created,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = newVersion.{p.Name},");
         foreach (var p in model.CultureSpecificProperties)
@@ -265,7 +265,7 @@ internal static class CodeEmitter
         sb.AppendLine("                Name = v.Root.Name,");
         sb.AppendLine("                Language = language,");
         sb.AppendLine("                VersionNumber = v.VersionNumber,");
-        sb.AppendLine("                CreatedAtUtc = v.CreatedAtUtc,");
+        sb.AppendLine("                Created = v.Created,");
         sb.AppendLine("                StartPublish = v.StartPublish,");
         sb.AppendLine("                StopPublish = v.StopPublish,");
         foreach (var p in model.InvariantProperties)
@@ -299,7 +299,7 @@ internal static class CodeEmitter
         sb.AppendLine("                Name = v.Root.Name,");
         sb.AppendLine("                Language = language,");
         sb.AppendLine("                VersionNumber = v.VersionNumber,");
-        sb.AppendLine("                CreatedAtUtc = v.CreatedAtUtc,");
+        sb.AppendLine("                Created = v.Created,");
         sb.AppendLine("                StartPublish = v.StartPublish,");
         sb.AppendLine("                StopPublish = v.StopPublish,");
         foreach (var p in model.InvariantProperties)
@@ -398,7 +398,7 @@ $@"SELECT
     r.Name AS Name,
     t.Language AS Language,
     v.VersionNumber AS VersionNumber,
-    v.CreatedAtUtc AS CreatedAtUtc,
+    v.Created AS Created,
     v.StartPublish AS StartPublish,
     v.StopPublish AS StopPublish{invariantColumns}{cultureColumns}
 FROM ContentRoots r

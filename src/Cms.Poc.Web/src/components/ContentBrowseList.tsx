@@ -121,7 +121,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                   <Chip size="small" label={item.contentTypeName} />
                 </TableCell>
                 <TableCell>v{item.versionNumber}</TableCell>
-                <TableCell>{dayjs(item.createdAtUtc).format("YYYY-MM-DD HH:mm")}</TableCell>
+                <TableCell>{dayjs(item.created).format("YYYY-MM-DD HH:mm")}</TableCell>
                 {!publishedOnly && (
                   <TableCell>
                     {item.livePublishedVersionNumber != null ? (

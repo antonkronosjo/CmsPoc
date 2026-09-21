@@ -16,5 +16,5 @@ public class ContentRoot
     /// <summary>Discriminator identifying the concrete content type (e.g. "NewsContent").</summary>
     public string ContentTypeKey { get; set; } = string.Empty;
 
-    public DateTime CreatedAtUtc { get; set; }
+    public DateTime Created { get; set; }
 }

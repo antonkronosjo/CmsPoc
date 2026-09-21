@@ -13,7 +13,7 @@ internal static class ContentTypeDiscovery
     /// <summary>Names declared on <see cref="Cms.Framework.Abstractions.Content"/> itself - never re-emitted as Version/Translation columns.</summary>
     private static readonly HashSet<string> BaseContentMemberNames = new()
     {
-        "Id", "Name", "Language", "VersionNumber", "CreatedAtUtc",
+        "Id", "Name", "Language", "VersionNumber", "Created",
     };
 
     public static bool IsCandidate(SyntaxNode node)

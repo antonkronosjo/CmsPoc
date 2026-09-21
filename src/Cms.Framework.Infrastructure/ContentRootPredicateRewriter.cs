@@ -7,7 +7,7 @@ namespace Cms.Framework.Infrastructure;
 /// Retargets a predicate written against the flat <see cref="Content"/> base
 /// class onto <see cref="ContentRoot"/>, the real EF entity it is answered
 /// against for <c>Query&lt;Content&gt;()</c>. Only <see cref="Content.Id"/>,
-/// <see cref="Content.Name"/> and <see cref="Content.CreatedAtUtc"/> are
+/// <see cref="Content.Name"/> and <see cref="Content.Created"/> are
 /// supported: they are the only members that mean the same thing before a
 /// specific version/language has been resolved. <see cref="Content.Language"/>
 /// and <see cref="Content.VersionNumber"/> only exist on a hydrated,
@@ -21,7 +21,7 @@ internal sealed class ContentRootPredicateRewriter : ExpressionVisitor
     {
         nameof(Content.Id),
         nameof(Content.Name),
-        nameof(Content.CreatedAtUtc),
+        nameof(Content.Created),
     };
 
     private readonly ParameterExpression _rootParameter = Expression.Parameter(typeof(ContentRoot), "x");
@@ -44,7 +44,7 @@ internal sealed class ContentRootPredicateRewriter : ExpressionVisitor
             if (!SupportedMembers.Contains(node.Member.Name))
             {
                 throw new NotSupportedException(
-                    $"Query<Content>() predicates can only reference Content.Id, Content.Name or Content.CreatedAtUtc. " +
+                    $"Query<Content>() predicates can only reference Content.Id, Content.Name or Content.Created. " +
                     $"'{node.Member.Name}' only exists once content has been resolved to a specific version and " +
                     $"language - query the concrete content type instead, or filter after the results are materialized.");
             }

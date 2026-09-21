@@ -27,7 +27,7 @@ public abstract class Content
     /// <summary>1-based, sequential per content instance.</summary>
     public int VersionNumber { get; set; }
 
-    public DateTime CreatedAtUtc { get; set; }
+    public DateTime Created { get; set; }
 
     /// <summary>
     /// When this specific version starts being live, or <c>null</c> if it has

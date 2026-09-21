@@ -1,12 +1,12 @@
 const API_BASE = "http://localhost:5075";
 
 export const InputType = {
-  Text: 0,
-  TextArea: 1,
-  Number: 2,
-  Date: 3,
-  DateTime: 4,
-  ContentReference: 5,
+  Text: "Text",
+  TextArea: "TextArea",
+  Number: "Number",
+  Date: "Date",
+  DateTime: "DateTime",
+  ContentReference: "ContentReference",
 } as const;
 export type InputType = (typeof InputType)[keyof typeof InputType];
 
@@ -35,7 +35,7 @@ export interface UpdateContentMetadata {
   language: string;
   name: string;
   versionNumber: number;
-  createdAtUtc: string;
+  created: string;
   startPublish: string | null;
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
@@ -56,7 +56,7 @@ export interface ContentSummaryDto {
   name: string;
   language: string;
   versionNumber: number;
-  createdAtUtc: string;
+  created: string;
   startPublish: string | null;
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.

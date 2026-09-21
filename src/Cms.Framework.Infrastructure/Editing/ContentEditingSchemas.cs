@@ -20,7 +20,7 @@ public sealed class UpdateContentMetadata
     public required string Language { get; set; }
     public required string Name { get; set; }
     public required int VersionNumber { get; set; }
-    public required DateTime CreatedAtUtc { get; set; }
+    public required DateTime Created { get; set; }
     public DateTime? StartPublish { get; set; }
     public DateTime? StopPublish { get; set; }
 
@@ -53,7 +53,7 @@ public sealed class ContentSummaryDto
     public required string Name { get; set; }
     public required string Language { get; set; }
     public required int VersionNumber { get; set; }
-    public required DateTime CreatedAtUtc { get; set; }
+    public required DateTime Created { get; set; }
     public DateTime? StartPublish { get; set; }
     public DateTime? StopPublish { get; set; }
 
