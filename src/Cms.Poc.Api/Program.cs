@@ -7,8 +7,8 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOpenApi();
 builder.Services.AddCms(cms =>
 {
-    cms.UseSqlite("Data Source=cms-poc.db");
-    cms.EnsureDatabaseCreated = true;
+    cms.UseSqlite("Data Source=cms-poc.db", typeof(Program).Assembly);
+    cms.MigrateDatabase = true;
 });
 builder.Services.AddCors(options =>
 {

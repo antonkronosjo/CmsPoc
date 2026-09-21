@@ -38,8 +38,15 @@ public static class CmsServiceCollectionExtensions
         services.AddScoped<IContentEditingService, ContentEditingService>();
         services.Configure<ContentRepositoryOptions>(o => o.DefaultLanguage = builder.DefaultLanguage);
 
-        if (builder.EnsureDatabaseCreated)
-            services.AddHostedService<EnsureDatabaseCreatedService>();
+        if (builder.EnsureDatabaseCreated && builder.MigrateDatabase)
+            throw new InvalidOperationException(
+                "EnsureDatabaseCreated and MigrateDatabase are mutually exclusive: EnsureCreated bypasses migrations.");
+
+        if (builder.EnsureDatabaseCreated || builder.MigrateDatabase)
+        {
+            var migrate = builder.MigrateDatabase;
+            services.AddHostedService(sp => new EnsureDatabaseCreatedService(sp, migrate));
+        }
 
         return services;
     }

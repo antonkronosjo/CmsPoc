@@ -21,6 +21,15 @@ public sealed class CmsBuilder
     public bool EnsureDatabaseCreated { get; set; }
 
     /// <summary>
+    /// When <c>true</c>, pending EF Core migrations are applied on application
+    /// start (<c>Database.Migrate()</c>). The migrations belong to the consuming
+    /// app, so the provider must be told where they live (for example the
+    /// <c>migrationsAssembly</c> argument of <c>UseSqlite</c>). Use instead of
+    /// <see cref="EnsureDatabaseCreated"/>, not together with it.
+    /// </summary>
+    public bool MigrateDatabase { get; set; }
+
+    /// <summary>
     /// Chooses the database provider, e.g. <c>UseDatabase(db => db.UseSqlite(cs))</c>
     /// or the <c>UseSqlite</c> shortcut from <c>Cms.Framework.Sqlite</c>.
     /// </summary>
