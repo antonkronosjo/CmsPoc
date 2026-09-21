@@ -12,7 +12,7 @@ public static class CmsServiceCollectionExtensions
     /// The single entry point for wiring up the CMS: registers every
     /// <c>[ContentType]</c> class found in the application's assemblies,
     /// <see cref="CmsDbContext{TContentType}"/>, <see cref="IContentRepository"/> and
-    /// <see cref="IContentEditingService"/>.
+    /// <see cref="IContentEditingService{TContentType}"/>.
     /// </summary>
     public static IServiceCollection AddCms<TContentType>(this IServiceCollection services, Action<CmsBuilder> configure)
         where TContentType : struct, Enum
@@ -36,7 +36,7 @@ public static class CmsServiceCollectionExtensions
 
         services.AddDbContext<CmsDbContext<TContentType>>(databaseConfiguration);
         services.AddScoped<IContentRepository, ContentRepository<TContentType>>();
-        services.AddScoped<IContentEditingService, ContentEditingService<TContentType>>();
+        services.AddScoped<IContentEditingService<TContentType>, ContentEditingService<TContentType>>();
         services.Configure<ContentRepositoryOptions>(o => o.DefaultLanguage = builder.DefaultLanguage);
         foreach (var registration in builder.ServiceRegistrations)
             registration(services);

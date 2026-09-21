@@ -44,7 +44,7 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
             <ListItemText
               primary={
                 <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                  <Chip size="small" label={item.contentTypeName} />
+                  <Chip size="small" label={item.contentTypeKey} />
                   <span>{item.name || <em>(untitled)</em>}</span>
                 </Box>
               }

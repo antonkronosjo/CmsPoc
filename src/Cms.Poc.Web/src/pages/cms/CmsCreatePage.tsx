@@ -42,7 +42,7 @@ function CreateForm({ contentTypeName, language }: { contentTypeName: string; la
         onChange={(e) => setDraft({ ...active, metadata: { ...active.metadata, name: e.target.value } })}
       />
       <ContentForm
-        contentTypeName={active.metadata.contentTypeName}
+        contentTypeName={active.metadata.contentTypeKey}
         language={active.metadata.language}
         properties={active.properties}
         submitText="Create"

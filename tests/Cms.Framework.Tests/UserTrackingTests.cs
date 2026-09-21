@@ -27,9 +27,9 @@ public sealed class UserTrackingTests : IDisposable
         RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent),
     };
 
-    private static CreateContentSchema NewNewsRequest() => new()
+    private static CreateContentSchema<ContentTypeKey> NewNewsRequest() => new()
     {
-        Metadata = new CreateContentMetadata { ContentTypeName = nameof(ContentTypeKey.NewsContent), Language = "en", Name = "A" },
+        Metadata = new CreateContentMetadata<ContentTypeKey> { ContentTypeKey = ContentTypeKey.NewsContent, Language = "en", Name = "A" },
         Properties = new Dictionary<string, ContentPropertyValueDto>(),
     };
 

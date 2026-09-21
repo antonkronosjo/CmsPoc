@@ -131,7 +131,7 @@ public sealed class PublishingTests : IDisposable
         var draftSummary = _fixture.Editing.GetSummary(created.Id, "en");
         Assert.Equal(new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent), draftSummary!.Properties["RelatedContent"]);
 
-        var draftSearch = _fixture.Editing.Search(query: null, "en", contentTypeName: null, page: 1, pageSize: 20);
+        var draftSearch = _fixture.Editing.Search(query: null, "en", contentTypeKey: null, page: 1, pageSize: 20);
         Assert.Equal(new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent), draftSearch.Items.Single(i => i.Id == created.Id).Properties["RelatedContent"]);
 
         _fixture.Editing.Publish(created.Id, 1, startPublish: null, stopPublish: null);
@@ -139,10 +139,10 @@ public sealed class PublishingTests : IDisposable
         var publishedSummary = _fixture.Editing.GetSummary(created.Id, "en");
         Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), publishedSummary!.Properties["RelatedContent"]);
 
-        var publishedSearch = _fixture.Editing.Search(query: null, "en", contentTypeName: null, page: 1, pageSize: 20);
+        var publishedSearch = _fixture.Editing.Search(query: null, "en", contentTypeKey: null, page: 1, pageSize: 20);
         Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), publishedSearch.Items.Single(i => i.Id == created.Id).Properties["RelatedContent"]);
 
-        var publishedOnlySearch = _fixture.Editing.Search(query: null, "en", contentTypeName: null, page: 1, pageSize: 20, publishedOnly: true);
+        var publishedOnlySearch = _fixture.Editing.Search(query: null, "en", contentTypeKey: null, page: 1, pageSize: 20, publishedOnly: true);
         Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), publishedOnlySearch.Items.Single(i => i.Id == created.Id).Properties["RelatedContent"]);
     }
 

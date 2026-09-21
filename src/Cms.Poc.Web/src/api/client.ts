@@ -25,7 +25,7 @@ export interface ContentPropertyValueDto {
 }
 
 export interface CreateContentMetadata {
-  contentTypeName: string;
+  contentTypeKey: string;
   language: string;
   name: string;
 }
@@ -37,7 +37,7 @@ export interface CreateContentSchema {
 
 export interface UpdateContentMetadata {
   id: number;
-  contentTypeName: string;
+  contentTypeKey: string;
   language: string;
   name: string;
   versionNumber: number;
@@ -66,7 +66,7 @@ export interface UserRefDto {
 
 export interface ContentSummaryDto {
   id: number;
-  contentTypeName: string;
+  contentTypeKey: string;
   name: string;
   language: string;
   versionNumber: number;
@@ -87,7 +87,7 @@ export interface SearchContentResult {
 }
 
 export interface SearchContentOptions {
-  contentTypeName?: string;
+  contentTypeKey?: string;
   page?: number;
   pageSize?: number;
   publishedOnly?: boolean;
@@ -120,8 +120,8 @@ function query(params: Record<string, string | number | boolean | undefined>): s
 export const api = {
   getContentTypes: () => fetch(`${API_BASE}/api/content/types`).then((r) => json<string[]>(r)),
 
-  getCreationSchema: (contentTypeName: string, language: string) =>
-    fetch(`${API_BASE}/api/content/creationschema${query({ contentTypeName, language })}`).then((r) => json<CreateContentSchema>(r)),
+  getCreationSchema: (contentTypeKey: string, language: string) =>
+    fetch(`${API_BASE}/api/content/creationschema${query({ contentTypeKey, language })}`).then((r) => json<CreateContentSchema>(r)),
 
   createContent: (request: CreateContentSchema) =>
     fetch(`${API_BASE}/api/content`, {
@@ -148,7 +148,7 @@ export const api = {
       `${API_BASE}/api/content/search${query({
         query: searchQuery,
         language,
-        contentTypeName: options.contentTypeName,
+        contentTypeKey: options.contentTypeKey,
         page: options.page,
         pageSize: options.pageSize,
         publishedOnly: options.publishedOnly,
@@ -158,8 +158,8 @@ export const api = {
   getHistory: (id: number, language: string) =>
     fetch(`${API_BASE}/api/content/${id}/history${query({ language })}`).then((r) => json<ContentSummaryDto[]>(r)),
 
-  validateProperty: (contentTypeName: string, propertyName: string, value: ContentPropertyValueDto) =>
-    fetch(`${API_BASE}/api/content/validate${query({ contentTypeName, propertyName })}`, {
+  validateProperty: (contentTypeKey: string, propertyName: string, value: ContentPropertyValueDto) =>
+    fetch(`${API_BASE}/api/content/validate${query({ contentTypeKey, propertyName })}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(value),

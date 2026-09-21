@@ -44,7 +44,7 @@ export default function ContentPicker({ label, language, value, onChange, disabl
                   <Chip
                     color="primary"
                     size="small"
-                    label={resolved ? `${resolved.name || "(untitled)"} · ${resolved.contentTypeName}` : `#${value.id}`}
+                    label={resolved ? `${resolved.name || "(untitled)"} · ${resolved.contentTypeKey}` : `#${value.id}`}
                     onDelete={
                       disabled
                         ? undefined
@@ -73,7 +73,7 @@ export default function ContentPicker({ label, language, value, onChange, disabl
             language={language}
             excludeId={value?.id}
             onSelect={(item) => {
-              onChange({ id: item.id, contentType: item.contentTypeName });
+              onChange({ id: item.id, contentType: item.contentTypeKey });
               setOpen(false);
             }}
           />

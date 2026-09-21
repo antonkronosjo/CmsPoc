@@ -49,7 +49,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
 
   const { data, isFetching } = useQuery({
     queryKey: ["content-search", term, language, contentTypeName, page, publishedOnly],
-    queryFn: () => api.searchContent(term, language, { contentTypeName: contentTypeName || undefined, page, pageSize: PAGE_SIZE, publishedOnly }),
+    queryFn: () => api.searchContent(term, language, { contentTypeKey: contentTypeName || undefined, page, pageSize: PAGE_SIZE, publishedOnly }),
   });
 
   const items = data?.items ?? [];
@@ -118,7 +118,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
               >
                 <TableCell>{item.name || <em>(untitled)</em>}</TableCell>
                 <TableCell>
-                  <Chip size="small" label={item.contentTypeName} />
+                  <Chip size="small" label={item.contentTypeKey} />
                 </TableCell>
                 <TableCell>v{item.versionNumber}</TableCell>
                 <TableCell>{dayjs(item.created).format("YYYY-MM-DD HH:mm")}</TableCell>

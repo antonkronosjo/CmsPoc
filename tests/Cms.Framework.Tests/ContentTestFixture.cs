@@ -46,12 +46,12 @@ public sealed class ContentTestFixture : IDisposable
         Db = _scope.ServiceProvider.GetRequiredService<CmsDbContext<ContentTypeKey>>();
         Db.Database.EnsureCreated();
         Repository = _scope.ServiceProvider.GetRequiredService<IContentRepository>();
-        Editing = _scope.ServiceProvider.GetRequiredService<IContentEditingService>();
+        Editing = _scope.ServiceProvider.GetRequiredService<IContentEditingService<ContentTypeKey>>();
     }
 
     public CmsDbContext<ContentTypeKey> Db { get; }
     public IContentRepository Repository { get; }
-    public IContentEditingService Editing { get; }
+    public IContentEditingService<ContentTypeKey> Editing { get; }
 
     public void Dispose()
     {

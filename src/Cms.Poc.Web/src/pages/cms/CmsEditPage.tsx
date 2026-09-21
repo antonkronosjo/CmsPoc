@@ -166,7 +166,7 @@ function EditPanel({
               }}
             >
               <MetaItem label="Id" value={active.metadata.id} />
-              <MetaItem label="Content type" value={active.metadata.contentTypeName} />
+              <MetaItem label="Content type" value={active.metadata.contentTypeKey} />
               <MetaItem
                 label="Version"
                 value={
@@ -205,7 +205,7 @@ function EditPanel({
         )}
         <Stack spacing={2}>
           <ContentForm
-            contentTypeName={active.metadata.contentTypeName}
+            contentTypeName={active.metadata.contentTypeKey}
             language={active.metadata.language}
             properties={active.properties}
             submitText={isNewLanguageBranch ? `Add ${language} translation` : "Save"}

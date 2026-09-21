@@ -30,6 +30,6 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.MapCms("/api/content");
+app.MapCms<Cms.Poc.Domain.ContentTypeKey>("/api/content");
 
 app.Run();

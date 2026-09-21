@@ -6,7 +6,7 @@ using Cms.Framework.Abstractions.Users;
 
 namespace Cms.Framework.Infrastructure.Editing;
 
-internal sealed class ContentEditingService<TContentType> : IContentEditingService
+internal sealed class ContentEditingService<TContentType> : IContentEditingService<TContentType>
     where TContentType : struct, Enum
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -51,17 +51,17 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
     public IReadOnlyList<string> GetContentTypes()
         => _contentTypes.Select(x => x.ContentTypeKey.ToString()).ToList();
 
-    public CreateContentSchema GetCreationSchema(string contentTypeName, string language)
+    public CreateContentSchema<TContentType> GetCreationSchema(TContentType contentTypeKey, string language)
     {
-        var metadata = ResolveContentType(ParseContentType(contentTypeName));
-        return new CreateContentSchema
+        var metadata = ResolveContentType(contentTypeKey);
+        return new CreateContentSchema<TContentType>
         {
-            Metadata = new CreateContentMetadata { ContentTypeName = contentTypeName, Language = language },
+            Metadata = new CreateContentMetadata<TContentType> { ContentTypeKey = metadata.ContentTypeKey, Language = language },
             Properties = BuildPropertySchema(metadata.ClrType, instance: null),
         };
     }
 
-    public UpdateContentSchema GetUpdateSchema(int id, string language, int? version = null)
+    public UpdateContentSchema<TContentType> GetUpdateSchema(int id, string language, int? version = null)
     {
         if (version.HasValue)
         {
@@ -89,12 +89,12 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var rootMetadata = ResolveContentType(newBranchRoot.ContentTypeKey);
 
-        return new UpdateContentSchema
+        return new UpdateContentSchema<TContentType>
         {
-            Metadata = new UpdateContentMetadata
+            Metadata = new UpdateContentMetadata<TContentType>
             {
                 Id = newBranchRoot.Id,
-                ContentTypeName = newBranchRoot.ContentTypeKey.ToString(),
+                ContentTypeKey = newBranchRoot.ContentTypeKey,
                 Language = language,
                 Name = newBranchRoot.Name,
                 VersionNumber = 0,
@@ -105,13 +105,13 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         };
     }
 
-    private static UpdateContentSchema ToUpdateSchema(Content content, IContentTypeMetadata<TContentType> metadata, int? livePublishedVersionNumber)
+    private static UpdateContentSchema<TContentType> ToUpdateSchema(Content content, IContentTypeMetadata<TContentType> metadata, int? livePublishedVersionNumber)
         => new()
         {
-            Metadata = new UpdateContentMetadata
+            Metadata = new UpdateContentMetadata<TContentType>
             {
                 Id = content.Id,
-                ContentTypeName = metadata.ContentTypeKey.ToString(),
+                ContentTypeKey = metadata.ContentTypeKey,
                 Language = content.Language,
                 Name = content.Name,
                 VersionNumber = content.VersionNumber,
@@ -123,10 +123,10 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             Properties = BuildPropertySchema(content.GetType(), content),
         };
 
-    public Content Create(CreateContentSchema request)
+    public Content Create(CreateContentSchema<TContentType> request)
     {
         var userId = Authorize(CmsRole.Editor);
-        var metadata = ResolveContentType(ParseContentType(request.Metadata.ContentTypeName));
+        var metadata = ResolveContentType(request.Metadata.ContentTypeKey);
         var instance = (Content)Activator.CreateInstance(metadata.ClrType)!;
         instance.Name = request.Metadata.Name;
         instance.Language = request.Metadata.Language;
@@ -135,7 +135,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return metadata.Create(_db, instance, request.Metadata.Language, userId);
     }
 
-    public Content Update(UpdateContentSchema request)
+    public Content Update(UpdateContentSchema<TContentType> request)
     {
         var userId = Authorize(CmsRole.Editor);
         var current = _contentRepository.Query<Content>(request.Metadata.Language).Where(x => x.Id == request.Metadata.Id).FirstOrDefault();
@@ -162,11 +162,11 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return metadata.Update(_db, instance, userId);
     }
 
-    public List<string> ValidateProperty(string contentTypeName, string propertyName, ContentPropertyValueDto value)
+    public List<string> ValidateProperty(TContentType contentTypeKey, string propertyName, ContentPropertyValueDto value)
     {
-        var metadata = ResolveContentType(ParseContentType(contentTypeName));
+        var metadata = ResolveContentType(contentTypeKey);
         var property = GetContentProperties(metadata.ClrType).SingleOrDefault(p => p.Name == propertyName)
-            ?? throw new KeyNotFoundException($"'{propertyName}' is not an editable property of '{contentTypeName}'.");
+            ?? throw new KeyNotFoundException($"'{propertyName}' is not an editable property of '{contentTypeKey}'.");
 
         var resolvedValue = ResolveValue(property.PropertyType, value.Value);
 
@@ -179,7 +179,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return errors;
     }
 
-    public ContentSummaryDto? GetSummary(int id, string language)
+    public ContentSummaryDto<TContentType>? GetSummary(int id, string language)
     {
         // Prefer the published version for display outside active editing;
         // fall back to the latest draft when nothing is published yet.
@@ -193,7 +193,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return summary;
     }
 
-    public SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize, bool publishedOnly = false)
+    public SearchContentResult<TContentType> Search(string? query, string language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false)
     {
         var results = _contentRepository.Query<Content>(language, publishedOnly).ToList();
 
@@ -212,20 +212,20 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             .Select(content => ToSummary(content, ResolveContentTypeByClrType(content.GetType()).GetLivePublishedVersionNumber(_db, content.Id)))
             .ToList();
 
-        if (!string.IsNullOrWhiteSpace(contentTypeName))
-            summaries = summaries.Where(x => x.ContentTypeName == contentTypeName).ToList();
+        if (contentTypeKey is { } typeFilter)
+            summaries = summaries.Where(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, typeFilter)).ToList();
 
         var items = summaries.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         ResolveUsers(items);
 
-        return new SearchContentResult
+        return new SearchContentResult<TContentType>
         {
             Items = items,
             TotalCount = summaries.Count,
         };
     }
 
-    public List<ContentSummaryDto> GetHistory(int id, string language)
+    public List<ContentSummaryDto<TContentType>> GetHistory(int id, string language)
     {
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
@@ -285,7 +285,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
     /// single batch lookup. Ids the adapter no longer knows are marked
     /// <see cref="UserRefDto.Removed"/>. Without an adapter the raw ids are left as they are.
     /// </summary>
-    private void ResolveUsers(IReadOnlyCollection<ContentSummaryDto> summaries)
+    private void ResolveUsers(IReadOnlyCollection<ContentSummaryDto<TContentType>> summaries)
     {
         if (_userAdapter is null) return;
 
@@ -303,13 +303,13 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
     private static UserRefDto? ToUserRef(string? userId)
         => userId is null ? null : new UserRefDto { Id = userId };
 
-    private ContentSummaryDto ToSummary(Content content, int? livePublishedVersionNumber)
+    private ContentSummaryDto<TContentType> ToSummary(Content content, int? livePublishedVersionNumber)
     {
         var metadata = ResolveContentTypeByClrType(content.GetType());
-        return new ContentSummaryDto
+        return new ContentSummaryDto<TContentType>
         {
             Id = content.Id,
-            ContentTypeName = metadata.ContentTypeKey.ToString(),
+            ContentTypeKey = metadata.ContentTypeKey,
             Name = content.Name,
             Language = content.Language,
             VersionNumber = content.VersionNumber,
@@ -371,11 +371,6 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
 
         return rawValue;
     }
-
-    private static TContentType ParseContentType(string contentTypeName)
-        => Enum.TryParse<TContentType>(contentTypeName, out var key) && key.ToString() == contentTypeName
-            ? key
-            : throw new KeyNotFoundException($"Content type '{contentTypeName}' is not registered.");
 
     private IContentTypeMetadata<TContentType> ResolveContentType(TContentType contentType)
         => _contentTypes.SingleOrDefault(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, contentType))

@@ -1,22 +1,25 @@
 namespace Cms.Framework.Infrastructure.Editing;
 
-public sealed class CreateContentMetadata
+public sealed class CreateContentMetadata<TContentType>
+    where TContentType : struct, Enum
 {
-    public required string ContentTypeName { get; set; }
+    public required TContentType ContentTypeKey { get; set; }
     public required string Language { get; set; }
     public string Name { get; set; } = string.Empty;
 }
 
-public sealed class CreateContentSchema
+public sealed class CreateContentSchema<TContentType>
+    where TContentType : struct, Enum
 {
-    public required CreateContentMetadata Metadata { get; set; }
+    public required CreateContentMetadata<TContentType> Metadata { get; set; }
     public required Dictionary<string, ContentPropertyValueDto> Properties { get; set; }
 }
 
-public sealed class UpdateContentMetadata
+public sealed class UpdateContentMetadata<TContentType>
+    where TContentType : struct, Enum
 {
     public required int Id { get; set; }
-    public required string ContentTypeName { get; set; }
+    public required TContentType ContentTypeKey { get; set; }
     public required string Language { get; set; }
     public required string Name { get; set; }
     public required int VersionNumber { get; set; }
@@ -31,13 +34,14 @@ public sealed class UpdateContentMetadata
 /// <summary>
 /// Returned by the update-schema GET and required as-is for the update PUT
 /// body, and returned again by that same PUT - one type for the whole
-/// round trip. The frontend holds exactly one <see cref="UpdateContentSchema"/>
+/// round trip. The frontend holds exactly one <see cref="UpdateContentSchema{TContentType}"/>
 /// in state, mutates <see cref="Properties"/> as the user types, and PUTs
 /// the same object back unchanged in shape.
 /// </summary>
-public sealed class UpdateContentSchema
+public sealed class UpdateContentSchema<TContentType>
+    where TContentType : struct, Enum
 {
-    public required UpdateContentMetadata Metadata { get; set; }
+    public required UpdateContentMetadata<TContentType> Metadata { get; set; }
     public required Dictionary<string, ContentPropertyValueDto> Properties { get; set; }
 }
 
@@ -46,10 +50,11 @@ public sealed class UpdateContentSchema
 /// history - callers that need to display content without a full editable
 /// schema.
 /// </summary>
-public sealed class ContentSummaryDto
+public sealed class ContentSummaryDto<TContentType>
+    where TContentType : struct, Enum
 {
     public required int Id { get; set; }
-    public required string ContentTypeName { get; set; }
+    public required TContentType ContentTypeKey { get; set; }
     public required string Name { get; set; }
     public required string Language { get; set; }
     public required int VersionNumber { get; set; }
@@ -97,8 +102,9 @@ public sealed class PublishContentRequest
 /// Paged search results, plus the total count of matches across all pages
 /// (post-filtering) so callers can render pagination controls.
 /// </summary>
-public sealed class SearchContentResult
+public sealed class SearchContentResult<TContentType>
+    where TContentType : struct, Enum
 {
-    public required List<ContentSummaryDto> Items { get; set; }
+    public required List<ContentSummaryDto<TContentType>> Items { get; set; }
     public required int TotalCount { get; set; }
 }

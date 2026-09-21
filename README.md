@@ -30,7 +30,7 @@ builder.Services.AddCms(cms =>
     cms.EnsureDatabaseCreated = true;       // optional: create the schema on startup
 });
 
-app.MapCms("/api/content");                 // optional HTTP endpoints
+app.MapCms<ContentTypeKey>("/api/content");                 // optional HTTP endpoints
 ```
 
 ## Solution layout

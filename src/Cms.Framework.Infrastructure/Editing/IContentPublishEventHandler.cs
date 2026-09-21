@@ -5,7 +5,7 @@ namespace Cms.Framework.Infrastructure.Editing;
 /// notifications, cache invalidation, search re-indexing). No
 /// implementations are registered by default - register one or more via DI
 /// to observe these events. Handlers fire only on an explicit
-/// <see cref="IContentEditingService.Publish"/>/<see cref="IContentEditingService.Unpublish"/>
+/// <see cref="IContentEditingService{TContentType}.Publish"/>/<see cref="IContentEditingService{TContentType}.Unpublish"/>
 /// call, not automatically when a scheduled publish window is reached with
 /// no request in flight.
 /// </summary>

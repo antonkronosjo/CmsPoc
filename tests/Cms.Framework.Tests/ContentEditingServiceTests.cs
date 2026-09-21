@@ -5,7 +5,7 @@ using Cms.Poc.Domain;
 namespace Cms.Framework.Tests;
 
 /// <summary>
-/// Proves the generic, schema-driven editing layer (<see cref="IContentEditingService"/>)
+/// Proves the generic, schema-driven editing layer (<see cref="IContentEditingService{TContentType}"/>)
 /// works for a content type it only knows by name at runtime - the same
 /// contract the HTTP API and frontend rely on.
 /// </summary>
@@ -25,7 +25,7 @@ public sealed class ContentEditingServiceTests : IDisposable
     [Fact]
     public void Create_by_type_name_persists_content_from_a_property_dictionary()
     {
-        var schema = _fixture.Editing.GetCreationSchema(nameof(NewsContent), "en");
+        var schema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         schema.Metadata.Name = "HEJ";
         schema.Properties["Heading"].Value = "Hello";
         schema.Properties["Body"].Value = "World";
@@ -44,7 +44,7 @@ public sealed class ContentEditingServiceTests : IDisposable
     [Fact]
     public void Update_round_trips_through_the_same_schema_type()
     {
-        var creationSchema = _fixture.Editing.GetCreationSchema(nameof(NewsContent), "en");
+        var creationSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
         creationSchema.Properties["Body"].Value = "World";
@@ -71,18 +71,18 @@ public sealed class ContentEditingServiceTests : IDisposable
     public void ValidateProperty_reports_required_violations_reusing_DataAnnotations()
     {
         var errorsForBlank = _fixture.Editing.ValidateProperty(
-            nameof(NewsContent), "Heading", new ContentPropertyValueDto { InputType = InputType.Text, Required = true, Value = "" });
+            ContentTypeKey.NewsContent, "Heading", new ContentPropertyValueDto { InputType = InputType.Text, Required = true, Value = "" });
         Assert.NotEmpty(errorsForBlank);
 
         var errorsForFilled = _fixture.Editing.ValidateProperty(
-            nameof(NewsContent), "Heading", new ContentPropertyValueDto { InputType = InputType.Text, Required = true, Value = "Hello" });
+            ContentTypeKey.NewsContent, "Heading", new ContentPropertyValueDto { InputType = InputType.Text, Required = true, Value = "Hello" });
         Assert.Empty(errorsForFilled);
     }
 
     [Fact]
     public void GetUpdateSchema_falls_back_to_an_empty_schema_for_a_language_not_yet_translated()
     {
-        var creationSchema = _fixture.Editing.GetCreationSchema(nameof(NewsContent), "en");
+        var creationSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
         creationSchema.Properties["Body"].Value = "World";
@@ -92,7 +92,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         var swedishSchema = _fixture.Editing.GetUpdateSchema(created.Id, "sv");
 
         Assert.Equal(created.Id, swedishSchema.Metadata.Id);
-        Assert.Equal(nameof(NewsContent), swedishSchema.Metadata.ContentTypeName);
+        Assert.Equal(ContentTypeKey.NewsContent, swedishSchema.Metadata.ContentTypeKey);
         Assert.Equal("sv", swedishSchema.Metadata.Language);
         Assert.Null(swedishSchema.Properties["Heading"].Value);
 
@@ -113,7 +113,7 @@ public sealed class ContentEditingServiceTests : IDisposable
     {
         for (var i = 0; i < 3; i++)
         {
-            var news = _fixture.Editing.GetCreationSchema(nameof(NewsContent), "en");
+            var news = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
             news.Metadata.Name = $"News {i}";
             news.Properties["Heading"].Value = $"Heading {i}";
             news.Properties["Body"].Value = "Body";
@@ -121,31 +121,31 @@ public sealed class ContentEditingServiceTests : IDisposable
             _fixture.Editing.Create(news);
         }
 
-        var eventSchema = _fixture.Editing.GetCreationSchema(nameof(EventContent), "en");
+        var eventSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.EventContent, "en");
         eventSchema.Metadata.Name = "Event 0";
         eventSchema.Properties["Title"].Value = "Title";
         eventSchema.Properties["Description"].Value = "Description";
         _fixture.Editing.Create(eventSchema);
 
-        var filtered = _fixture.Editing.Search(query: null, language: "en", contentTypeName: nameof(NewsContent), page: 1, pageSize: 20);
+        var filtered = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: ContentTypeKey.NewsContent, page: 1, pageSize: 20);
         Assert.Equal(3, filtered.TotalCount);
-        Assert.All(filtered.Items, x => Assert.Equal(nameof(NewsContent), x.ContentTypeName));
+        Assert.All(filtered.Items, x => Assert.Equal(ContentTypeKey.NewsContent, x.ContentTypeKey));
 
-        var firstPage = _fixture.Editing.Search(query: null, language: "en", contentTypeName: nameof(NewsContent), page: 1, pageSize: 2);
-        var secondPage = _fixture.Editing.Search(query: null, language: "en", contentTypeName: nameof(NewsContent), page: 2, pageSize: 2);
+        var firstPage = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: ContentTypeKey.NewsContent, page: 1, pageSize: 2);
+        var secondPage = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: ContentTypeKey.NewsContent, page: 2, pageSize: 2);
         Assert.Equal(3, firstPage.TotalCount);
         Assert.Equal(2, firstPage.Items.Count);
         Assert.Equal(3, secondPage.TotalCount);
         Assert.Single(secondPage.Items);
 
-        var unfiltered = _fixture.Editing.Search(query: null, language: "en", contentTypeName: null, page: 1, pageSize: 20);
+        var unfiltered = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: null, page: 1, pageSize: 20);
         Assert.Equal(4, unfiltered.TotalCount);
     }
 
     [Fact]
     public void GetUpdateSchema_with_a_version_number_returns_that_version_not_the_current_one()
     {
-        var creationSchema = _fixture.Editing.GetCreationSchema(nameof(NewsContent), "en");
+        var creationSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
         creationSchema.Properties["Body"].Value = "World";

@@ -21,25 +21,26 @@ namespace Cms.Framework.Infrastructure.Editing;
 /// <see cref="Abstractions.Users.CmsForbiddenException"/>. Reads are not restricted.
 /// </para>
 /// </summary>
-public interface IContentEditingService
+public interface IContentEditingService<TContentType>
+    where TContentType : struct, Enum
 {
     IReadOnlyList<string> GetContentTypes();
 
-    CreateContentSchema GetCreationSchema(string contentTypeName, string language);
+    CreateContentSchema<TContentType> GetCreationSchema(TContentType contentTypeKey, string language);
 
-    UpdateContentSchema GetUpdateSchema(int id, string language, int? version = null);
+    UpdateContentSchema<TContentType> GetUpdateSchema(int id, string language, int? version = null);
 
-    Content Create(CreateContentSchema request);
+    Content Create(CreateContentSchema<TContentType> request);
 
-    Content Update(UpdateContentSchema request);
+    Content Update(UpdateContentSchema<TContentType> request);
 
-    List<string> ValidateProperty(string contentTypeName, string propertyName, ContentPropertyValueDto value);
+    List<string> ValidateProperty(TContentType contentTypeKey, string propertyName, ContentPropertyValueDto value);
 
-    ContentSummaryDto? GetSummary(int id, string language);
+    ContentSummaryDto<TContentType>? GetSummary(int id, string language);
 
-    SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize, bool publishedOnly = false);
+    SearchContentResult<TContentType> Search(string? query, string language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false);
 
-    List<ContentSummaryDto> GetHistory(int id, string language);
+    List<ContentSummaryDto<TContentType>> GetHistory(int id, string language);
 
     /// <summary>Publishes a specific version, replacing whatever was previously live once its window is reached.</summary>
     void Publish(int id, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
