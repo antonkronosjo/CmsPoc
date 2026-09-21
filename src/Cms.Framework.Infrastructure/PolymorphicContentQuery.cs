@@ -44,6 +44,16 @@ internal sealed class PolymorphicContentQuery<TContentType> : IContentQuery<Cont
         return this;
     }
 
+    public IContentQuery<Content> OfTypes<TKey>(params TKey[] contentTypes) where TKey : struct, Enum
+    {
+        if (typeof(TKey) != typeof(TContentType))
+            throw new ArgumentException($"Expected content types of '{typeof(TContentType).Name}' but got '{typeof(TKey).Name}'.");
+
+        var keys = (TContentType[])(object)contentTypes;
+        _rootQuery = _rootQuery.Where(x => keys.Contains(x.ContentTypeKey));
+        return this;
+    }
+
     public List<Content> ToList()
     {
         var matched = _rootQuery

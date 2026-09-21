@@ -24,6 +24,27 @@ public sealed class PolymorphicQueryTests : IDisposable
     }
 
     [Fact]
+    public void OfTypes_restricts_the_polymorphic_query_to_the_given_content_types()
+    {
+        var news = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B" }, "en");
+        var @event = _fixture.Repository.Create(new EventContent { Name = "B", Title = "T", Description = "D", StartDate = DateTime.UtcNow }, "en");
+
+        var onlyEvents = _fixture.Repository.Query<Content>("en").OfTypes(ContentTypeKey.EventContent).ToList();
+        var both = _fixture.Repository.Query<Content>("en").OfTypes(ContentTypeKey.NewsContent, ContentTypeKey.EventContent).ToList();
+        var none = _fixture.Repository.Query<Content>("en").OfTypes<ContentTypeKey>().ToList();
+
+        Assert.Equal(@event.Id, Assert.IsType<EventContent>(Assert.Single(onlyEvents)).Id);
+        Assert.Equal(new[] { news.Id, @event.Id }, both.Select(x => x.Id));
+        Assert.Empty(none);
+    }
+
+    [Fact]
+    public void OfTypes_is_rejected_on_a_concrete_type_query()
+    {
+        Assert.Throws<NotSupportedException>(() => _fixture.Repository.Query<NewsContent>("en").OfTypes(ContentTypeKey.NewsContent));
+    }
+
+    [Fact]
     public void Query_over_Content_can_filter_by_Id()
     {
         var news = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");

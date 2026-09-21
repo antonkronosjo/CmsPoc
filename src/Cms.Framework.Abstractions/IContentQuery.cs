@@ -18,6 +18,14 @@ public interface IContentQuery<T> where T : Content
     /// <summary>Adds a filter. Deferred - not executed until a terminal call below.</summary>
     IContentQuery<T> Where(Expression<Func<T, bool>> predicate);
 
+    /// <summary>
+    /// Restricts results to the given content types, filtered in SQL before any
+    /// type is hydrated. Only supported on the polymorphic <c>Query&lt;Content&gt;()</c>;
+    /// a concrete-type query is already restricted to its own type and throws.
+    /// <typeparamref name="TContentType"/> must be the app's generated content type enum.
+    /// </summary>
+    IContentQuery<T> OfTypes<TContentType>(params TContentType[] contentTypes) where TContentType : struct, Enum;
+
     T First();
     T? FirstOrDefault();
     List<T> ToList();

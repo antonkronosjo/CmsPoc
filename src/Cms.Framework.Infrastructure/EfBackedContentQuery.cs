@@ -23,6 +23,10 @@ internal sealed class EfBackedContentQuery<T> : IContentQuery<T> where T : Conte
         return this;
     }
 
+    public IContentQuery<T> OfTypes<TContentType>(params TContentType[] contentTypes) where TContentType : struct, Enum
+        => throw new NotSupportedException(
+            $"OfTypes is only supported on Query<Content>(). Query<{typeof(T).Name}>() is already restricted to that one type.");
+
     public T First() => _source.First();
     public T? FirstOrDefault() => _source.FirstOrDefault();
     public List<T> ToList() => _source.ToList();
