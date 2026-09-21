@@ -222,6 +222,7 @@ internal static class CodeEmitter
         sb.AppendLine("            });");
         sb.AppendLine("        }");
         sb.AppendLine();
+        sb.AppendLine("        currentVersion.Root.Name = content.Name;");
         sb.AppendLine("        db.SaveChanges();");
         sb.AppendLine();
         sb.AppendLine($"        return new {model.FullyQualifiedName}");
