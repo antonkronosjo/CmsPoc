@@ -50,12 +50,26 @@ internal static class ContentTypeDiscovery
         var invariant = new List<PropertyModel>();
         var cultureSpecific = new List<PropertyModel>();
 
-        foreach (var member in classSymbol.GetMembers().OfType<IPropertySymbol>())
+        // Walk from the type up to (excluding) Content, then process base-first so
+        // inherited properties come before derived ones. Each concrete type gets its
+        // own full set of tables, so inherited properties are stored per type.
+        var chain = new List<INamedTypeSymbol>();
+        for (INamedTypeSymbol? current = classSymbol;
+             current is not null && !SymbolEqualityComparer.Default.Equals(current, contentTypeSymbol);
+             current = current.BaseType)
+        {
+            chain.Add(current);
+        }
+        chain.Reverse();
+
+        var seen = new HashSet<string>();
+        foreach (var member in chain.SelectMany(t => t.GetMembers().OfType<IPropertySymbol>()))
         {
             if (member.IsStatic || member.IsIndexer) continue;
             if (member.DeclaredAccessibility != Accessibility.Public) continue;
             if (member.GetMethod is null || member.SetMethod is null) continue;
             if (BaseContentMemberNames.Contains(member.Name)) continue;
+            if (!seen.Add(member.Name)) continue;
 
             var typeName = member.Type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
             if (typeName.StartsWith("global::", System.StringComparison.Ordinal))

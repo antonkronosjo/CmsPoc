@@ -286,7 +286,17 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
 
     private static IEnumerable<PropertyInfo> GetContentProperties(Type type)
         => type.GetProperties(BindingFlags.Public | BindingFlags.Instance)
-            .Where(p => p.CanRead && p.CanWrite && p.IsDefined(typeof(ContentPropertyAttribute), inherit: true));
+            .Where(p => p.CanRead && p.CanWrite && p.IsDefined(typeof(ContentPropertyAttribute), inherit: true))
+            // Reflection lists the most-derived type's properties first; show base-class
+            // properties first instead (stable sort keeps declaration order within a class).
+            .OrderBy(p => InheritanceDepth(p.DeclaringType!));
+
+    private static int InheritanceDepth(Type type)
+    {
+        var depth = 0;
+        for (var t = type.BaseType; t is not null; t = t.BaseType) depth++;
+        return depth;
+    }
 
     private static object? ResolveValue(Type targetType, object? rawValue)
     {

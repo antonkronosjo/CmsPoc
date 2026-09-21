@@ -32,11 +32,13 @@ internal sealed class ContentRepository<TContentType> : IContentRepository
         _defaultLanguage = options.Value.DefaultLanguage;
     }
 
+    // Create/Update dispatch on the runtime type so a SpecialNewsContent passed
+    // as NewsContent is stored in SpecialNewsContent's tables.
     public T Create<T>(T content, string language) where T : Content
-        => GetStore<T>().Create(_db, content, language);
+        => (T)ResolveByRuntimeType(content).Create(_db, content, language);
 
     public T Update<T>(T content) where T : Content
-        => GetStore<T>().Update(_db, content);
+        => (T)ResolveByRuntimeType(content).Update(_db, content);
 
     public IContentQuery<T> Query<T>(string? language = null, bool publishedOnly = false) where T : Content
     {
@@ -48,11 +50,34 @@ internal sealed class ContentRepository<TContentType> : IContentRepository
             return (IContentQuery<T>)(object)polymorphic;
         }
 
+        var hierarchy = _contentTypes.Where(m => typeof(T).IsAssignableFrom(m.ClrType)).ToList();
+        if (hierarchy.Count > 1)
+            return new HierarchyContentQuery<T, TContentType>(_db, hierarchy, lang, publishedOnly);
+
         return new EfBackedContentQuery<T>(GetStore<T>().QueryCurrent(_db, lang, publishedOnly));
     }
 
     public IReadOnlyList<T> QueryHistory<T>(int id, string? language = null) where T : Content
-        => GetStore<T>().QueryHistory(_db, id, language ?? _defaultLanguage);
+    {
+        var lang = language ?? _defaultLanguage;
+
+        if (!_contentTypes.Any(m => m.ClrType != typeof(T) && typeof(T).IsAssignableFrom(m.ClrType)))
+            return GetStore<T>().QueryHistory(_db, id, lang);
+
+        // T has derived types: the id may belong to any of them, so dispatch on the root's stored type.
+        var key = _db.ContentRoots.Where(r => r.Id == id).Select(r => (TContentType?)r.ContentTypeKey).FirstOrDefault();
+        var metadata = key is null
+            ? null
+            : _contentTypes.FirstOrDefault(m => EqualityComparer<TContentType>.Default.Equals(m.ContentTypeKey, key.Value));
+        if (metadata is null || !typeof(T).IsAssignableFrom(metadata.ClrType))
+            return Array.Empty<T>();
+
+        return metadata.QueryHistory(_db, id, lang).Cast<T>().ToList();
+    }
+
+    private IContentTypeMetadata<TContentType> ResolveByRuntimeType(Content content)
+        => _contentTypes.FirstOrDefault(m => m.ClrType == content.GetType())
+            ?? throw new InvalidOperationException($"'{content.GetType().Name}' is not a registered content type.");
 
     private IContentTypeStore<T, TContentType> GetStore<T>() where T : Content
         => _services.GetRequiredService<IContentTypeStore<T, TContentType>>();

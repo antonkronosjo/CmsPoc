@@ -34,7 +34,12 @@ internal sealed class PolymorphicContentQuery<TContentType> : IContentQuery<Cont
         _contentTypes = contentTypes;
         _language = language;
         _publishedOnly = publishedOnly;
-        _rootQuery = db.ContentRoots;
+
+        // Roots whose type is no longer registered (e.g. a content class that was
+        // deleted) must be excluded in SQL: materializing their stored key would
+        // throw, because it no longer maps to any enum member.
+        var knownKeys = contentTypes.Select(m => m.ContentTypeKey).ToArray();
+        _rootQuery = db.ContentRoots.Where(x => knownKeys.Contains(x.ContentTypeKey));
     }
 
     public IContentQuery<Content> Where(Expression<Func<Content, bool>> predicate)

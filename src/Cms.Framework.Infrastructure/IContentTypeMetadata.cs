@@ -1,6 +1,22 @@
+using System.Linq.Expressions;
 using Cms.Framework.Abstractions;
 
 namespace Cms.Framework.Infrastructure;
+
+internal sealed class ParameterReplacer : ExpressionVisitor
+{
+    private readonly ParameterExpression _from;
+    private readonly ParameterExpression _to;
+
+    public ParameterReplacer(ParameterExpression from, ParameterExpression to)
+    {
+        _from = from;
+        _to = to;
+    }
+
+    protected override Expression VisitParameter(ParameterExpression node)
+        => node == _from ? _to : base.VisitParameter(node);
+}
 
 /// <summary>
 /// Type-erased view of a registered content type, used by the polymorphic
@@ -19,6 +35,15 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// is <c>true</c>, which resolves each root's live version in memory).
     /// </summary>
     IReadOnlyList<Content> QueryByIds(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids, string language, bool publishedOnly = false);
+
+    /// <summary>
+    /// Runs this type's current-version query in <paramref name="language"/>,
+    /// applying each predicate and returning the materialized items. Each
+    /// predicate is a single-parameter boolean lambda over any base type of
+    /// <see cref="ClrType"/> (including <see cref="ClrType"/> itself); it is
+    /// re-targeted onto <see cref="ClrType"/> so it still translates to SQL.
+    /// </summary>
+    IReadOnlyList<Content> QueryCurrent(CmsDbContext<TContentType> db, string language, bool publishedOnly, IReadOnlyList<LambdaExpression> predicates);
 
     /// <summary>
     /// Type-erased entry point for creating content when the concrete type
@@ -80,6 +105,18 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
             .ToList()
             .Cast<Content>()
             .ToList();
+
+    public IReadOnlyList<Content> QueryCurrent(CmsDbContext<TContentType> db, string language, bool publishedOnly, IReadOnlyList<LambdaExpression> predicates)
+    {
+        var query = _store.QueryCurrent(db, language, publishedOnly);
+        foreach (var predicate in predicates)
+        {
+            var parameter = Expression.Parameter(typeof(T), predicate.Parameters[0].Name);
+            var body = new ParameterReplacer(predicate.Parameters[0], parameter).Visit(predicate.Body);
+            query = query.Where(Expression.Lambda<Func<T, bool>>(body, parameter));
+        }
+        return query.ToList().Cast<Content>().ToList();
+    }
 
     public Content Create(CmsDbContext<TContentType> db, Content content, string language)
         => _store.Create(db, (T)content, language);

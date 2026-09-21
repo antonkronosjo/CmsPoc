@@ -136,6 +136,8 @@ internal static class CodeEmitter
         sb.AppendLine("{");
         sb.AppendLine($"    public void Configure(EntityTypeBuilder<{model.FullyQualifiedName}> builder)");
         sb.AppendLine("    {");
+        sb.AppendLine("        // Each content type is stored in its own tables; never let EF infer a CLR-inheritance hierarchy between read entities.");
+        sb.AppendLine("        builder.HasBaseType((global::System.Type?)null);");
         sb.AppendLine("        builder.HasNoKey();");
         sb.AppendLine("        builder.ToSqlQuery(@\"" + sql.Replace("\"", "\"\"") + "\");");
         sb.AppendLine("    }");
