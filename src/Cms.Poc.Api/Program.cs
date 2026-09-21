@@ -9,6 +9,7 @@ builder.Services.AddCms<Cms.Poc.Domain.ContentTypeKey>(cms =>
 {
     cms.UseSqlite("Data Source=cms-poc.db", typeof(Program).Assembly);
     cms.MigrateDatabase = true;
+    cms.UseUserAdapter<Cms.Poc.Api.PocUserAdapter>();
 });
 builder.Services.AddCors(options =>
 {

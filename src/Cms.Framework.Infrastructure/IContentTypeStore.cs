@@ -14,9 +14,11 @@ public interface IContentTypeStore<T, TContentType>
     /// <summary>The discriminator stored on <see cref="ContentRoot{TContentType}.ContentTypeKey"/> for this type.</summary>
     TContentType ContentTypeKey { get; }
 
-    T Create(CmsDbContext<TContentType> db, T content, string language);
+    /// <summary>Creates the item. <paramref name="userId"/> is the opaque id recorded as <see cref="Content.CreatedBy"/>, or <c>null</c> when user tracking is off.</summary>
+    T Create(CmsDbContext<TContentType> db, T content, string language, string? userId);
 
-    T Update(CmsDbContext<TContentType> db, T content);
+    /// <summary>Adds a new version. <paramref name="userId"/> is recorded as that version's <see cref="Content.CreatedBy"/>.</summary>
+    T Update(CmsDbContext<TContentType> db, T content, string? userId);
 
     /// <summary>
     /// Per-language flat read query. When <paramref name="publishedOnly"/> is
@@ -35,13 +37,20 @@ public interface IContentTypeStore<T, TContentType>
     /// <summary>Whether a version with this number exists for this root.</summary>
     bool VersionExists(CmsDbContext<TContentType> db, int rootId, int versionNumber);
 
-    /// <summary>Sets (or replaces) the publish window for a specific version.</summary>
-    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
+    /// <summary>Sets (or replaces) the publish window for a specific version, recording <paramref name="userId"/> as <see cref="Content.PublishedBy"/>.</summary>
+    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
 
     /// <summary>
     /// Stops whichever version is currently live for this root by setting
     /// its <see cref="Content.StopPublish"/> to <paramref name="stopAt"/>.
     /// Returns <c>false</c> (no-op) if nothing is currently live.
     /// </summary>
-    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt);
+    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt, string? userId);
+
+    /// <summary>
+    /// Clears <see cref="Content.CreatedBy"/> and <see cref="Content.PublishedBy"/> on every
+    /// version of this type that references <paramref name="userId"/> (GDPR unlinking).
+    /// The versions themselves are kept.
+    /// </summary>
+    void RemoveUserReferences(CmsDbContext<TContentType> db, string userId);
 }

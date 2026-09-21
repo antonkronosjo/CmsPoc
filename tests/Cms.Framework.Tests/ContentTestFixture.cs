@@ -1,4 +1,5 @@
 using Cms.Framework.Abstractions;
+using Cms.Framework.Abstractions.Users;
 using Cms.Framework.Infrastructure;
 using Cms.Framework.Infrastructure.Editing;
 using Cms.Framework.Sqlite;
@@ -22,14 +23,23 @@ public sealed class ContentTestFixture : IDisposable
     private readonly IServiceScope _scope;
     private readonly string _dbPath;
 
-    public ContentTestFixture()
+    /// <param name="userAdapter">
+    /// Registers this adapter, switching user tracking and role enforcement on.
+    /// Leave <c>null</c> for the default, tracking-off setup.
+    /// </param>
+    public ContentTestFixture(ICmsUserAdapter? userAdapter = null)
     {
         _dbPath = Path.Combine(Path.GetTempPath(), $"cms-tests-{Guid.NewGuid():N}.db");
 
         var services = new ServiceCollection();
         // Pooling=False so the underlying file handle is released as soon as the
         // DbContext is disposed, letting each test clean up its own temp database.
-        services.AddCms<ContentTypeKey>(cms => cms.UseSqlite($"Data Source={_dbPath};Pooling=False"));
+        services.AddCms<ContentTypeKey>(cms =>
+        {
+            cms.UseSqlite($"Data Source={_dbPath};Pooling=False");
+            if (userAdapter is not null)
+                cms.ConfigureServices(s => s.AddSingleton(userAdapter));
+        });
         _provider = services.BuildServiceProvider();
 
         _scope = _provider.CreateScope();

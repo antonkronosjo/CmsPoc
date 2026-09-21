@@ -59,7 +59,26 @@ public sealed class ContentSummaryDto
 
     /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
     public int? LivePublishedVersionNumber { get; set; }
+
+    /// <summary>Who created this version, or <c>null</c> if unknown or user tracking is off.</summary>
+    public UserRefDto? CreatedBy { get; set; }
+
+    /// <summary>Who last changed this version's publish window, or <c>null</c> if unknown or user tracking is off.</summary>
+    public UserRefDto? PublishedBy { get; set; }
     public Dictionary<string, object?> Properties { get; set; } = new();
+}
+
+/// <summary>
+/// A reference to the user behind an action. <see cref="Id"/> is what the CMS
+/// stored; <see cref="DisplayName"/> is looked up from the user adapter at
+/// read time. <see cref="Removed"/> is <c>true</c> when the adapter no longer
+/// knows this id (for example a user erased for GDPR) - show "Unknown user".
+/// </summary>
+public sealed class UserRefDto
+{
+    public required string Id { get; set; }
+    public string? DisplayName { get; set; }
+    public bool Removed { get; set; }
 }
 
 /// <summary>Request body for publishing a specific version.</summary>

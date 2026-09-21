@@ -40,4 +40,17 @@ public abstract class Content
     /// scheduled end. All dates in this project are UTC.
     /// </summary>
     public DateTime? StopPublish { get; set; }
+
+    /// <summary>
+    /// Opaque id of the user who created this version, or <c>null</c> when
+    /// user tracking is off or the reference has been removed. Names come
+    /// from the user adapter, never from here.
+    /// </summary>
+    public string? CreatedBy { get; set; }
+
+    /// <summary>
+    /// Opaque id of the user who last changed this version's publish window,
+    /// or <c>null</c> under the same conditions as <see cref="CreatedBy"/>.
+    /// </summary>
+    public string? PublishedBy { get; set; }
 }

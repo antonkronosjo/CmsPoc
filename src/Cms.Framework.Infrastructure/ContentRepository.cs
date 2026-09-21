@@ -1,4 +1,5 @@
 using Cms.Framework.Abstractions;
+using Cms.Framework.Abstractions.Users;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 
@@ -19,26 +20,31 @@ internal sealed class ContentRepository<TContentType> : IContentRepository
     private readonly IServiceProvider _services;
     private readonly List<IContentTypeMetadata<TContentType>> _contentTypes;
     private readonly string _defaultLanguage;
+    private readonly ICmsUserAdapter? _userAdapter;
 
     public ContentRepository(
         CmsDbContext<TContentType> db,
         IServiceProvider services,
         IEnumerable<IContentTypeMetadata<TContentType>> contentTypes,
-        IOptions<ContentRepositoryOptions> options)
+        IOptions<ContentRepositoryOptions> options,
+        ICmsUserAdapter? userAdapter = null)
     {
         _db = db;
         _services = services;
         _contentTypes = contentTypes.ToList();
         _defaultLanguage = options.Value.DefaultLanguage;
+        _userAdapter = userAdapter;
     }
 
     // Create/Update dispatch on the runtime type so a SpecialNewsContent passed
-    // as NewsContent is stored in SpecialNewsContent's tables.
+    // as NewsContent is stored in SpecialNewsContent's tables. Attribution is
+    // recorded only when a user adapter is registered; roles are enforced one
+    // layer up, in the editing service.
     public T Create<T>(T content, string language) where T : Content
-        => (T)ResolveByRuntimeType(content).Create(_db, content, language);
+        => (T)ResolveByRuntimeType(content).Create(_db, content, language, _userAdapter?.GetCurrentUser()?.Id);
 
     public T Update<T>(T content) where T : Content
-        => (T)ResolveByRuntimeType(content).Update(_db, content);
+        => (T)ResolveByRuntimeType(content).Update(_db, content, _userAdapter?.GetCurrentUser()?.Id);
 
     public IContentQuery<T> Query<T>(string? language = null, bool publishedOnly = false) where T : Content
     {

@@ -1,9 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
-import { api } from "../api/client";
+import { api, type UserRefDto } from "../api/client";
 import StatusIndicator from "./StatusIndicator";
 import PublishDialog, { usePublishActions } from "./PublishDialog";
 import dayjs from "../lib/dayjs";
+
+function userLabel(user: UserRefDto | null) {
+  if (!user) return "";
+  return user.removed ? "Unknown user" : (user.displayName ?? user.id);
+}
 
 interface VersionHistoryProps {
   id: number;
@@ -37,7 +42,8 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
               <TableCell>Status</TableCell>
               <TableCell>Version</TableCell>
               <TableCell>Created</TableCell>
-              <TableCell />
+              <TableCell>Created by</TableCell>
+              <TableCell>Published by</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -55,6 +61,8 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
                   </TableCell>
                   <TableCell>v{version.versionNumber}</TableCell>
                   <TableCell>{dayjs(version.created).format("YYYY-MM-DD HH:mm")}</TableCell>
+                  <TableCell>{userLabel(version.createdBy)}</TableCell>
+                  <TableCell>{userLabel(version.publishedBy)}</TableCell>
                 </TableRow>
               );
             })}

@@ -50,14 +50,14 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// is only known at runtime (e.g. by name, from an HTTP request).
     /// <paramref name="content"/> must be an instance of <see cref="ClrType"/>.
     /// </summary>
-    Content Create(CmsDbContext<TContentType> db, Content content, string language);
+    Content Create(CmsDbContext<TContentType> db, Content content, string language, string? userId);
 
     /// <summary>
     /// Type-erased entry point for updating content when the concrete type
     /// is only known at runtime. <paramref name="content"/> must be an
     /// instance of <see cref="ClrType"/>.
     /// </summary>
-    Content Update(CmsDbContext<TContentType> db, Content content);
+    Content Update(CmsDbContext<TContentType> db, Content content, string? userId);
 
     /// <summary>
     /// Type-erased entry point for fetching version history when the
@@ -72,10 +72,13 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     bool VersionExists(CmsDbContext<TContentType> db, int rootId, int versionNumber);
 
     /// <summary>Sets (or replaces) the publish window for a specific version.</summary>
-    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
+    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
 
     /// <summary>Stops whichever version is currently live for this root. Returns <c>false</c> (no-op) if nothing is live.</summary>
-    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt);
+    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt, string? userId);
+
+    /// <summary>Clears every reference to <paramref name="userId"/> on this type's versions.</summary>
+    void RemoveUserReferences(CmsDbContext<TContentType> db, string userId);
 }
 
 /// <summary>
@@ -118,11 +121,11 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
         return query.ToList().Cast<Content>().ToList();
     }
 
-    public Content Create(CmsDbContext<TContentType> db, Content content, string language)
-        => _store.Create(db, (T)content, language);
+    public Content Create(CmsDbContext<TContentType> db, Content content, string language, string? userId)
+        => _store.Create(db, (T)content, language, userId);
 
-    public Content Update(CmsDbContext<TContentType> db, Content content)
-        => _store.Update(db, (T)content);
+    public Content Update(CmsDbContext<TContentType> db, Content content, string? userId)
+        => _store.Update(db, (T)content, userId);
 
     public IReadOnlyList<Content> QueryHistory(CmsDbContext<TContentType> db, int id, string language)
         => _store.QueryHistory(db, id, language).Cast<Content>().ToList();
@@ -133,9 +136,12 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
     public bool VersionExists(CmsDbContext<TContentType> db, int rootId, int versionNumber)
         => _store.VersionExists(db, rootId, versionNumber);
 
-    public void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish)
-        => _store.SetPublishSchedule(db, rootId, versionNumber, startPublish, stopPublish);
+    public void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId)
+        => _store.SetPublishSchedule(db, rootId, versionNumber, startPublish, stopPublish, userId);
 
-    public bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt)
-        => _store.StopActivePublish(db, rootId, stopAt);
+    public bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt, string? userId)
+        => _store.StopActivePublish(db, rootId, stopAt, userId);
+
+    public void RemoveUserReferences(CmsDbContext<TContentType> db, string userId)
+        => _store.RemoveUserReferences(db, userId);
 }

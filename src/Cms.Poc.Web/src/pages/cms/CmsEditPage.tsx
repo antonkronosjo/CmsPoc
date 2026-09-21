@@ -226,7 +226,7 @@ function EditPanel({
         </Stack>
       </Card>
       <Drawer anchor="right" open={historyOpen} onClose={() => setHistoryOpen(false)}>
-        <Box sx={{ width: { xs: "85vw", sm: 380 } }}>
+        <Box sx={{ maxWidth: "100vw" }}>
           <Typography variant="h6" sx={{ p: 3, pb: 2 }}>
             Version history ({language})
           </Typography>

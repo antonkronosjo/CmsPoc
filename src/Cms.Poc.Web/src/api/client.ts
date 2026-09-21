@@ -56,6 +56,14 @@ export interface UpdateContentSchema {
   properties: Record<string, ContentPropertyValueDto>;
 }
 
+/// A reference to the user behind an action. displayName comes from the host's user adapter;
+/// removed is true when that adapter no longer knows the id (e.g. an erased user).
+export interface UserRefDto {
+  id: string;
+  displayName: string | null;
+  removed: boolean;
+}
+
 export interface ContentSummaryDto {
   id: number;
   contentTypeName: string;
@@ -67,6 +75,9 @@ export interface ContentSummaryDto {
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
   livePublishedVersionNumber: number | null;
+  /// Null when user tracking is off or the reference was removed.
+  createdBy: UserRefDto | null;
+  publishedBy: UserRefDto | null;
   properties: Record<string, unknown>;
 }
 

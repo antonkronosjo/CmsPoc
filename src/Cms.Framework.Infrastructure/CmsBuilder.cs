@@ -1,5 +1,7 @@
 using System.Reflection;
+using Cms.Framework.Abstractions.Users;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Cms.Framework.Infrastructure;
 
@@ -7,9 +9,11 @@ namespace Cms.Framework.Infrastructure;
 public sealed class CmsBuilder
 {
     private readonly List<Assembly> _extraContentAssemblies = new();
+    private readonly List<Action<IServiceCollection>> _serviceRegistrations = new();
 
     internal Action<DbContextOptionsBuilder>? DatabaseConfiguration { get; private set; }
     internal IReadOnlyList<Assembly> ExtraContentAssemblies => _extraContentAssemblies;
+    internal IReadOnlyList<Action<IServiceCollection>> ServiceRegistrations => _serviceRegistrations;
 
     /// <summary>Language used when a call doesn't specify one.</summary>
     public string DefaultLanguage { get; set; } = "en";
@@ -36,6 +40,25 @@ public sealed class CmsBuilder
     public CmsBuilder UseDatabase(Action<DbContextOptionsBuilder> configure)
     {
         DatabaseConfiguration = configure;
+        return this;
+    }
+
+    /// <summary>
+    /// Turns on user tracking: the CMS records who created and published each
+    /// version and enforces <see cref="CmsRole"/>s, taking the acting user
+    /// from <typeparamref name="TAdapter"/> (registered scoped). Optional -
+    /// without it nothing is recorded and nothing is enforced.
+    /// </summary>
+    public CmsBuilder UseUserAdapter<TAdapter>() where TAdapter : class, ICmsUserAdapter
+        => ConfigureServices(services => services.AddScoped<ICmsUserAdapter, TAdapter>());
+
+    /// <summary>
+    /// Lets an add-on (such as an adapter shortcut) register the extra services
+    /// it depends on together with the CMS's own registrations.
+    /// </summary>
+    public CmsBuilder ConfigureServices(Action<IServiceCollection> configure)
+    {
+        _serviceRegistrations.Add(configure);
         return this;
     }
 

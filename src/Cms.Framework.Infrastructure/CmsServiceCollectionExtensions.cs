@@ -38,6 +38,8 @@ public static class CmsServiceCollectionExtensions
         services.AddScoped<IContentRepository, ContentRepository<TContentType>>();
         services.AddScoped<IContentEditingService, ContentEditingService<TContentType>>();
         services.Configure<ContentRepositoryOptions>(o => o.DefaultLanguage = builder.DefaultLanguage);
+        foreach (var registration in builder.ServiceRegistrations)
+            registration(services);
 
         if (builder.EnsureDatabaseCreated && builder.MigrateDatabase)
             throw new InvalidOperationException(

@@ -1,3 +1,4 @@
+using Cms.Framework.Abstractions.Users;
 using Cms.Framework.Infrastructure.Editing;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -16,6 +17,24 @@ public static class CmsEndpointRouteBuilderExtensions
     {
         prefix = "/" + prefix.Trim('/');
         var group = app.MapGroup(prefix);
+
+        // Surface user-tracking failures as plain status codes; the framework
+        // doesn't own authentication, so there is no challenge to issue.
+        group.AddEndpointFilter(async (context, next) =>
+        {
+            try
+            {
+                return await next(context);
+            }
+            catch (CmsUnauthenticatedException)
+            {
+                return Results.StatusCode(StatusCodes.Status401Unauthorized);
+            }
+            catch (CmsForbiddenException)
+            {
+                return Results.StatusCode(StatusCodes.Status403Forbidden);
+            }
+        });
 
         group.MapGet("/types", (IContentEditingService editing)
             => editing.GetContentTypes());
@@ -61,6 +80,12 @@ public static class CmsEndpointRouteBuilderExtensions
         group.MapPost("/{id:int}/unpublish", (IContentEditingService editing, int id) =>
         {
             editing.Unpublish(id);
+            return Results.NoContent();
+        });
+
+        group.MapPost("/users/{userId}/remove-references", (IContentEditingService editing, string userId) =>
+        {
+            editing.RemoveUserReferences(userId);
             return Results.NoContent();
         });
 

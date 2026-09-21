@@ -4,6 +4,7 @@ using Cms.Framework.Infrastructure;
 using Cms.Poc.Domain;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace Cms.Poc.Api.Migrations
 {
     [DbContext(typeof(CmsDbContext<ContentTypeKey>))]
-    partial class CmsDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260921104403_AddedUserTracking")]
+    partial class AddedUserTracking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "10.0.0");

@@ -63,6 +63,8 @@ internal static class CodeEmitter
         sb.AppendLine("    public global::System.DateTime Created { get; set; }");
         sb.AppendLine("    public global::System.DateTime? StartPublish { get; set; }");
         sb.AppendLine("    public global::System.DateTime? StopPublish { get; set; }");
+        sb.AppendLine("    public string? CreatedBy { get; set; }");
+        sb.AppendLine("    public string? PublishedBy { get; set; }");
         foreach (var property in model.InvariantProperties)
         {
             sb.AppendLine($"    public {property.TypeName} {property.Name} {{ get; set; }}{DefaultValueSuffix(property.TypeName)}");
@@ -113,6 +115,8 @@ internal static class CodeEmitter
         sb.AppendLine("        builder.HasKey(x => x.Id);");
         sb.AppendLine("        builder.HasOne(x => x.Root).WithMany().HasForeignKey(x => x.RootId).OnDelete(DeleteBehavior.Cascade);");
         sb.AppendLine("        builder.HasIndex(x => new { x.RootId, x.VersionNumber }).IsUnique();");
+        sb.AppendLine("        builder.Property(x => x.CreatedBy).HasMaxLength(256);");
+        sb.AppendLine("        builder.Property(x => x.PublishedBy).HasMaxLength(256);");
         sb.AppendLine("    }");
         sb.AppendLine("}");
         sb.AppendLine();
@@ -163,7 +167,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // Create
-        sb.AppendLine($"    public {model.FullyQualifiedName} Create(CmsDbContext<{contentTypeEnum}> db, {model.FullyQualifiedName} content, string language)");
+        sb.AppendLine($"    public {model.FullyQualifiedName} Create(CmsDbContext<{contentTypeEnum}> db, {model.FullyQualifiedName} content, string language, string? userId)");
         sb.AppendLine("    {");
         sb.AppendLine($"        var root = new global::Cms.Framework.Infrastructure.ContentRoot<{contentTypeEnum}>");
         sb.AppendLine("        {");
@@ -178,6 +182,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Root = root,");
         sb.AppendLine("            VersionNumber = 1,");
         sb.AppendLine("            Created = root.Created,");
+        sb.AppendLine("            CreatedBy = userId,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = content.{p.Name},");
         sb.AppendLine("        };");
@@ -201,6 +206,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Language = language,");
         sb.AppendLine("            VersionNumber = version.VersionNumber,");
         sb.AppendLine("            Created = version.Created,");
+        sb.AppendLine("            CreatedBy = version.CreatedBy,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = version.{p.Name},");
         foreach (var p in model.CultureSpecificProperties)
@@ -210,7 +216,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // Update
-        sb.AppendLine($"    public {model.FullyQualifiedName} Update(CmsDbContext<{contentTypeEnum}> db, {model.FullyQualifiedName} content)");
+        sb.AppendLine($"    public {model.FullyQualifiedName} Update(CmsDbContext<{contentTypeEnum}> db, {model.FullyQualifiedName} content, string? userId)");
         sb.AppendLine("    {");
         sb.AppendLine($"        var currentVersion = db.Set<{model.VersionTypeName}>()");
         sb.AppendLine("            .Where(v => v.RootId == content.Id)");
@@ -224,6 +230,7 @@ internal static class CodeEmitter
         sb.AppendLine("            RootId = content.Id,");
         sb.AppendLine("            VersionNumber = currentVersion.VersionNumber + 1,");
         sb.AppendLine("            Created = global::System.DateTime.UtcNow,");
+        sb.AppendLine("            CreatedBy = userId,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = content.{p.Name},");
         sb.AppendLine("        };");
@@ -264,6 +271,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Language = content.Language,");
         sb.AppendLine("            VersionNumber = newVersion.VersionNumber,");
         sb.AppendLine("            Created = newVersion.Created,");
+        sb.AppendLine("            CreatedBy = newVersion.CreatedBy,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"            {p.Name} = newVersion.{p.Name},");
         foreach (var p in model.CultureSpecificProperties)
@@ -301,6 +309,8 @@ internal static class CodeEmitter
         sb.AppendLine("                Created = v.Created,");
         sb.AppendLine("                StartPublish = v.StartPublish,");
         sb.AppendLine("                StopPublish = v.StopPublish,");
+        sb.AppendLine("                CreatedBy = v.CreatedBy,");
+        sb.AppendLine("                PublishedBy = v.PublishedBy,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"                {p.Name} = v.{p.Name},");
         foreach (var p in model.CultureSpecificProperties)
@@ -335,6 +345,8 @@ internal static class CodeEmitter
         sb.AppendLine("                Created = v.Created,");
         sb.AppendLine("                StartPublish = v.StartPublish,");
         sb.AppendLine("                StopPublish = v.StopPublish,");
+        sb.AppendLine("                CreatedBy = v.CreatedBy,");
+        sb.AppendLine("                PublishedBy = v.PublishedBy,");
         foreach (var p in model.InvariantProperties)
             sb.AppendLine($"                {p.Name} = v.{p.Name},");
         foreach (var p in model.CultureSpecificProperties)
@@ -363,17 +375,18 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // SetPublishSchedule
-        sb.AppendLine($"    public void SetPublishSchedule(CmsDbContext<{contentTypeEnum}> db, int rootId, int versionNumber, global::System.DateTime? startPublish, global::System.DateTime? stopPublish)");
+        sb.AppendLine($"    public void SetPublishSchedule(CmsDbContext<{contentTypeEnum}> db, int rootId, int versionNumber, global::System.DateTime? startPublish, global::System.DateTime? stopPublish, string? userId)");
         sb.AppendLine("    {");
         sb.AppendLine($"        var version = db.Set<{model.VersionTypeName}>().Single(v => v.RootId == rootId && v.VersionNumber == versionNumber);");
         sb.AppendLine("        version.StartPublish = startPublish;");
         sb.AppendLine("        version.StopPublish = stopPublish;");
+        sb.AppendLine("        version.PublishedBy = userId;");
         sb.AppendLine("        db.SaveChanges();");
         sb.AppendLine("    }");
         sb.AppendLine();
 
         // StopActivePublish
-        sb.AppendLine($"    public bool StopActivePublish(CmsDbContext<{contentTypeEnum}> db, int rootId, global::System.DateTime stopAt)");
+        sb.AppendLine($"    public bool StopActivePublish(CmsDbContext<{contentTypeEnum}> db, int rootId, global::System.DateTime stopAt, string? userId)");
         sb.AppendLine("    {");
         sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
         sb.AppendLine($"        var active = db.Set<{model.VersionTypeName}>()");
@@ -382,8 +395,33 @@ internal static class CodeEmitter
         sb.AppendLine("            .FirstOrDefault();");
         sb.AppendLine("        if (active is null) return false;");
         sb.AppendLine("        active.StopPublish = stopAt;");
+        sb.AppendLine("        active.PublishedBy = userId;");
         sb.AppendLine("        db.SaveChanges();");
         sb.AppendLine("        return true;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // RemoveUserReferences
+        sb.AppendLine($"    public void RemoveUserReferences(CmsDbContext<{contentTypeEnum}> db, string userId)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        db.Set<{model.VersionTypeName}>().Where(v => v.CreatedBy == userId).ExecuteUpdate(s => s.SetProperty(v => v.CreatedBy, (string?)null));");
+        sb.AppendLine($"        db.Set<{model.VersionTypeName}>().Where(v => v.PublishedBy == userId).ExecuteUpdate(s => s.SetProperty(v => v.PublishedBy, (string?)null));");
+        sb.AppendLine();
+        sb.AppendLine("        // ExecuteUpdate bypasses the change tracker; bring versions this context already");
+        sb.AppendLine("        // loaded in line with the database so later reads don't serve the removed id.");
+        sb.AppendLine($"        foreach (var entry in db.ChangeTracker.Entries<{model.VersionTypeName}>())");
+        sb.AppendLine("        {");
+        sb.AppendLine("            if (entry.Entity.CreatedBy == userId)");
+        sb.AppendLine("            {");
+        sb.AppendLine("                entry.Property(v => v.CreatedBy).CurrentValue = null;");
+        sb.AppendLine("                entry.Property(v => v.CreatedBy).OriginalValue = null;");
+        sb.AppendLine("            }");
+        sb.AppendLine("            if (entry.Entity.PublishedBy == userId)");
+        sb.AppendLine("            {");
+        sb.AppendLine("                entry.Property(v => v.PublishedBy).CurrentValue = null;");
+        sb.AppendLine("                entry.Property(v => v.PublishedBy).OriginalValue = null;");
+        sb.AppendLine("            }");
+        sb.AppendLine("        }");
         sb.AppendLine("    }");
 
         sb.AppendLine("}");
@@ -435,7 +473,9 @@ $@"SELECT
     v.VersionNumber AS VersionNumber,
     v.Created AS Created,
     v.StartPublish AS StartPublish,
-    v.StopPublish AS StopPublish{invariantColumns}{cultureColumns}
+    v.StopPublish AS StopPublish,
+    v.CreatedBy AS CreatedBy,
+    v.PublishedBy AS PublishedBy{invariantColumns}{cultureColumns}
 FROM ContentRoots r
 JOIN {model.VersionTableName} v ON v.RootId = r.Id
     AND v.VersionNumber = (SELECT MAX(v2.VersionNumber) FROM {model.VersionTableName} v2 WHERE v2.RootId = r.Id)

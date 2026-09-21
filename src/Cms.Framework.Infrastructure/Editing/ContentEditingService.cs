@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using System.Text.Json;
 using Cms.Framework.Abstractions;
+using Cms.Framework.Abstractions.Users;
 
 namespace Cms.Framework.Infrastructure.Editing;
 
@@ -17,17 +18,34 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
     private readonly IContentRepository _contentRepository;
     private readonly List<IContentTypeMetadata<TContentType>> _contentTypes;
     private readonly List<IContentPublishEventHandler> _publishEventHandlers;
+    private readonly ICmsUserAdapter? _userAdapter;
 
     public ContentEditingService(
         CmsDbContext<TContentType> db,
         IContentRepository contentRepository,
         IEnumerable<IContentTypeMetadata<TContentType>> contentTypes,
-        IEnumerable<IContentPublishEventHandler> publishEventHandlers)
+        IEnumerable<IContentPublishEventHandler> publishEventHandlers,
+        ICmsUserAdapter? userAdapter = null)
     {
         _db = db;
         _contentRepository = contentRepository;
         _contentTypes = contentTypes.ToList();
         _publishEventHandlers = publishEventHandlers.ToList();
+        _userAdapter = userAdapter;
+    }
+
+    /// <summary>
+    /// Checks the current user holds <paramref name="requiredRole"/> and returns their
+    /// id for attribution. With no user adapter registered, user tracking is off:
+    /// nothing is enforced and <c>null</c> is returned.
+    /// </summary>
+    private string? Authorize(CmsRole requiredRole)
+    {
+        if (_userAdapter is null) return null;
+
+        var user = _userAdapter.GetCurrentUser() ?? throw new CmsUnauthenticatedException();
+        if (!user.IsInRole(requiredRole)) throw new CmsForbiddenException(requiredRole);
+        return user.Id;
     }
 
     public IReadOnlyList<string> GetContentTypes()
@@ -107,17 +125,19 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
 
     public Content Create(CreateContentSchema request)
     {
+        var userId = Authorize(CmsRole.Editor);
         var metadata = ResolveContentType(ParseContentType(request.Metadata.ContentTypeName));
         var instance = (Content)Activator.CreateInstance(metadata.ClrType)!;
         instance.Name = request.Metadata.Name;
         instance.Language = request.Metadata.Language;
         ApplyPropertyValues(instance, request.Properties);
 
-        return metadata.Create(_db, instance, request.Metadata.Language);
+        return metadata.Create(_db, instance, request.Metadata.Language, userId);
     }
 
     public Content Update(UpdateContentSchema request)
     {
+        var userId = Authorize(CmsRole.Editor);
         var current = _contentRepository.Query<Content>(request.Metadata.Language).Where(x => x.Id == request.Metadata.Id).FirstOrDefault();
 
         Content instance;
@@ -139,7 +159,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         ApplyPropertyValues(instance, request.Properties);
 
         var metadata = ResolveContentTypeByClrType(instance.GetType());
-        return metadata.Update(_db, instance);
+        return metadata.Update(_db, instance, userId);
     }
 
     public List<string> ValidateProperty(string contentTypeName, string propertyName, ContentPropertyValueDto value)
@@ -168,7 +188,9 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         if (content is null) return null;
 
         var metadata = ResolveContentTypeByClrType(content.GetType());
-        return ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id));
+        var summary = ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id));
+        ResolveUsers([summary]);
+        return summary;
     }
 
     public SearchContentResult Search(string? query, string language, string? contentTypeName, int page, int pageSize, bool publishedOnly = false)
@@ -193,9 +215,12 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         if (!string.IsNullOrWhiteSpace(contentTypeName))
             summaries = summaries.Where(x => x.ContentTypeName == contentTypeName).ToList();
 
+        var items = summaries.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        ResolveUsers(items);
+
         return new SearchContentResult
         {
-            Items = summaries.Skip((page - 1) * pageSize).Take(pageSize).ToList(),
+            Items = items,
             TotalCount = summaries.Count,
         };
     }
@@ -207,11 +232,14 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var metadata = ResolveContentType(root.ContentTypeKey);
         var livePublishedVersionNumber = metadata.GetLivePublishedVersionNumber(_db, id);
 
-        return metadata.QueryHistory(_db, id, language).Select(content => ToSummary(content, livePublishedVersionNumber)).ToList();
+        var history = metadata.QueryHistory(_db, id, language).Select(content => ToSummary(content, livePublishedVersionNumber)).ToList();
+        ResolveUsers(history);
+        return history;
     }
 
     public void Publish(int id, int versionNumber, DateTime? startPublish, DateTime? stopPublish)
     {
+        var userId = Authorize(CmsRole.Admin);
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
@@ -223,8 +251,8 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         // Whatever was live before this takes effect must stop exactly when
         // this version's window begins - otherwise it could resurface as
         // "live" again later (e.g. after this version is unpublished).
-        metadata.StopActivePublish(_db, id, start);
-        metadata.SetPublishSchedule(_db, id, versionNumber, start, stopPublish);
+        metadata.StopActivePublish(_db, id, start, userId);
+        metadata.SetPublishSchedule(_db, id, versionNumber, start, stopPublish, userId);
 
         foreach (var handler in _publishEventHandlers)
             handler.OnPublished(id, versionNumber, start, stopPublish);
@@ -232,17 +260,48 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
 
     public void Unpublish(int id)
     {
+        var userId = Authorize(CmsRole.Admin);
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
         var live = metadata.GetLivePublishedVersionNumber(_db, id);
         if (live is null) return;
 
-        metadata.StopActivePublish(_db, id, DateTime.UtcNow);
+        metadata.StopActivePublish(_db, id, DateTime.UtcNow, userId);
 
         foreach (var handler in _publishEventHandlers)
             handler.OnUnpublished(id, live.Value);
     }
+
+    public void RemoveUserReferences(string userId)
+    {
+        Authorize(CmsRole.Admin);
+        foreach (var metadata in _contentTypes)
+            metadata.RemoveUserReferences(_db, userId);
+    }
+
+    /// <summary>
+    /// Fills in display names for the user references on <paramref name="summaries"/> with a
+    /// single batch lookup. Ids the adapter no longer knows are marked
+    /// <see cref="UserRefDto.Removed"/>. Without an adapter the raw ids are left as they are.
+    /// </summary>
+    private void ResolveUsers(IReadOnlyCollection<ContentSummaryDto> summaries)
+    {
+        if (_userAdapter is null) return;
+
+        var references = summaries.SelectMany(s => new[] { s.CreatedBy, s.PublishedBy }).OfType<UserRefDto>().ToList();
+        if (references.Count == 0) return;
+
+        var profiles = _userAdapter.ResolveProfiles(references.Select(r => r.Id).Distinct());
+        foreach (var reference in references)
+        {
+            if (profiles.TryGetValue(reference.Id, out var profile)) reference.DisplayName = profile.DisplayName;
+            else reference.Removed = true;
+        }
+    }
+
+    private static UserRefDto? ToUserRef(string? userId)
+        => userId is null ? null : new UserRefDto { Id = userId };
 
     private ContentSummaryDto ToSummary(Content content, int? livePublishedVersionNumber)
     {
@@ -258,6 +317,8 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             StartPublish = content.StartPublish,
             StopPublish = content.StopPublish,
             LivePublishedVersionNumber = livePublishedVersionNumber,
+            CreatedBy = ToUserRef(content.CreatedBy),
+            PublishedBy = ToUserRef(content.PublishedBy),
             Properties = GetContentProperties(content.GetType()).ToDictionary(p => p.Name, p => p.GetValue(content)),
         };
     }
