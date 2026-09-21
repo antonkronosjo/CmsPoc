@@ -1,3 +1,4 @@
+using Cms.Framework.Abstractions.Users;
 using Cms.Framework.AspNetCore;
 using Cms.Framework.Infrastructure;
 using Cms.Framework.Sqlite;
@@ -32,4 +33,15 @@ app.UseCors();
 
 app.MapCms<Cms.Poc.Domain.ContentTypeKey>("/api/content");
 
+// Lets the frontend know whether the caller is signed in and which CMS roles they hold.
+app.MapGet("/api/user", (ICmsUserAdapter users) =>
+{
+    var user = users.GetCurrentUser();
+    return new CurrentUserDto(
+        user is not null,
+        user?.Roles.Select(r => r.ToString()).Order().ToArray() ?? []);
+});
+
 app.Run();
+
+internal sealed record CurrentUserDto(bool IsAuthenticated, string[] Roles);

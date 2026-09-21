@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Chip, Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
+import { Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import { api, type ContentReference } from "../api/client";
 import ContentSearchList from "../components/ContentSearchList";
+import ContentTypeChip from "../components/ContentTypeChip";
 
 interface ContentPickerProps {
   label: string;
@@ -41,10 +42,8 @@ export default function ContentPicker({ label, language, value, onChange, disabl
             startAdornment:
               value != null ? (
                 <InputAdornment position="start">
-                  <Chip
-                    color="primary"
-                    size="small"
-                    label={resolved ? `${resolved.name || "(untitled)"} · ${resolved.contentTypeKey}` : `#${value.id}`}
+                  <ContentTypeChip
+                    contentTypeKey={resolved?.contentTypeKey ?? value.contentType}
                     onDelete={
                       disabled
                         ? undefined
@@ -55,6 +54,9 @@ export default function ContentPicker({ label, language, value, onChange, disabl
                     }
                     onMouseDown={(e) => e.stopPropagation()}
                   />
+                  <Typography variant="body1" color="text.primary" sx={{ ml: 1 }}>
+                    {resolved ? resolved.name || "(untitled)" : `#${value.id}`}
+                  </Typography>
                 </InputAdornment>
               ) : undefined,
           },

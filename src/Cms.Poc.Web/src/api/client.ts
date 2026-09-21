@@ -123,7 +123,21 @@ function query(params: Record<string, string | number | boolean | undefined>): s
   return qs ? `?${qs}` : "";
 }
 
+export const CmsRole = {
+  Editor: "Editor",
+  Admin: "Admin",
+} as const;
+export type CmsRole = (typeof CmsRole)[keyof typeof CmsRole];
+
+/// The caller's status as reported by the backend: whether they are signed in, and which CMS roles they hold.
+export interface CurrentUserDto {
+  isAuthenticated: boolean;
+  roles: CmsRole[];
+}
+
 export const api = {
+  getCurrentUser: () => fetch(`${API_BASE}/api/user`).then((r) => json<CurrentUserDto>(r)),
+
   getContentTypes: () => fetch(`${API_BASE}/api/content/types`).then((r) => json<ContentTypeInfo[]>(r)),
 
   getCreationSchema: (contentTypeKey: string, language: string) =>

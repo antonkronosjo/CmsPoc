@@ -5,6 +5,7 @@ import { Alert, Button, Container, Stack, Typography } from "@mui/material";
 import { ArrowBack, Edit } from "@mui/icons-material";
 import { api, type ContentSummaryDto } from "../../api/client";
 import { useLanguage } from "../../context/LanguageContext";
+import { useUser } from "../../context/UserContext";
 
 interface ContentPageShellProps {
   /// The content type this page renders; any other type (or unpublished content) is shown as not found.
@@ -18,6 +19,7 @@ interface ContentPageShellProps {
 export default function ContentPageShell({ contentTypeKey, children }: ContentPageShellProps) {
   const { id } = useParams();
   const { language } = useLanguage();
+  const { isAuthenticated } = useUser();
   const contentId = Number(id);
 
   const { data, isLoading, isError } = useQuery({
@@ -35,7 +37,7 @@ export default function ContentPageShell({ contentTypeKey, children }: ContentPa
         <Button component={RouterLink} to="/" startIcon={<ArrowBack />}>
           Back
         </Button>
-        {found && (
+        {found && isAuthenticated && (
           <Button component={RouterLink} to={`/cms/edit/${contentId}`} startIcon={<Edit />} variant="outlined">
             Edit
           </Button>
