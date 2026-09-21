@@ -1,7 +1,9 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 import CmsLayout from "./layouts/CmsLayout";
 import HomePage from "./pages/HomePage";
+import PublicLanguageRoute from "./pages/PublicLanguageRoute";
+import { useLanguages } from "./hooks/useLanguages";
 import CmsBrowsePage from "./pages/cms/CmsBrowsePage";
 import CmsCreatePage from "./pages/cms/CmsCreatePage";
 import CmsEditPage from "./pages/cms/CmsEditPage";
@@ -11,14 +13,23 @@ import SpecialNewsPage from "./pages/contentpages/SpecialNewsPage";
 
 /// Single source of truth for the route tree. Adding a page elsewhere in
 /// the app means adding one file under `pages/` and one <Route> line here.
+/// The public site lives under /:language, so the bare root goes to the default language.
+function RedirectToDefaultLanguage() {
+  const { loaded, defaultLanguage } = useLanguages();
+  return loaded ? <Navigate to={`/${defaultLanguage}`} replace /> : null;
+}
+
 export default function AppRoutes() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
-        <Route path="/" element={<HomePage />} />
-        <Route path="/event/:id" element={<EventPage />} />
-        <Route path="/news/:id" element={<NewsPage />} />
-        <Route path="/specialnews/:id" element={<SpecialNewsPage />} />
+        <Route path="/" element={<RedirectToDefaultLanguage />} />
+        <Route path="/:language" element={<PublicLanguageRoute />}>
+          <Route index element={<HomePage />} />
+          <Route path="event/:id" element={<EventPage />} />
+          <Route path="news/:id" element={<NewsPage />} />
+          <Route path="specialnews/:id" element={<SpecialNewsPage />} />
+        </Route>
         <Route path="/cms"element={<CmsLayout />}>
           <Route index element={<CmsBrowsePage />} />
           <Route path="create" element={<CmsCreatePage />} />

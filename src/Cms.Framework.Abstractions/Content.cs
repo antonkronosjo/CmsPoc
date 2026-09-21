@@ -24,6 +24,13 @@ public abstract class Content
     /// </summary>
     public string Language { get; set; } = string.Empty;
 
+    /// <summary>
+    /// The language this item was created in. Populated by the repository;
+    /// the shared (non-<see cref="CultureSpecificAttribute"/>) properties and
+    /// <see cref="Name"/> are only editable through this language.
+    /// </summary>
+    public string MasterLanguage { get; set; } = string.Empty;
+
     /// <summary>1-based, sequential per content instance.</summary>
     public int VersionNumber { get; set; }
 

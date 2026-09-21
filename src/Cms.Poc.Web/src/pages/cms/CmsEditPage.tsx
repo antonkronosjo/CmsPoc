@@ -1,34 +1,125 @@
-import { useState, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useEffect, useState, type ReactNode } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Box, Button, Card, Drawer, Stack, TextField, Tooltip, Typography } from "@mui/material";
-import { Edit, History } from "@mui/icons-material";
+import { Alert, Box, Button, Card, Drawer, Menu, MenuItem, Stack, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
+import { Add, Circle, Edit, History } from "@mui/icons-material";
 import dayjs from "../../lib/dayjs";
 import { api, type UpdateContentSchema } from "../../api/client";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguages } from "../../hooks/useLanguages";
 import ContentForm from "../../forms/ContentForm";
 import VersionHistory from "../../components/VersionHistory";
 import StatusIndicator from "../../components/StatusIndicator";
 import ContentTypeChip from "../../components/ContentTypeChip";
 import PublishDialog, { usePublishActions } from "../../components/PublishDialog";
 
+/// Edits one content item with a tab per language, so every translation is
+/// always in view. The item's master language comes first; shared
+/// (non-culture-specific) fields and the name are only editable there.
+/// The selected tab lives in the URL (?lang=sv) so it can be linked to.
 export default function CmsEditPage() {
   const { contentId, versionId } = useParams();
-  const { language } = useLanguage();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const { supportedLanguages } = useLanguages();
 
   const id = Number(contentId);
   const version = versionId ? Number(versionId) : undefined;
 
+  // Languages added in this session that have no saved translation yet (their tab stays open until saved).
+  const [added, setAdded] = useState<string[]>([]);
+  const [dirty, setDirty] = useState<ReadonlySet<string>>(new Set());
+  const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null);
+
+  // Which languages exist and which is the master, independent of any single language.
+  const { data: summary, isError } = useQuery({
+    queryKey: ["content-summary", id, "all"],
+    queryFn: () => api.getContentSummary(id),
+  });
+
+  if (isError) return <Alert severity="error">Content {id} could not be loaded.</Alert>;
+  if (!summary) return <Typography color="text.secondary">Loading…</Typography>;
+
+  const master = summary.masterLanguage;
+  const requested = searchParams.get("lang");
+  const tabs = [
+    ...new Set([
+      master,
+      ...summary.languages,
+      ...added,
+      ...(requested && supportedLanguages.includes(requested) ? [requested] : []),
+    ]),
+  ];
+  const active = requested && tabs.includes(requested) ? requested : master;
+  const addable = supportedLanguages.filter((l) => !tabs.includes(l));
+
+  const selectLanguage = (language: string) => navigate({ pathname: `/cms/edit/${id}`, search: `?lang=${language}` });
+
+  const setLanguageDirty = (language: string, isDirty: boolean) =>
+    setDirty((previous) => {
+      if (previous.has(language) === isDirty) return previous;
+      const next = new Set(previous);
+      if (isDirty) next.add(language);
+      else next.delete(language);
+      return next;
+    });
+
   return (
-    <EditPanel
-      key={`${id}-${version}-${language}`}
-      id={id}
-      version={version}
-      language={language}
-      onSelectVersion={(v) => navigate(`/cms/edit/${id}/${v}`)}
-      onSaved={() => navigate(`/cms/edit/${id}`)}
-    />
+    <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+      <Stack direction="row" sx={{ alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
+        <Tabs value={active} onChange={(_, language) => selectLanguage(language)} variant="scrollable" sx={{ flex: 1 }}>
+          {tabs.map((language) => (
+            <Tab
+              key={language}
+              value={language}
+              label={
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
+                  <span>{language}</span>
+                  {language === master && <Typography variant="caption" color="text.secondary">master</Typography>}
+                  {!summary.languages.includes(language) && <Typography variant="caption" color="text.secondary">new</Typography>}
+                  {dirty.has(language) && <Circle color="warning" sx={{ fontSize: 8 }} titleAccess="Unsaved changes" />}
+                </Stack>
+              }
+            />
+          ))}
+        </Tabs>
+        <Button startIcon={<Add />} disabled={addable.length === 0} onClick={(e) => setAddMenuAnchor(e.currentTarget)}>
+          Add language
+        </Button>
+        <Menu anchorEl={addMenuAnchor} open={addMenuAnchor !== null} onClose={() => setAddMenuAnchor(null)}>
+          {addable.map((language) => (
+            <MenuItem
+              key={language}
+              onClick={() => {
+                setAddMenuAnchor(null);
+                setAdded((previous) => [...previous, language]);
+                selectLanguage(language);
+              }}
+            >
+              {language}
+            </MenuItem>
+          ))}
+        </Menu>
+      </Stack>
+
+      {/* Every tab stays mounted, so unsaved edits survive switching languages. */}
+      {tabs.map((language) => {
+        const panelVersion = language === active ? version : undefined;
+        return (
+          <Box key={language} sx={{ display: language === active ? "block" : "none" }}>
+            <EditPanel
+              key={`${language}-${panelVersion}`}
+              id={id}
+              version={panelVersion}
+              language={language}
+              masterLanguage={master}
+              onSelectVersion={(v) => navigate({ pathname: `/cms/edit/${id}/${v}`, search: `?lang=${language}` })}
+              onSaved={() => selectLanguage(language)}
+              onDirtyChange={(isDirty) => setLanguageDirty(language, isDirty)}
+            />
+          </Box>
+        );
+      })}
+    </Stack>
   );
 }
 
@@ -53,8 +144,16 @@ function MetaItem({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function EditableName({ name, onChange }: { name: string; onChange: (name: string) => void }) {
+function EditableName({ name, onChange, readOnly }: { name: string; onChange: (name: string) => void; readOnly?: boolean }) {
   const [editing, setEditing] = useState(false);
+
+  if (readOnly) {
+    return (
+      <Tooltip title="The name is shared by all languages - edit it in the master language">
+        <Typography variant="h5">{name || "(untitled)"}</Typography>
+      </Tooltip>
+    );
+  }
 
   if (editing) {
     return (
@@ -83,29 +182,55 @@ function EditableName({ name, onChange }: { name: string; onChange: (name: strin
   );
 }
 
+/// True when the draft differs from the saved schema in something this language may edit.
+/// Outside the master language only culture-specific values count: shared values are shown
+/// read-only from the saved schema and ignored by the backend.
+function hasEditableChanges(draft: UpdateContentSchema | undefined, schema: UpdateContentSchema | undefined, isMaster: boolean): boolean {
+  if (!draft || !schema) return false;
+  if (isMaster && draft.metadata.name !== schema.metadata.name) return true;
+  return Object.entries(draft.properties).some(
+    ([key, property]) =>
+      (isMaster || property.cultureSpecific) && JSON.stringify(property.value) !== JSON.stringify(schema.properties[key]?.value),
+  );
+}
+
 function EditPanel({
   id,
   version,
   language,
+  masterLanguage,
   onSelectVersion,
   onSaved,
+  onDirtyChange,
 }: {
   id: number;
   version: number | undefined;
   language: string;
+  masterLanguage: string;
   onSelectVersion: (versionNumber: number) => void;
   onSaved: () => void;
+  onDirtyChange: (dirty: boolean) => void;
 }) {
   const queryClient = useQueryClient();
   const queryKey = ["update-schema", id, language, version];
   const { data: schema, isLoading } = useQuery({ queryKey, queryFn: () => api.getUpdateSchema(id, language, version) });
   const [draft, setDraft] = useState<UpdateContentSchema | undefined>(undefined);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const publishActions = usePublishActions({ id, language });
+  const publishActions = usePublishActions({ id });
   const active = draft ?? schema;
-  const hasChanges = draft !== undefined && JSON.stringify(draft) !== JSON.stringify(schema);
+  const isMaster = language === masterLanguage;
+  const hasChanges = hasEditableChanges(draft, schema, isMaster);
+
+  useEffect(() => {
+    onDirtyChange(hasChanges);
+  }, [hasChanges, onDirtyChange]);
 
   if (isLoading || !active) return <Typography color="text.secondary">Loading…</Typography>;
+
+  // Outside the master language shared values always show what is saved, never a stale draft of them.
+  const displayProperties = Object.fromEntries(
+    Object.entries(active.properties).map(([key, property]) => [key, isMaster || property.cultureSpecific ? property : (schema?.properties[key] ?? property)]),
+  );
 
   const isNewLanguageBranch = active.metadata.versionNumber === 0;
   const isViewingHistoricalVersion = version !== undefined && version !== active.metadata.versionNumber;
@@ -126,15 +251,18 @@ function EditPanel({
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
             <EditableName
               name={active.metadata.name}
+              readOnly={!isMaster}
               onChange={(name) => setDraft({ ...active, metadata: { ...active.metadata, name } })}
             />
             {!isNewLanguageBranch &&
               (isLive ? (
-                <Button variant="outlined" color="warning" onClick={() => publishActions.unpublish()}>
-                  Unpublish
-                </Button>
+                <Tooltip title="Unpublishes the item in all languages">
+                  <Button variant="outlined" color="warning" onClick={() => publishActions.unpublish()}>
+                    Unpublish
+                  </Button>
+                </Tooltip>
               ) : (
-                <Tooltip title={hasChanges ? "You have pending changes, save before publishing" : ""}>
+                <Tooltip title={hasChanges ? "You have pending changes, save before publishing" : "Publishes this version in all languages"}>
                   <span>
                     <Button
                       variant="contained"
@@ -207,8 +335,9 @@ function EditPanel({
         <Stack spacing={2}>
           <ContentForm
             contentTypeName={active.metadata.contentTypeKey}
-            language={active.metadata.language}
-            properties={active.properties}
+            language={language}
+            masterLanguage={masterLanguage}
+            properties={displayProperties}
             submitText={isNewLanguageBranch ? `Add ${language} translation` : "Save"}
             submitDisabled={!hasChanges}
             submitDisabledReason="No changes detected"
@@ -219,7 +348,11 @@ function EditPanel({
               const updated = await api.updateContent(id, active);
               setDraft(undefined);
               queryClient.setQueryData(["update-schema", id, language, undefined], updated);
-              queryClient.invalidateQueries({ queryKey: ["content-history", id, language] });
+              // Every save is a new version of the whole item, so the other languages' tabs and the
+              // list of translated languages are stale too.
+              queryClient.invalidateQueries({ queryKey: ["update-schema", id], predicate: (q) => q.queryKey[2] !== language });
+              queryClient.invalidateQueries({ queryKey: ["content-summary", id] });
+              queryClient.invalidateQueries({ queryKey: ["content-history", id] });
               queryClient.invalidateQueries({ queryKey: ["content-search"] });
               onSaved();
             }}

@@ -8,7 +8,7 @@ import ContentTypeChip from "../components/ContentTypeChip";
 
 interface ContentPickerProps {
   label: string;
-  language: string;
+  helperText?: string;
   value: ContentReference | null | undefined;
   onChange: (value: ContentReference | null) => void;
   disabled?: boolean;
@@ -18,12 +18,12 @@ interface ContentPickerProps {
 /// plain input, resolving another content item's display name and letting
 /// the user replace it through a searchable dialog. Registering it took one
 /// InputType enum value and one case in ContentForm's template switch.
-export default function ContentPicker({ label, language, value, onChange, disabled }: ContentPickerProps) {
+export default function ContentPicker({ label, helperText, value, onChange, disabled }: ContentPickerProps) {
   const [open, setOpen] = useState(false);
 
   const { data: resolved } = useQuery({
-    queryKey: ["content-summary", value?.id, language],
-    queryFn: () => api.getContentSummary(value!.id, language),
+    queryKey: ["content-summary", value?.id, "all"],
+    queryFn: () => api.getContentSummary(value!.id),
     enabled: value != null,
   });
 
@@ -33,6 +33,7 @@ export default function ContentPicker({ label, language, value, onChange, disabl
         label={label}
         fullWidth
         value=""
+        helperText={helperText}
         disabled={disabled}
         onClick={() => !disabled && setOpen(true)}
         slotProps={{
@@ -72,7 +73,6 @@ export default function ContentPicker({ label, language, value, onChange, disabl
         </DialogTitle>
         <DialogContent>
           <ContentSearchList
-            language={language}
             excludeId={value?.id}
             onSelect={(item) => {
               onChange({ id: item.id, contentType: item.contentTypeKey });

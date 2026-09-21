@@ -27,7 +27,10 @@ public interface IContentRepository
     /// itself. When <typeparamref name="T"/> is a concrete content type,
     /// arbitrary predicates over its own flat properties are supported.
     /// </summary>
-    /// <param name="language">The language to project translations in.</param>
+    /// <param name="language">
+    /// The language to project translations in. <c>null</c> (the default)
+    /// projects each item in its own <see cref="Content.MasterLanguage"/>.
+    /// </param>
     /// <param name="publishedOnly">
     /// When <c>false</c> (the default), returns the latest version of each
     /// matching content item regardless of publish state. When <c>true</c>,
@@ -36,6 +39,9 @@ public interface IContentRepository
     /// </param>
     IContentQuery<T> Query<T>(string? language = null, bool publishedOnly = false) where T : Content;
 
-    /// <summary>Returns every version of a content instance, oldest first, in the given language.</summary>
+    /// <summary>
+    /// Returns every version of a content instance in the given language
+    /// (<c>null</c> = the item's master language).
+    /// </summary>
     IReadOnlyList<T> QueryHistory<T>(int id, string? language = null) where T : Content;
 }

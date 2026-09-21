@@ -174,6 +174,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Name = content.Name,");
         sb.AppendLine("            ContentTypeKey = ContentTypeKey,");
         sb.AppendLine("            Created = global::System.DateTime.UtcNow,");
+        sb.AppendLine("            MasterLanguage = language,");
         sb.AppendLine("        };");
         sb.AppendLine("        db.ContentRoots.Add(root);");
         sb.AppendLine();
@@ -204,6 +205,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Id = root.Id,");
         sb.AppendLine("            Name = root.Name,");
         sb.AppendLine("            Language = language,");
+        sb.AppendLine("            MasterLanguage = language,");
         sb.AppendLine("            VersionNumber = version.VersionNumber,");
         sb.AppendLine("            Created = version.Created,");
         sb.AppendLine("            CreatedBy = version.CreatedBy,");
@@ -269,6 +271,7 @@ internal static class CodeEmitter
         sb.AppendLine("            Id = content.Id,");
         sb.AppendLine("            Name = currentVersion.Root.Name,");
         sb.AppendLine("            Language = content.Language,");
+        sb.AppendLine("            MasterLanguage = currentVersion.Root.MasterLanguage,");
         sb.AppendLine("            VersionNumber = newVersion.VersionNumber,");
         sb.AppendLine("            Created = newVersion.Created,");
         sb.AppendLine("            CreatedBy = newVersion.CreatedBy,");
@@ -281,10 +284,12 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // QueryCurrent
-        sb.AppendLine($"    public global::System.Linq.IQueryable<{model.FullyQualifiedName}> QueryCurrent(CmsDbContext<{contentTypeEnum}> db, string language, bool publishedOnly = false)");
+        sb.AppendLine($"    public global::System.Linq.IQueryable<{model.FullyQualifiedName}> QueryCurrent(CmsDbContext<{contentTypeEnum}> db, string? language, bool publishedOnly = false)");
         sb.AppendLine("    {");
         sb.AppendLine("        if (!publishedOnly)");
-        sb.AppendLine($"            return db.Set<{model.FullyQualifiedName}>().Where(x => x.Language == language);");
+        sb.AppendLine("            return language is null");
+        sb.AppendLine($"                ? db.Set<{model.FullyQualifiedName}>().Where(x => x.Language == x.MasterLanguage)");
+        sb.AppendLine($"                : db.Set<{model.FullyQualifiedName}>().Where(x => x.Language == language);");
         sb.AppendLine();
         sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
         sb.AppendLine($"        var eligible = db.Set<{model.VersionTypeName}>()");
@@ -298,13 +303,14 @@ internal static class CodeEmitter
         sb.AppendLine($"        var result = new global::System.Collections.Generic.List<{model.FullyQualifiedName}>();");
         sb.AppendLine("        foreach (var v in live)");
         sb.AppendLine("        {");
-        sb.AppendLine("            var translation = v.Translations.FirstOrDefault(t => t.Language == language);");
+        sb.AppendLine("            var translation = v.Translations.FirstOrDefault(t => t.Language == (language ?? v.Root.MasterLanguage));");
         sb.AppendLine("            if (translation is null) continue;");
         sb.AppendLine($"            result.Add(new {model.FullyQualifiedName}");
         sb.AppendLine("            {");
         sb.AppendLine("                Id = v.Root.Id,");
         sb.AppendLine("                Name = v.Root.Name,");
-        sb.AppendLine("                Language = language,");
+        sb.AppendLine("                Language = translation.Language,");
+        sb.AppendLine("                MasterLanguage = v.Root.MasterLanguage,");
         sb.AppendLine("                VersionNumber = v.VersionNumber,");
         sb.AppendLine("                Created = v.Created,");
         sb.AppendLine("                StartPublish = v.StartPublish,");
@@ -322,7 +328,7 @@ internal static class CodeEmitter
         sb.AppendLine();
 
         // QueryHistory
-        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyList<{model.FullyQualifiedName}> QueryHistory(CmsDbContext<{contentTypeEnum}> db, int id, string language)");
+        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyList<{model.FullyQualifiedName}> QueryHistory(CmsDbContext<{contentTypeEnum}> db, int id, string? language)");
         sb.AppendLine("    {");
         sb.AppendLine($"        var versions = db.Set<{model.VersionTypeName}>()");
         sb.AppendLine("            .Where(v => v.RootId == id)");
@@ -334,13 +340,14 @@ internal static class CodeEmitter
         sb.AppendLine($"        var result = new global::System.Collections.Generic.List<{model.FullyQualifiedName}>();");
         sb.AppendLine("        foreach (var v in versions)");
         sb.AppendLine("        {");
-        sb.AppendLine("            var translation = v.Translations.FirstOrDefault(t => t.Language == language);");
+        sb.AppendLine("            var translation = v.Translations.FirstOrDefault(t => t.Language == (language ?? v.Root.MasterLanguage));");
         sb.AppendLine("            if (translation is null) continue;");
         sb.AppendLine($"            result.Add(new {model.FullyQualifiedName}");
         sb.AppendLine("            {");
         sb.AppendLine("                Id = v.Root.Id,");
         sb.AppendLine("                Name = v.Root.Name,");
-        sb.AppendLine("                Language = language,");
+        sb.AppendLine("                Language = translation.Language,");
+        sb.AppendLine("                MasterLanguage = v.Root.MasterLanguage,");
         sb.AppendLine("                VersionNumber = v.VersionNumber,");
         sb.AppendLine("                Created = v.Created,");
         sb.AppendLine("                StartPublish = v.StartPublish,");
@@ -354,6 +361,26 @@ internal static class CodeEmitter
         sb.AppendLine("            });");
         sb.AppendLine("        }");
         sb.AppendLine("        return result;");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // QueryLanguages
+        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyDictionary<int, global::System.Collections.Generic.IReadOnlyList<string>> QueryLanguages(CmsDbContext<{contentTypeEnum}> db, global::System.Collections.Generic.IReadOnlyCollection<int> ids)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        // Two flat queries joined in memory: SQLite can't translate the correlated form.");
+        sb.AppendLine($"        var latest = db.Set<{model.VersionTypeName}>()");
+        sb.AppendLine("            .Where(v => ids.Contains(v.RootId))");
+        sb.AppendLine("            .GroupBy(v => v.RootId)");
+        sb.AppendLine("            .Select(g => new { RootId = g.Key, VersionNumber = g.Max(v => v.VersionNumber) })");
+        sb.AppendLine("            .ToDictionary(x => x.RootId, x => x.VersionNumber);");
+        sb.AppendLine($"        var rows = db.Set<{model.TranslationTypeName}>()");
+        sb.AppendLine("            .Where(t => ids.Contains(t.Version.RootId))");
+        sb.AppendLine("            .Select(t => new { t.Version.RootId, t.Version.VersionNumber, t.Language })");
+        sb.AppendLine("            .ToList()");
+        sb.AppendLine("            .Where(r => latest[r.RootId] == r.VersionNumber);");
+        sb.AppendLine("        return rows");
+        sb.AppendLine("            .GroupBy(r => r.RootId)");
+        sb.AppendLine("            .ToDictionary(g => g.Key, g => (global::System.Collections.Generic.IReadOnlyList<string>)g.Select(r => r.Language).OrderBy(l => l, global::System.StringComparer.Ordinal).ToList());");
         sb.AppendLine("    }");
         sb.AppendLine();
 
@@ -470,6 +497,7 @@ $@"SELECT
     r.Id AS Id,
     r.Name AS Name,
     t.Language AS Language,
+    r.MasterLanguage AS MasterLanguage,
     v.VersionNumber AS VersionNumber,
     v.Created AS Created,
     v.StartPublish AS StartPublish,

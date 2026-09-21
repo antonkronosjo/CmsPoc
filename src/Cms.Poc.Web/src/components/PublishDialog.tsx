@@ -14,10 +14,9 @@ interface PublishTarget {
 
 interface UsePublishActionsOptions {
   id: number;
-  language: string;
 }
 
-export function usePublishActions({ id, language }: UsePublishActionsOptions) {
+export function usePublishActions({ id }: UsePublishActionsOptions) {
   const queryClient = useQueryClient();
   const [publishTarget, setPublishTarget] = useState<PublishTarget | undefined>(undefined);
   const [startPublish, setStartPublish] = useState<string | null>(null);
@@ -25,8 +24,9 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
   const { confirm, confirmDialogProps } = useConfirmDialog();
 
   async function invalidateAfterPublishChange() {
-    await queryClient.invalidateQueries({ queryKey: ["update-schema", id, language] });
-    await queryClient.invalidateQueries({ queryKey: ["content-history", id, language] });
+    // Publishing applies to the version as a whole, so every language's view of it goes stale.
+    await queryClient.invalidateQueries({ queryKey: ["update-schema", id] });
+    await queryClient.invalidateQueries({ queryKey: ["content-history", id] });
     await queryClient.invalidateQueries({ queryKey: ["content-search"] });
   }
 

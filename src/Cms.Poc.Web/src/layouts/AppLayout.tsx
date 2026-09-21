@@ -1,12 +1,14 @@
-import { Outlet, Link as RouterLink } from "react-router-dom";
+import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import { AppBar, Box, IconButton, MenuItem, Select, Toolbar, Typography } from "@mui/material";
 import { DarkMode, LightMode } from "@mui/icons-material";
 import { useThemeMode } from "../theme/ThemeModeProvider";
-import { LANGUAGES, useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../hooks/useLanguage";
 
 export default function AppLayout() {
   const { mode, toggleMode } = useThemeMode();
-  const { language, setLanguage } = useLanguage();
+  const { language, setLanguage, languages } = useLanguage();
+  // The CMS shows every language at once, so the selector is for the public site only.
+  const isCms = useLocation().pathname.startsWith("/cms");
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
@@ -15,18 +17,20 @@ export default function AppLayout() {
           <Typography
             variant="h6"
             component={RouterLink}
-            to="/"
+            to={`/${language}`}
             sx={{ flexGrow: 1, color: "inherit", textDecoration: "none" }}
           >
             Content Framework POC
           </Typography>
-          <Select value={language} onChange={(e) => setLanguage(e.target.value)} size="small" sx={{ width: 100 }}>
-            {LANGUAGES.map((l) => (
-              <MenuItem key={l} value={l}>
-                {l}
-              </MenuItem>
-            ))}
-          </Select>
+          {!isCms && (
+            <Select value={language} onChange={(e) => setLanguage(e.target.value)} size="small" sx={{ width: 100 }}>
+              {languages.map((l) => (
+                <MenuItem key={l} value={l}>
+                  {l}
+                </MenuItem>
+              ))}
+            </Select>
+          )}
           <IconButton onClick={toggleMode} aria-label="Toggle dark mode">
             {mode === "dark" ? <LightMode /> : <DarkMode />}
           </IconButton>

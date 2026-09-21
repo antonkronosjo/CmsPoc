@@ -1,21 +1,39 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Card, Stack, TextField, Typography } from "@mui/material";
+import { Card, MenuItem, Select, Stack, TextField, Typography } from "@mui/material";
 import { api, type CreateContentSchema } from "../../api/client";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguages } from "../../hooks/useLanguages";
 import ContentForm from "../../forms/ContentForm";
 import ContentTypePicker from "../../forms/ContentTypePicker";
 
 export default function CmsCreatePage() {
-  const { language } = useLanguage();
+  const { defaultLanguage, supportedLanguages } = useLanguages();
   const [contentTypeName, setContentTypeName] = useState("");
+  // The language an item is created in becomes its master language.
+  const [chosenLanguage, setChosenLanguage] = useState<string | null>(null);
+  const language = chosenLanguage ?? defaultLanguage;
 
   return (
     <Stack spacing={2}>
       <Typography variant="h5">Create content</Typography>
       <Card sx={{ p: 3 }}>
-        <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
+        <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+          <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
+          <Select
+            value={language}
+            onChange={(e) => setChosenLanguage(e.target.value)}
+            size="small"
+            sx={{ minWidth: 140, mb: 2 }}
+            renderValue={(l) => `Master language: ${l}`}
+          >
+            {supportedLanguages.map((l) => (
+              <MenuItem key={l} value={l}>
+                {l}
+              </MenuItem>
+            ))}
+          </Select>
+        </Stack>
         {contentTypeName && <CreateForm key={contentTypeName + language} contentTypeName={contentTypeName} language={language} />}
       </Card>
     </Stack>

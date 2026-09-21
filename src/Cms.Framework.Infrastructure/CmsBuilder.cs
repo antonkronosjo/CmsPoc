@@ -15,8 +15,14 @@ public sealed class CmsBuilder
     internal IReadOnlyList<Assembly> ExtraContentAssemblies => _extraContentAssemblies;
     internal IReadOnlyList<Action<IServiceCollection>> ServiceRegistrations => _serviceRegistrations;
 
-    /// <summary>Language used when a call doesn't specify one.</summary>
+    /// <summary>Language pre-selected when creating new content.</summary>
     public string DefaultLanguage { get; set; } = "en";
+
+    /// <summary>
+    /// The languages offered for translating content. Must include
+    /// <see cref="DefaultLanguage"/>.
+    /// </summary>
+    public IReadOnlyList<string> SupportedLanguages { get; set; } = new[] { "en", "sv" };
 
     /// <summary>
     /// When <c>true</c>, the schema is created on application start

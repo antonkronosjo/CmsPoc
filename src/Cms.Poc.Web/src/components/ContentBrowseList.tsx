@@ -25,7 +25,9 @@ import ContentTypeChip from "./ContentTypeChip";
 const PAGE_SIZE = 10;
 
 interface ContentBrowseListProps {
-  language: string;
+  /// Restricts the list to items translated into this language and shows them in it. Leave
+  /// undefined to list every item in its master language, with a column of its languages.
+  language?: string;
   onSelect?: (item: ContentSummaryDto) => void;
   showTypeFilter?: boolean;
   /// When true, only content with a version currently live is returned (the
@@ -105,6 +107,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
             <TableRow>
               <TableCell>Name</TableCell>
               <TableCell>Type</TableCell>
+              {language === undefined && <TableCell>Languages</TableCell>}
               <TableCell>Version</TableCell>
               <TableCell>Created</TableCell>
               {!publishedOnly && <TableCell>Status</TableCell>}
@@ -122,6 +125,22 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                 <TableCell>
                   <ContentTypeChip contentTypeKey={item.contentTypeKey} />
                 </TableCell>
+                {language === undefined && (
+                  <TableCell>
+                    <Stack direction="row" spacing={0.5}>
+                      {item.languages.map((l) => (
+                        <Chip
+                          key={l}
+                          size="small"
+                          label={l}
+                          variant={l === item.masterLanguage ? "filled" : "outlined"}
+                          color={l === item.masterLanguage ? "primary" : "default"}
+                          title={l === item.masterLanguage ? "Master language" : undefined}
+                        />
+                      ))}
+                    </Stack>
+                  </TableCell>
+                )}
                 <TableCell>v{item.versionNumber}</TableCell>
                 <TableCell>{dayjs(item.created).format("YYYY-MM-DD HH:mm")}</TableCell>
                 {!publishedOnly && (

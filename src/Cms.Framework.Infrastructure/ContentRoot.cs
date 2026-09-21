@@ -18,4 +18,11 @@ public class ContentRoot<TContentType> where TContentType : struct, Enum
     public TContentType ContentTypeKey { get; set; }
 
     public DateTime Created { get; set; }
+
+    /// <summary>
+    /// The language this item was created in. It always has a translation in
+    /// this language, and it is the only language in which the shared
+    /// (non-culture-specific) properties and <see cref="Name"/> are editable.
+    /// </summary>
+    public string MasterLanguage { get; set; } = string.Empty;
 }

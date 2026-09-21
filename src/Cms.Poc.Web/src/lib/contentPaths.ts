@@ -6,8 +6,8 @@ export const contentPathSegments: Record<string, string> = {
   SpecialNewsContent: "specialnews",
 };
 
-/// The public page URL for a content item, or null if its type has no page.
-export function contentPath(contentTypeKey: string, id: number): string | null {
+/// The public page URL for a content item in a language (e.g. /sv/news/12), or null if its type has no page.
+export function contentPath(contentTypeKey: string, id: number, language: string): string | null {
   const segment = contentPathSegments[contentTypeKey];
-  return segment ? `/${segment}/${id}` : null;
+  return segment ? `/${language}/${segment}/${id}` : null;
 }

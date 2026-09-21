@@ -10,6 +10,9 @@ interface ContentFormProps {
   properties: Record<string, ContentPropertyValueDto>;
   contentTypeName: string;
   language: string;
+  /// Set when editing an existing item: the language its shared (non-culture-specific)
+  /// properties belong to. Shared properties are read-only in every other language.
+  masterLanguage?: string;
   onChange: (key: string, value: unknown) => void;
   onSubmit: () => Promise<void> | void;
   submitText: string;
@@ -25,6 +28,7 @@ export default function ContentForm({
   properties,
   contentTypeName,
   language,
+  masterLanguage,
   onChange,
   onSubmit,
   submitText,
@@ -60,8 +64,8 @@ export default function ContentForm({
           contentTypeName={contentTypeName}
           propertyName={key}
           valueDto={valueDto}
-          language={language}
-          disabled={disabled}
+          disabled={disabled || (masterLanguage !== undefined && language !== masterLanguage && !valueDto.cultureSpecific)}
+          note={sharedNote(valueDto, language, masterLanguage)}
           onChange={(value) => onChange(key, value)}
         />
       ))}
@@ -76,12 +80,18 @@ export default function ContentForm({
   );
 }
 
+/// Explains which fields are shared between languages, so it is clear why one is read-only.
+function sharedNote(valueDto: ContentPropertyValueDto, language: string, masterLanguage: string | undefined): string | undefined {
+  if (masterLanguage === undefined || valueDto.cultureSpecific) return undefined;
+  return language === masterLanguage ? "Shared by all languages" : `Shared by all languages - edit in ${masterLanguage}`;
+}
+
 interface FormElementTemplateProps {
   label: string;
   contentTypeName: string;
   propertyName: string;
   valueDto: ContentPropertyValueDto;
-  language: string;
+  note?: string;
   onChange: (value: unknown) => void;
   disabled?: boolean;
 }
@@ -91,7 +101,7 @@ interface FormElementHandle {
 }
 
 const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplateProps>(
-  ({ label, propertyName, contentTypeName, valueDto, language, disabled, onChange }, ref) => {
+  ({ label, propertyName, contentTypeName, valueDto, note, disabled, onChange }, ref) => {
     const [errors, setErrors] = useState<string[]>([]);
     const [touched, setTouched] = useState(false);
 
@@ -117,7 +127,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
       variant: "outlined",
       fullWidth: true,
       error: errors.length > 0,
-      helperText: errors[0] ?? null,
+      helperText: errors[0] ?? note ?? null,
       disabled,
       required: valueDto.required,
     } as TextFieldProps;
@@ -160,7 +170,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
                 fullWidth: true,
                 required: valueDto.required,
                 error: errors.length > 0,
-                helperText: errors[0] ?? null,
+                helperText: errors[0] ?? note ?? null,
               },
             }}
           />
@@ -180,7 +190,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
                 fullWidth: true,
                 required: valueDto.required,
                 error: errors.length > 0,
-                helperText: errors[0] ?? null,
+                helperText: errors[0] ?? note ?? null,
               },
             }}
           />
@@ -190,7 +200,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
         return (
           <ContentPicker
             label={label}
-            language={language}
+            helperText={note}
             disabled={disabled}
             value={valueDto.value as ContentReference | null}
             onChange={(v) => handleChange(v)}

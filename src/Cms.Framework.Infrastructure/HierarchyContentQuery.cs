@@ -17,14 +17,14 @@ internal sealed class HierarchyContentQuery<T, TContentType> : IContentQuery<T>
 {
     private readonly CmsDbContext<TContentType> _db;
     private readonly IReadOnlyList<IContentTypeMetadata<TContentType>> _hierarchy;
-    private readonly string _language;
+    private readonly string? _language;
     private readonly bool _publishedOnly;
     private readonly List<LambdaExpression> _predicates = new();
 
     public HierarchyContentQuery(
         CmsDbContext<TContentType> db,
         IReadOnlyList<IContentTypeMetadata<TContentType>> hierarchy,
-        string language,
+        string? language,
         bool publishedOnly)
     {
         _db = db;

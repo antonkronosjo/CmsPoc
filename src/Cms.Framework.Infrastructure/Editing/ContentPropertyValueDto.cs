@@ -13,5 +13,11 @@ public sealed class ContentPropertyValueDto
 {
     public required InputType InputType { get; set; }
     public required bool Required { get; set; }
+
+    /// <summary>
+    /// <c>true</c> when the value differs per language. Everything else is
+    /// shared by all languages and only editable in the item's master language.
+    /// </summary>
+    public bool CultureSpecific { get; set; }
     public object? Value { get; set; }
 }

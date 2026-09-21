@@ -27,7 +27,7 @@ export default function ContentArea({ content }: ContentAreaProps) {
     <Grid container spacing={2}>
       {content.map((item) => {
         const Template = templates[item.contentTypeKey] ?? DefaultContentTemplate;
-        const path = contentPath(item.contentTypeKey, item.id);
+        const path = contentPath(item.contentTypeKey, item.id, item.language);
         return (
           <Grid key={item.id} size={{ xs: 12, sm: 6, md: 4 }}>
             {path ? (

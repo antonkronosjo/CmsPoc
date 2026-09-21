@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Container, Stack, Typography } from "@mui/material";
 import { api } from "../api/client";
 import ContentArea from "../components/ContentArea/ContentArea";
-import { useLanguage } from "../context/LanguageContext";
+import { useLanguage } from "../hooks/useLanguage";
 
 const PAGE_SIZE = 200;
 

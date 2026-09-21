@@ -1,7 +1,6 @@
 using Cms.Framework.Abstractions;
 using Cms.Framework.Abstractions.Users;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace Cms.Framework.Infrastructure;
 
@@ -19,20 +18,17 @@ internal sealed class ContentRepository<TContentType> : IContentRepository
     private readonly CmsDbContext<TContentType> _db;
     private readonly IServiceProvider _services;
     private readonly List<IContentTypeMetadata<TContentType>> _contentTypes;
-    private readonly string _defaultLanguage;
     private readonly ICmsUserAdapter? _userAdapter;
 
     public ContentRepository(
         CmsDbContext<TContentType> db,
         IServiceProvider services,
         IEnumerable<IContentTypeMetadata<TContentType>> contentTypes,
-        IOptions<ContentRepositoryOptions> options,
         ICmsUserAdapter? userAdapter = null)
     {
         _db = db;
         _services = services;
         _contentTypes = contentTypes.ToList();
-        _defaultLanguage = options.Value.DefaultLanguage;
         _userAdapter = userAdapter;
     }
 
@@ -48,27 +44,24 @@ internal sealed class ContentRepository<TContentType> : IContentRepository
 
     public IContentQuery<T> Query<T>(string? language = null, bool publishedOnly = false) where T : Content
     {
-        var lang = language ?? _defaultLanguage;
-
+        // A null language means each item's own master language.
         if (typeof(T) == typeof(Content))
         {
-            var polymorphic = new PolymorphicContentQuery<TContentType>(_db, _contentTypes, lang, publishedOnly);
+            var polymorphic = new PolymorphicContentQuery<TContentType>(_db, _contentTypes, language, publishedOnly);
             return (IContentQuery<T>)(object)polymorphic;
         }
 
         var hierarchy = _contentTypes.Where(m => typeof(T).IsAssignableFrom(m.ClrType)).ToList();
         if (hierarchy.Count > 1)
-            return new HierarchyContentQuery<T, TContentType>(_db, hierarchy, lang, publishedOnly);
+            return new HierarchyContentQuery<T, TContentType>(_db, hierarchy, language, publishedOnly);
 
-        return new EfBackedContentQuery<T>(GetStore<T>().QueryCurrent(_db, lang, publishedOnly));
+        return new EfBackedContentQuery<T>(GetStore<T>().QueryCurrent(_db, language, publishedOnly));
     }
 
     public IReadOnlyList<T> QueryHistory<T>(int id, string? language = null) where T : Content
     {
-        var lang = language ?? _defaultLanguage;
-
         if (!_contentTypes.Any(m => m.ClrType != typeof(T) && typeof(T).IsAssignableFrom(m.ClrType)))
-            return GetStore<T>().QueryHistory(_db, id, lang);
+            return GetStore<T>().QueryHistory(_db, id, language);
 
         // T has derived types: the id may belong to any of them, so dispatch on the root's stored type.
         var key = _db.ContentRoots.Where(r => r.Id == id).Select(r => (TContentType?)r.ContentTypeKey).FirstOrDefault();
@@ -78,7 +71,7 @@ internal sealed class ContentRepository<TContentType> : IContentRepository
         if (metadata is null || !typeof(T).IsAssignableFrom(metadata.ClrType))
             return Array.Empty<T>();
 
-        return metadata.QueryHistory(_db, id, lang).Cast<T>().ToList();
+        return metadata.QueryHistory(_db, id, language).Cast<T>().ToList();
     }
 
     private IContentTypeMetadata<TContentType> ResolveByRuntimeType(Content content)

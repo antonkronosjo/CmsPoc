@@ -27,9 +27,16 @@ public interface IContentTypeStore<T, TContentType>
     /// version is currently live (per its publish window) for each item,
     /// omitting items with none live right now.
     /// </summary>
-    IQueryable<T> QueryCurrent(CmsDbContext<TContentType> db, string language, bool publishedOnly = false);
+    IQueryable<T> QueryCurrent(CmsDbContext<TContentType> db, string? language, bool publishedOnly = false);
 
-    IReadOnlyList<T> QueryHistory(CmsDbContext<TContentType> db, int id, string language);
+    /// <summary>
+    /// One language's view of every version of an item, newest first.
+    /// <paramref name="language"/> <c>null</c> means the item's master language.
+    /// </summary>
+    IReadOnlyList<T> QueryHistory(CmsDbContext<TContentType> db, int id, string? language);
+
+    /// <summary>The languages that have a translation in each given item's latest version.</summary>
+    IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
     /// <summary>The version number currently live for this root, or <c>null</c> if none is.</summary>
     int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId);

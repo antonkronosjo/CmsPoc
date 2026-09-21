@@ -36,11 +36,20 @@ public interface IContentEditingService<TContentType>
 
     List<string> ValidateProperty(TContentType contentTypeKey, string propertyName, ContentPropertyValueDto value);
 
-    ContentSummaryDto<TContentType>? GetSummary(int id, string language);
+    /// <summary>
+    /// The item as displayed in <paramref name="language"/>, or <c>null</c> when it has no
+    /// translation in that language. With <paramref name="language"/> <c>null</c> it is shown in its master language.
+    /// </summary>
+    ContentSummaryDto<TContentType>? GetSummary(int id, string? language);
 
-    SearchContentResult<TContentType> Search(string? query, string language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false);
+    /// <summary>
+    /// Lists content. With <paramref name="language"/> <c>null</c> every item is listed,
+    /// each in its own master language; otherwise only items translated into that language.
+    /// </summary>
+    SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false);
 
-    List<ContentSummaryDto<TContentType>> GetHistory(int id, string language);
+    /// <summary>Version history in <paramref name="language"/> (<c>null</c> = the item's master language).</summary>
+    List<ContentSummaryDto<TContentType>> GetHistory(int id, string? language);
 
     /// <summary>Publishes a specific version, replacing whatever was previously live once its window is reached.</summary>
     void Publish(int id, int versionNumber, DateTime? startPublish, DateTime? stopPublish);

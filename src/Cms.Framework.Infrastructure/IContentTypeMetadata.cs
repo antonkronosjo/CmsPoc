@@ -39,7 +39,7 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// never a full table scan (except when <paramref name="publishedOnly"/>
     /// is <c>true</c>, which resolves each root's live version in memory).
     /// </summary>
-    IReadOnlyList<Content> QueryByIds(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids, string language, bool publishedOnly = false);
+    IReadOnlyList<Content> QueryByIds(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids, string? language, bool publishedOnly = false);
 
     /// <summary>
     /// Runs this type's current-version query in <paramref name="language"/>,
@@ -48,7 +48,7 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// <see cref="ClrType"/> (including <see cref="ClrType"/> itself); it is
     /// re-targeted onto <see cref="ClrType"/> so it still translates to SQL.
     /// </summary>
-    IReadOnlyList<Content> QueryCurrent(CmsDbContext<TContentType> db, string language, bool publishedOnly, IReadOnlyList<LambdaExpression> predicates);
+    IReadOnlyList<Content> QueryCurrent(CmsDbContext<TContentType> db, string? language, bool publishedOnly, IReadOnlyList<LambdaExpression> predicates);
 
     /// <summary>
     /// Type-erased entry point for creating content when the concrete type
@@ -68,7 +68,10 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// Type-erased entry point for fetching version history when the
     /// concrete type is only known at runtime.
     /// </summary>
-    IReadOnlyList<Content> QueryHistory(CmsDbContext<TContentType> db, int id, string language);
+    IReadOnlyList<Content> QueryHistory(CmsDbContext<TContentType> db, int id, string? language);
+
+    /// <summary>The languages that have a translation in each given item's latest version.</summary>
+    IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
     /// <summary>The version number currently live for this root, or <c>null</c> if none is.</summary>
     int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId);
@@ -116,14 +119,14 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
     public Type ClrType => typeof(T);
     public string? Color { get; }
 
-    public IReadOnlyList<Content> QueryByIds(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids, string language, bool publishedOnly = false)
+    public IReadOnlyList<Content> QueryByIds(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids, string? language, bool publishedOnly = false)
         => _store.QueryCurrent(db, language, publishedOnly)
             .Where(x => ids.Contains(x.Id))
             .ToList()
             .Cast<Content>()
             .ToList();
 
-    public IReadOnlyList<Content> QueryCurrent(CmsDbContext<TContentType> db, string language, bool publishedOnly, IReadOnlyList<LambdaExpression> predicates)
+    public IReadOnlyList<Content> QueryCurrent(CmsDbContext<TContentType> db, string? language, bool publishedOnly, IReadOnlyList<LambdaExpression> predicates)
     {
         var query = _store.QueryCurrent(db, language, publishedOnly);
         foreach (var predicate in predicates)
@@ -141,8 +144,11 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
     public Content Update(CmsDbContext<TContentType> db, Content content, string? userId)
         => _store.Update(db, (T)content, userId);
 
-    public IReadOnlyList<Content> QueryHistory(CmsDbContext<TContentType> db, int id, string language)
+    public IReadOnlyList<Content> QueryHistory(CmsDbContext<TContentType> db, int id, string? language)
         => _store.QueryHistory(db, id, language).Cast<Content>().ToList();
+
+    public IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids)
+        => _store.QueryLanguages(db, ids);
 
     public int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId)
         => _store.GetLivePublishedVersionNumber(db, rootId);

@@ -37,7 +37,15 @@ public static class CmsServiceCollectionExtensions
         services.AddDbContext<CmsDbContext<TContentType>>(databaseConfiguration);
         services.AddScoped<IContentRepository, ContentRepository<TContentType>>();
         services.AddScoped<IContentEditingService<TContentType>, ContentEditingService<TContentType>>();
-        services.Configure<ContentRepositoryOptions>(o => o.DefaultLanguage = builder.DefaultLanguage);
+        if (!builder.SupportedLanguages.Contains(builder.DefaultLanguage))
+            throw new InvalidOperationException(
+                $"DefaultLanguage '{builder.DefaultLanguage}' must be one of SupportedLanguages ({string.Join(", ", builder.SupportedLanguages)}).");
+
+        services.Configure<ContentRepositoryOptions>(o =>
+        {
+            o.DefaultLanguage = builder.DefaultLanguage;
+            o.SupportedLanguages = builder.SupportedLanguages;
+        });
         foreach (var registration in builder.ServiceRegistrations)
             registration(services);
 

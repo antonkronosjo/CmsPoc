@@ -28,6 +28,9 @@ public sealed class UpdateContentMetadata<TContentType>
     public required int Id { get; set; }
     public required TContentType ContentTypeKey { get; set; }
     public required string Language { get; set; }
+
+    /// <summary>The language the item was created in - the only one where shared properties and the name can be edited.</summary>
+    public required string MasterLanguage { get; set; }
     public required string Name { get; set; }
     public required int VersionNumber { get; set; }
     public required DateTime Created { get; set; }
@@ -36,6 +39,9 @@ public sealed class UpdateContentMetadata<TContentType>
 
     /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
     public int? LivePublishedVersionNumber { get; set; }
+
+    /// <summary>Languages that have a translation in the item's latest version.</summary>
+    public List<string> Languages { get; set; } = new();
 }
 
 /// <summary>
@@ -64,6 +70,7 @@ public sealed class ContentSummaryDto<TContentType>
     public required TContentType ContentTypeKey { get; set; }
     public required string Name { get; set; }
     public required string Language { get; set; }
+    public required string MasterLanguage { get; set; }
     public required int VersionNumber { get; set; }
     public required DateTime Created { get; set; }
     public DateTime? StartPublish { get; set; }
@@ -71,6 +78,9 @@ public sealed class ContentSummaryDto<TContentType>
 
     /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
     public int? LivePublishedVersionNumber { get; set; }
+
+    /// <summary>Languages that have a translation in the item's latest version. Filled by search and summary lookups, empty for history rows.</summary>
+    public List<string> Languages { get; set; } = new();
 
     /// <summary>Who created this version, or <c>null</c> if unknown or user tracking is off.</summary>
     public UserRefDto? CreatedBy { get; set; }

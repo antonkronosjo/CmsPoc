@@ -14,6 +14,7 @@ public sealed class ContentRootConfiguration<TContentType> : IEntityTypeConfigur
         // Stored by name, not number, so adding/removing/reordering content
         // types never changes what an existing row means.
         builder.Property(x => x.ContentTypeKey).HasConversion<string>().IsRequired();
+        builder.Property(x => x.MasterLanguage).IsRequired();
         builder.HasIndex(x => x.Name);
         builder.HasIndex(x => x.ContentTypeKey);
     }

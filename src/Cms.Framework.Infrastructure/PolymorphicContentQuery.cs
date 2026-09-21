@@ -24,11 +24,11 @@ internal sealed class PolymorphicContentQuery<TContentType> : IContentQuery<Cont
 {
     private readonly CmsDbContext<TContentType> _db;
     private readonly IReadOnlyCollection<IContentTypeMetadata<TContentType>> _contentTypes;
-    private readonly string _language;
+    private readonly string? _language;
     private readonly bool _publishedOnly;
     private IQueryable<ContentRoot<TContentType>> _rootQuery;
 
-    public PolymorphicContentQuery(CmsDbContext<TContentType> db, IReadOnlyCollection<IContentTypeMetadata<TContentType>> contentTypes, string language, bool publishedOnly = false)
+    public PolymorphicContentQuery(CmsDbContext<TContentType> db, IReadOnlyCollection<IContentTypeMetadata<TContentType>> contentTypes, string? language, bool publishedOnly = false)
     {
         _db = db;
         _contentTypes = contentTypes;

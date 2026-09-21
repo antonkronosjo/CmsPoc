@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Container, Stack, Typography } from "@mui/material";
 import { ArrowBack, Edit } from "@mui/icons-material";
 import { api, type ContentSummaryDto } from "../../api/client";
-import { useLanguage } from "../../context/LanguageContext";
+import { useLanguage } from "../../hooks/useLanguage";
 import { useUser } from "../../context/UserContext";
 
 interface ContentPageShellProps {
@@ -22,23 +22,29 @@ export default function ContentPageShell({ contentTypeKey, children }: ContentPa
   const { isAuthenticated } = useUser();
   const contentId = Number(id);
 
-  const { data, isLoading, isError } = useQuery({
+  const { data, isLoading } = useQuery({
     queryKey: ["content-summary", contentId, language],
     queryFn: () => api.getContentSummary(contentId, language),
     enabled: Number.isInteger(contentId),
     retry: false,
   });
 
-  const found = data && data.contentTypeKey === contentTypeKey && data.livePublishedVersionNumber != null;
+  // Found only when the live version itself has this translation. A translation that exists
+  // only in a newer, unpublished version is not available to the public.
+  const found =
+    data &&
+    data.contentTypeKey === contentTypeKey &&
+    data.livePublishedVersionNumber != null &&
+    data.versionNumber === data.livePublishedVersionNumber;
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", mb: 2 }}>
-        <Button component={RouterLink} to="/" startIcon={<ArrowBack />}>
+        <Button component={RouterLink} to={`/${language}`} startIcon={<ArrowBack />}>
           Back
         </Button>
         {found && isAuthenticated && (
-          <Button component={RouterLink} to={`/cms/edit/${contentId}`} startIcon={<Edit />} variant="outlined">
+          <Button component={RouterLink} to={`/cms/edit/${contentId}?lang=${language}`} startIcon={<Edit />} variant="outlined">
             Edit
           </Button>
         )}
@@ -48,7 +54,7 @@ export default function ContentPageShell({ contentTypeKey, children }: ContentPa
       ) : found ? (
         children(data)
       ) : (
-        <Alert severity="warning">{isError || !data ? "Content not found." : "This content is not available."}</Alert>
+        <Alert severity="warning">Content not found.</Alert>
       )}
     </Container>
   );

@@ -21,6 +21,8 @@ export interface ContentReference {
 export interface ContentPropertyValueDto {
   inputType: InputType;
   required: boolean;
+  /// True when the value differs per language; everything else is shared and only editable in the master language.
+  cultureSpecific: boolean;
   value: unknown;
 }
 
@@ -28,6 +30,11 @@ export interface ContentPropertyValueDto {
 export interface ContentTypeInfo {
   key: string;
   color: string | null;
+}
+
+export interface LanguageSettingsDto {
+  defaultLanguage: string;
+  supportedLanguages: string[];
 }
 
 export interface CreateContentMetadata {
@@ -45,6 +52,8 @@ export interface UpdateContentMetadata {
   id: number;
   contentTypeKey: string;
   language: string;
+  /// The language the item was created in - the only one where shared properties and the name are editable.
+  masterLanguage: string;
   name: string;
   versionNumber: number;
   created: string;
@@ -52,6 +61,8 @@ export interface UpdateContentMetadata {
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
   livePublishedVersionNumber: number | null;
+  /// Languages that have a translation in the latest version.
+  languages: string[];
 }
 
 /// Returned by the update-schema GET, required as-is for the update PUT
@@ -75,12 +86,15 @@ export interface ContentSummaryDto {
   contentTypeKey: string;
   name: string;
   language: string;
+  masterLanguage: string;
   versionNumber: number;
   created: string;
   startPublish: string | null;
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
   livePublishedVersionNumber: number | null;
+  /// Languages that have a translation in the latest version (empty for version-history rows).
+  languages: string[];
   /// Null when user tracking is off or the reference was removed.
   createdBy: UserRefDto | null;
   publishedBy: UserRefDto | null;
@@ -138,6 +152,8 @@ export interface CurrentUserDto {
 export const api = {
   getCurrentUser: () => fetch(`${API_BASE}/api/user`).then((r) => json<CurrentUserDto>(r)),
 
+  getLanguages: () => fetch(`${API_BASE}/api/content/languages`).then((r) => json<LanguageSettingsDto>(r)),
+
   getContentTypes: () => fetch(`${API_BASE}/api/content/types`).then((r) => json<ContentTypeInfo[]>(r)),
 
   getCreationSchema: (contentTypeKey: string, language: string) =>
@@ -160,10 +176,10 @@ export const api = {
       body: JSON.stringify(request),
     }).then((r) => json<UpdateContentSchema>(r)),
 
-  getContentSummary: (id: number, language: string) =>
+  getContentSummary: (id: number, language?: string) =>
     fetch(`${API_BASE}/api/content/${id}${query({ language })}`).then((r) => json<ContentSummaryDto>(r)),
 
-  searchContent: (searchQuery: string, language: string, options: SearchContentOptions = {}) =>
+  searchContent: (searchQuery: string, language: string | undefined, options: SearchContentOptions = {}) =>
     fetch(
       `${API_BASE}/api/content/search${query({
         query: searchQuery,

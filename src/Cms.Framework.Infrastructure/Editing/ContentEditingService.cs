@@ -82,30 +82,23 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         }
 
         // The content exists but has no translation in this language yet -
-        // a new language branch. Read root-level identity directly; Update
-        // will copy every other language's data forward unchanged the
-        // first time this branch is saved.
-        var newBranchRoot = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
+        // a new language branch. Start from the master-language projection so
+        // the shared values are shown as they are; the culture-specific
+        // values start blank. Update copies every other language's data
+        // forward unchanged the first time this branch is saved.
+        var master = _contentRepository.Query<Content>().Where(x => x.Id == id).FirstOrDefault()
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
-        var rootMetadata = ResolveContentType(newBranchRoot.ContentTypeKey);
+        var masterMetadata = ResolveContentTypeByClrType(master.GetType());
 
-        return new UpdateContentSchema<TContentType>
-        {
-            Metadata = new UpdateContentMetadata<TContentType>
-            {
-                Id = newBranchRoot.Id,
-                ContentTypeKey = newBranchRoot.ContentTypeKey,
-                Language = language,
-                Name = newBranchRoot.Name,
-                VersionNumber = 0,
-                Created = newBranchRoot.Created,
-                LivePublishedVersionNumber = rootMetadata.GetLivePublishedVersionNumber(_db, id),
-            },
-            Properties = BuildPropertySchema(rootMetadata.ClrType, instance: null),
-        };
+        var schema = ToUpdateSchema(master, masterMetadata, masterMetadata.GetLivePublishedVersionNumber(_db, id), blankCultureSpecific: true);
+        schema.Metadata.Language = language;
+        schema.Metadata.VersionNumber = 0;
+        schema.Metadata.StartPublish = null;
+        schema.Metadata.StopPublish = null;
+        return schema;
     }
 
-    private static UpdateContentSchema<TContentType> ToUpdateSchema(Content content, IContentTypeMetadata<TContentType> metadata, int? livePublishedVersionNumber)
+    private UpdateContentSchema<TContentType> ToUpdateSchema(Content content, IContentTypeMetadata<TContentType> metadata, int? livePublishedVersionNumber, bool blankCultureSpecific = false)
         => new()
         {
             Metadata = new UpdateContentMetadata<TContentType>
@@ -113,15 +106,20 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
                 Id = content.Id,
                 ContentTypeKey = metadata.ContentTypeKey,
                 Language = content.Language,
+                MasterLanguage = content.MasterLanguage,
                 Name = content.Name,
                 VersionNumber = content.VersionNumber,
                 Created = content.Created,
                 StartPublish = content.StartPublish,
                 StopPublish = content.StopPublish,
                 LivePublishedVersionNumber = livePublishedVersionNumber,
+                Languages = LanguagesOf(metadata, content.Id),
             },
-            Properties = BuildPropertySchema(content.GetType(), content),
+            Properties = BuildPropertySchema(content.GetType(), content, blankCultureSpecific),
         };
+
+    private List<string> LanguagesOf(IContentTypeMetadata<TContentType> metadata, int id)
+        => metadata.QueryLanguages(_db, [id]).TryGetValue(id, out var languages) ? languages.ToList() : new List<string>();
 
     public Content Create(CreateContentSchema<TContentType> request)
     {
@@ -140,23 +138,18 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var userId = Authorize(CmsRole.Editor);
         var current = _contentRepository.Query<Content>(request.Metadata.Language).Where(x => x.Id == request.Metadata.Id).FirstOrDefault();
 
-        Content instance;
-        if (current is not null)
-        {
-            instance = current;
-        }
-        else
-        {
-            var root = _db.ContentRoots.SingleOrDefault(x => x.Id == request.Metadata.Id)
-                ?? throw new KeyNotFoundException($"Content '{request.Metadata.Id}' does not exist.");
-            var rootMetadata = ResolveContentType(root.ContentTypeKey);
-            instance = (Content)Activator.CreateInstance(rootMetadata.ClrType)!;
-            instance.Id = request.Metadata.Id;
-        }
+        // A language with no translation yet starts from the master-language
+        // projection, so the shared values carry forward into the new version.
+        var instance = current
+            ?? _contentRepository.Query<Content>().Where(x => x.Id == request.Metadata.Id).FirstOrDefault()
+            ?? throw new KeyNotFoundException($"Content '{request.Metadata.Id}' does not exist.");
 
-        instance.Name = request.Metadata.Name;
+        // Shared properties and the name are only editable in the master
+        // language; edits to them from any other language are ignored.
+        var isMaster = request.Metadata.Language == instance.MasterLanguage;
+        if (isMaster) instance.Name = request.Metadata.Name;
         instance.Language = request.Metadata.Language;
-        ApplyPropertyValues(instance, request.Properties);
+        ApplyPropertyValues(instance, request.Properties, cultureSpecificOnly: !isMaster);
 
         var metadata = ResolveContentTypeByClrType(instance.GetType());
         return metadata.Update(_db, instance, userId);
@@ -179,21 +172,27 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return errors;
     }
 
-    public ContentSummaryDto<TContentType>? GetSummary(int id, string language)
+    public ContentSummaryDto<TContentType>? GetSummary(int id, string? language)
     {
         // Prefer the published version for display outside active editing;
         // fall back to the latest draft when nothing is published yet.
-        var content = _contentRepository.Query<Content>(language, publishedOnly: true).Where(x => x.Id == id).FirstOrDefault()
-            ?? _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
+        Content? Find(string? lang)
+            => _contentRepository.Query<Content>(lang, publishedOnly: true).Where(x => x.Id == id).FirstOrDefault()
+                ?? _contentRepository.Query<Content>(lang).Where(x => x.Id == id).FirstOrDefault();
+
+        // A requested language the item isn't translated into is a miss; only a null language
+        // (each item in its master language) is guaranteed to find every item.
+        var content = Find(language);
         if (content is null) return null;
 
         var metadata = ResolveContentTypeByClrType(content.GetType());
         var summary = ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id));
+        AttachLanguages([summary]);
         ResolveUsers([summary]);
         return summary;
     }
 
-    public SearchContentResult<TContentType> Search(string? query, string language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false)
+    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false)
     {
         var results = _contentRepository.Query<Content>(language, publishedOnly).ToList();
 
@@ -216,6 +215,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             summaries = summaries.Where(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, typeFilter)).ToList();
 
         var items = summaries.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+        AttachLanguages(items);
         ResolveUsers(items);
 
         return new SearchContentResult<TContentType>
@@ -225,7 +225,21 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         };
     }
 
-    public List<ContentSummaryDto<TContentType>> GetHistory(int id, string language)
+    /// <summary>Fills <see cref="ContentSummaryDto{TContentType}.Languages"/> with one query per content type present.</summary>
+    private void AttachLanguages(IReadOnlyCollection<ContentSummaryDto<TContentType>> summaries)
+    {
+        foreach (var group in summaries.GroupBy(s => s.ContentTypeKey))
+        {
+            var metadata = ResolveContentType(group.Key);
+            var languages = metadata.QueryLanguages(_db, group.Select(s => s.Id).ToList());
+            foreach (var summary in group)
+            {
+                if (languages.TryGetValue(summary.Id, out var found)) summary.Languages = found.ToList();
+            }
+        }
+    }
+
+    public List<ContentSummaryDto<TContentType>> GetHistory(int id, string? language)
     {
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
@@ -312,6 +326,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             ContentTypeKey = metadata.ContentTypeKey,
             Name = content.Name,
             Language = content.Language,
+            MasterLanguage = content.MasterLanguage,
             VersionNumber = content.VersionNumber,
             Created = content.Created,
             StartPublish = content.StartPublish,
@@ -323,7 +338,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         };
     }
 
-    private void ApplyPropertyValues(Content instance, IDictionary<string, ContentPropertyValueDto> values)
+    private void ApplyPropertyValues(Content instance, IDictionary<string, ContentPropertyValueDto> values, bool cultureSpecificOnly = false)
     {
         var properties = GetContentProperties(instance.GetType()).ToDictionary(p => p.Name);
         foreach (var (name, dto) in values)
@@ -331,18 +346,24 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             if (!properties.TryGetValue(name, out var property))
                 throw new InvalidOperationException($"'{name}' is not an editable property of '{instance.GetType().Name}'.");
 
+            if (cultureSpecificOnly && !IsCultureSpecific(property)) continue;
+
             property.SetValue(instance, ResolveValue(property.PropertyType, dto.Value));
         }
     }
 
-    private static Dictionary<string, ContentPropertyValueDto> BuildPropertySchema(Type contentType, Content? instance)
+    private static bool IsCultureSpecific(PropertyInfo property)
+        => property.IsDefined(typeof(CultureSpecificAttribute), inherit: false);
+
+    private static Dictionary<string, ContentPropertyValueDto> BuildPropertySchema(Type contentType, Content? instance, bool blankCultureSpecific = false)
         => GetContentProperties(contentType).ToDictionary(
             p => p.Name,
             p => new ContentPropertyValueDto
             {
                 InputType = p.GetCustomAttribute<ContentPropertyAttribute>()!.InputType,
                 Required = p.IsDefined(typeof(RequiredAttribute), inherit: true),
-                Value = instance is not null ? p.GetValue(instance) : null,
+                CultureSpecific = IsCultureSpecific(p),
+                Value = instance is not null && !(blankCultureSpecific && IsCultureSpecific(p)) ? p.GetValue(instance) : null,
             });
 
     private static IEnumerable<PropertyInfo> GetContentProperties(Type type)

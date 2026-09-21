@@ -6,7 +6,8 @@ import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import ContentTypeChip from "./ContentTypeChip";
 
 interface ContentSearchListProps {
-  language: string;
+  /// Language used to fetch results; leave undefined to search every item in its master language.
+  language?: string;
   onSelect: (item: ContentSummaryDto) => void;
   excludeId?: number;
 }
