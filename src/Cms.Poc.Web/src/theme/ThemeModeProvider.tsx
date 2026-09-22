@@ -4,6 +4,26 @@ import { CssBaseline, ThemeProvider, createTheme } from "@mui/material";
 type ThemeMode = "light" | "dark";
 
 const STORAGE_KEY = "cms-poc-theme-mode";
+const FROSTED_GLASS_STORAGE_KEY = "cms-poc-frosted-glass";
+const GLASS_OPACITY_STORAGE_KEY = "cms-poc-frosted-glass-opacity";
+const GLASS_OPACITY_DEFAULT = 0.8;
+// Capped below 1 so the slider can never select a fully opaque ("not glass at all")
+// surface - turning frosted glass fully off is what the separate on/off toggle is for.
+const GLASS_OPACITY_MIN = 0.3;
+const GLASS_OPACITY_MAX = 0.95;
+
+function clampGlassOpacity(value: number): number {
+  return Math.min(GLASS_OPACITY_MAX, Math.max(GLASS_OPACITY_MIN, value));
+}
+
+const GLASS_BLUR_STORAGE_KEY = "cms-poc-frosted-glass-blur";
+const GLASS_BLUR_DEFAULT = 16;
+const GLASS_BLUR_MIN = 0;
+const GLASS_BLUR_MAX = 32;
+
+function clampGlassBlur(value: number): number {
+  return Math.min(GLASS_BLUR_MAX, Math.max(GLASS_BLUR_MIN, value));
+}
 
 /// Shadow for fixed chrome (header, side nav) that should read as sitting above the
 /// content, not a resting card - stronger and directional rather than the subtle,
@@ -17,10 +37,11 @@ export function chromeShadow(mode: ThemeMode, direction: "down" | "right" = "dow
 /// Frosted-glass surface (translucent background + blur) for chrome and elevated panels
 /// that sit above the app's gradient backdrop. Exported so CmsLayout's nav drawer (a
 /// separate file) can match it instead of hardcoding its own values.
-export function glassPanel(mode: ThemeMode): { backgroundColor: string; backdropFilter: string; WebkitBackdropFilter: string } {
-  const backdropFilter = "blur(16px) saturate(180%)";
+export function glassPanel(mode: ThemeMode, opacity: number, blurPx: number): { backgroundColor: string; backdropFilter: string; WebkitBackdropFilter: string } {
+  const backdropFilter = `blur(${blurPx}px) saturate(180%)`;
+  const rgb = mode === "light" ? "255,255,255" : "37,37,38";
   return {
-    backgroundColor: mode === "light" ? "rgba(255,255,255,0.72)" : "rgba(37,37,38,0.72)",
+    backgroundColor: `rgba(${rgb},${opacity})`,
     backdropFilter,
     WebkitBackdropFilter: backdropFilter,
   };
@@ -32,9 +53,35 @@ function getInitialMode(): ThemeMode {
   return "dark";
 }
 
+function getInitialFrostedGlass(): boolean {
+  const stored = localStorage.getItem(FROSTED_GLASS_STORAGE_KEY);
+  if (stored === "on" || stored === "off") return stored === "on";
+  return false;
+}
+
+function getInitialGlassOpacity(): number {
+  const stored = Number(localStorage.getItem(GLASS_OPACITY_STORAGE_KEY));
+  return Number.isFinite(stored) && stored > 0 ? clampGlassOpacity(stored) : GLASS_OPACITY_DEFAULT;
+}
+
+function getInitialGlassBlur(): number {
+  const stored = Number(localStorage.getItem(GLASS_BLUR_STORAGE_KEY));
+  return Number.isFinite(stored) && localStorage.getItem(GLASS_BLUR_STORAGE_KEY) !== null
+    ? clampGlassBlur(stored)
+    : GLASS_BLUR_DEFAULT;
+}
+
 interface ThemeModeContextValue {
   mode: ThemeMode;
   toggleMode: () => void;
+  frostedGlass: boolean;
+  toggleFrostedGlass: () => void;
+  glassOpacity: number;
+  setGlassOpacity: (opacity: number) => void;
+  glassOpacityRange: { min: number; max: number };
+  glassBlur: number;
+  setGlassBlur: (blurPx: number) => void;
+  glassBlurRange: { min: number; max: number };
 }
 
 const ThemeModeContext = createContext<ThemeModeContextValue | undefined>(undefined);
@@ -47,6 +94,9 @@ export function useThemeMode() {
 
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
   const [mode, setMode] = useState<ThemeMode>(getInitialMode);
+  const [frostedGlass, setFrostedGlass] = useState<boolean>(getInitialFrostedGlass);
+  const [glassOpacity, setGlassOpacityState] = useState<number>(getInitialGlassOpacity);
+  const [glassBlur, setGlassBlurState] = useState<number>(getInitialGlassBlur);
 
   const toggleMode = () => {
     setMode((prev) => {
@@ -54,6 +104,26 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(STORAGE_KEY, next);
       return next;
     });
+  };
+
+  const toggleFrostedGlass = () => {
+    setFrostedGlass((prev) => {
+      const next = !prev;
+      localStorage.setItem(FROSTED_GLASS_STORAGE_KEY, next ? "on" : "off");
+      return next;
+    });
+  };
+
+  const setGlassOpacity = (opacity: number) => {
+    const clamped = clampGlassOpacity(opacity);
+    localStorage.setItem(GLASS_OPACITY_STORAGE_KEY, String(clamped));
+    setGlassOpacityState(clamped);
+  };
+
+  const setGlassBlur = (blurPx: number) => {
+    const clamped = clampGlassBlur(blurPx);
+    localStorage.setItem(GLASS_BLUR_STORAGE_KEY, String(clamped));
+    setGlassBlurState(clamped);
   };
 
   const theme = useMemo(() => {
@@ -105,12 +175,14 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         },
         MuiCssBaseline: {
           styleOverrides: {
-            body: {
-              backgroundColor: backgroundDefault,
-              backgroundImage: backgroundGradient,
-              backgroundAttachment: "fixed",
-              backgroundRepeat: "no-repeat",
-            },
+            body: frostedGlass
+              ? {
+                  backgroundColor: backgroundDefault,
+                  backgroundImage: backgroundGradient,
+                  backgroundAttachment: "fixed",
+                  backgroundRepeat: "no-repeat",
+                }
+              : { backgroundColor: backgroundDefault },
             // The custom sharp-corners theme mutes MUI's default focus styling, so make
             // keyboard focus explicit rather than relying on browser defaults.
             "*:focus-visible": {
@@ -122,9 +194,10 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         MuiPaper: {
           // Paper underlies nearly every elevated surface (Card, AppBar, Drawer, Menu,
           // Popover, Dialog, Select/Autocomplete dropdowns), so the glass treatment goes
-          // on its root once here rather than being repeated per-component.
+          // on its root once here rather than being repeated per-component. With frosted
+          // glass off, Paper falls back to its normal palette-driven solid background.
           styleOverrides: {
-            root: { backgroundImage: "none", border: "none", ...glassPanel(mode) },
+            root: { backgroundImage: "none", border: "none", ...(frostedGlass ? glassPanel(mode, glassOpacity, glassBlur) : {}) },
             elevation1: { boxShadow: cardShadow },
           },
         },
@@ -137,7 +210,15 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         MuiAppBar: {
           defaultProps: { elevation: 0, color: "transparent" },
           styleOverrides: {
-            root: { boxShadow: chromeShadow(mode, "down"), backgroundImage: "none" },
+            // color="transparent" makes MUI apply its own background-color: transparent
+            // class, which otherwise wins over MuiPaper's root background and leaves the
+            // AppBar not matching the Drawer (also a Paper) right below it. Setting it
+            // explicitly here instead of relying on inheritance fixes that.
+            root: {
+              boxShadow: chromeShadow(mode, "down"),
+              backgroundImage: "none",
+              ...(frostedGlass ? glassPanel(mode, glassOpacity, glassBlur) : { backgroundColor: backgroundPaper }),
+            },
           },
         },
         MuiDrawer: {
@@ -182,10 +263,23 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         },
       },
     });
-  }, [mode]);
+  }, [mode, frostedGlass, glassOpacity, glassBlur]);
 
   return (
-    <ThemeModeContext.Provider value={{ mode, toggleMode }}>
+    <ThemeModeContext.Provider
+      value={{
+        mode,
+        toggleMode,
+        frostedGlass,
+        toggleFrostedGlass,
+        glassOpacity,
+        setGlassOpacity,
+        glassOpacityRange: { min: GLASS_OPACITY_MIN, max: GLASS_OPACITY_MAX },
+        glassBlur,
+        setGlassBlur,
+        glassBlurRange: { min: GLASS_BLUR_MIN, max: GLASS_BLUR_MAX },
+      }}
+    >
       <ThemeProvider theme={theme}>
         <CssBaseline />
         {children}
