@@ -70,20 +70,20 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// </summary>
     IReadOnlyList<Content> QueryHistory(CmsDbContext<TContentType> db, int id, string? language);
 
-    /// <summary>The languages that have a translation in each given item's latest version.</summary>
+    /// <summary>The languages that have a branch (the master language, or at least one translated version) for each given item.</summary>
     IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
-    /// <summary>The version number currently live for this root, or <c>null</c> if none is.</summary>
-    int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId);
+    /// <summary>The version number currently live for this root in <paramref name="language"/>, or <c>null</c> if none is.</summary>
+    int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId, string language);
 
-    /// <summary>Whether a version with this number exists for this root.</summary>
-    bool VersionExists(CmsDbContext<TContentType> db, int rootId, int versionNumber);
+    /// <summary>Whether a version with this number exists for this root in <paramref name="language"/>.</summary>
+    bool VersionExists(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber);
 
     /// <summary>Sets (or replaces) the publish window for a specific version.</summary>
-    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
+    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
 
-    /// <summary>Stops whichever version is currently live for this root. Returns <c>false</c> (no-op) if nothing is live.</summary>
-    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt, string? userId);
+    /// <summary>Stops whichever version is currently live for this root in <paramref name="language"/>. Returns <c>false</c> (no-op) if nothing is live.</summary>
+    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, string language, DateTime stopAt, string? userId);
 
     /// <summary>Clears every reference to <paramref name="userId"/> on this type's versions.</summary>
     void RemoveUserReferences(CmsDbContext<TContentType> db, string userId);
@@ -150,17 +150,17 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
     public IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids)
         => _store.QueryLanguages(db, ids);
 
-    public int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId)
-        => _store.GetLivePublishedVersionNumber(db, rootId);
+    public int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId, string language)
+        => _store.GetLivePublishedVersionNumber(db, rootId, language);
 
-    public bool VersionExists(CmsDbContext<TContentType> db, int rootId, int versionNumber)
-        => _store.VersionExists(db, rootId, versionNumber);
+    public bool VersionExists(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber)
+        => _store.VersionExists(db, rootId, language, versionNumber);
 
-    public void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId)
-        => _store.SetPublishSchedule(db, rootId, versionNumber, startPublish, stopPublish, userId);
+    public void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId)
+        => _store.SetPublishSchedule(db, rootId, language, versionNumber, startPublish, stopPublish, userId);
 
-    public bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt, string? userId)
-        => _store.StopActivePublish(db, rootId, stopAt, userId);
+    public bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, string language, DateTime stopAt, string? userId)
+        => _store.StopActivePublish(db, rootId, language, stopAt, userId);
 
     public void RemoveUserReferences(CmsDbContext<TContentType> db, string userId)
         => _store.RemoveUserReferences(db, userId);

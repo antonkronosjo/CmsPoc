@@ -216,7 +216,7 @@ function EditPanel({
   const { data: schema, isLoading } = useQuery({ queryKey, queryFn: () => api.getUpdateSchema(id, language, version) });
   const [draft, setDraft] = useState<UpdateContentSchema | undefined>(undefined);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const publishActions = usePublishActions({ id });
+  const publishActions = usePublishActions({ id, language });
   const active = draft ?? schema;
   const isMaster = language === masterLanguage;
   const hasChanges = hasEditableChanges(draft, schema, isMaster);
@@ -256,13 +256,13 @@ function EditPanel({
             />
             {!isNewLanguageBranch &&
               (isLive ? (
-                <Tooltip title="Unpublishes the item in all languages">
+                <Tooltip title="Unpublishes this language only">
                   <Button variant="outlined" color="warning" onClick={() => publishActions.unpublish()}>
                     Unpublish
                   </Button>
                 </Tooltip>
               ) : (
-                <Tooltip title={hasChanges ? "You have pending changes, save before publishing" : "Publishes this version in all languages"}>
+                <Tooltip title={hasChanges ? "You have pending changes, save before publishing" : "Publishes this version in this language only"}>
                   <span>
                     <Button
                       variant="contained"
@@ -348,8 +348,8 @@ function EditPanel({
               const updated = await api.updateContent(id, active);
               setDraft(undefined);
               queryClient.setQueryData(["update-schema", id, language, undefined], updated);
-              // Every save is a new version of the whole item, so the other languages' tabs and the
-              // list of translated languages are stale too.
+              // A save creates a new version in this language only, but a first save adds a language, so the
+              // other tabs' list of languages is stale.
               queryClient.invalidateQueries({ queryKey: ["update-schema", id], predicate: (q) => q.queryKey[2] !== language });
               queryClient.invalidateQueries({ queryKey: ["content-summary", id] });
               queryClient.invalidateQueries({ queryKey: ["content-history", id] });

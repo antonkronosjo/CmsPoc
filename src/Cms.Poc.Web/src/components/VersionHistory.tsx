@@ -23,7 +23,7 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
     queryFn: () => api.getHistory(id, language),
   });
 
-  const publishActions = usePublishActions({ id });
+  const publishActions = usePublishActions({ id, language });
 
   if (history.length === 0) {
     return (

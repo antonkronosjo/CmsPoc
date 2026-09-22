@@ -11,7 +11,7 @@ namespace Cms.Framework.Infrastructure.Editing;
 /// </summary>
 public interface IContentPublishEventHandler
 {
-    void OnPublished(int id, int versionNumber, DateTime startPublish, DateTime? stopPublish);
+    void OnPublished(int id, string language, int versionNumber, DateTime startPublish, DateTime? stopPublish);
 
-    void OnUnpublished(int id, int versionNumber);
+    void OnUnpublished(int id, string language, int versionNumber);
 }

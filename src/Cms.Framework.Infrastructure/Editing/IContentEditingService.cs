@@ -7,7 +7,7 @@ namespace Cms.Framework.Infrastructure.Editing;
 /// nothing about any concrete content type at compile time - resolves them
 /// by name (<see cref="IContentTypeMetadata{TContentType}.ContentTypeKey"/>) via
 /// reflection over each type's <see cref="ContentPropertyAttribute"/>-decorated
-/// properties. Everything below this service (root/version/translation
+/// properties. Everything below this service (root/version
 /// tables, versioning) is still handled by <see cref="IContentRepository"/>
 /// and the generated <see cref="IContentTypeStore{T, TContentType}"/> per type - this
 /// service only adds the schema/reflection layer needed to create and
@@ -51,11 +51,11 @@ public interface IContentEditingService<TContentType>
     /// <summary>Version history in <paramref name="language"/> (<c>null</c> = the item's master language).</summary>
     List<ContentSummaryDto<TContentType>> GetHistory(int id, string? language);
 
-    /// <summary>Publishes a specific version, replacing whatever was previously live once its window is reached.</summary>
-    void Publish(int id, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
+    /// <summary>Publishes a specific version of one language branch, replacing whatever was previously live in that language once its window is reached. Other languages are unaffected.</summary>
+    void Publish(int id, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
 
-    /// <summary>Stops whichever version is currently live for this content item. No-op if none is.</summary>
-    void Unpublish(int id);
+    /// <summary>Stops whichever version is currently live in <paramref name="language"/> for this content item. No-op if none is.</summary>
+    void Unpublish(int id, string language);
 
     /// <summary>
     /// GDPR unlinking: clears every stored reference to this user id across all

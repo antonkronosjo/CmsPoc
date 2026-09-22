@@ -4,7 +4,7 @@ namespace Cms.Framework.Abstractions;
 /// Base class for every developer-defined content type. A developer only ever
 /// derives from this class and adds flat properties (optionally marked
 /// <see cref="CultureSpecificAttribute"/>) - everything else (persistence
-/// entities, EF configuration, versioning, translations) is generated.
+/// entities, EF configuration, per-language versioning, translations) is generated.
 /// </summary>
 public abstract class Content
 {
@@ -20,7 +20,7 @@ public abstract class Content
     /// <summary>
     /// The language this in-memory projection reflects. Populated by the
     /// repository whenever it materializes a flat object, and used by
-    /// <c>Update</c> to know which translation row is being replaced.
+    /// <c>Update</c> to know which language branch a new version belongs to.
     /// </summary>
     public string Language { get; set; } = string.Empty;
 

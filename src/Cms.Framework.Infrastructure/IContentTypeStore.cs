@@ -35,24 +35,24 @@ public interface IContentTypeStore<T, TContentType>
     /// </summary>
     IReadOnlyList<T> QueryHistory(CmsDbContext<TContentType> db, int id, string? language);
 
-    /// <summary>The languages that have a translation in each given item's latest version.</summary>
+    /// <summary>The languages that have a branch (the master language, or at least one translated version) for each given item.</summary>
     IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
-    /// <summary>The version number currently live for this root, or <c>null</c> if none is.</summary>
-    int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId);
+    /// <summary>The version number currently live for this root's branch in <paramref name="language"/>, or <c>null</c> if none is.</summary>
+    int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId, string language);
 
-    /// <summary>Whether a version with this number exists for this root.</summary>
-    bool VersionExists(CmsDbContext<TContentType> db, int rootId, int versionNumber);
+    /// <summary>Whether a version with this number exists for this root in <paramref name="language"/>.</summary>
+    bool VersionExists(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber);
 
     /// <summary>Sets (or replaces) the publish window for a specific version, recording <paramref name="userId"/> as <see cref="Content.PublishedBy"/>.</summary>
-    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
+    void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
 
     /// <summary>
-    /// Stops whichever version is currently live for this root by setting
+    /// Stops whichever version is currently live for this root in <paramref name="language"/> by setting
     /// its <see cref="Content.StopPublish"/> to <paramref name="stopAt"/>.
     /// Returns <c>false</c> (no-op) if nothing is currently live.
     /// </summary>
-    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, DateTime stopAt, string? userId);
+    bool StopActivePublish(CmsDbContext<TContentType> db, int rootId, string language, DateTime stopAt, string? userId);
 
     /// <summary>
     /// Clears <see cref="Content.CreatedBy"/> and <see cref="Content.PublishedBy"/> on every

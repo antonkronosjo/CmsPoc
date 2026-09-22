@@ -79,13 +79,13 @@ public static class CmsEndpointRouteBuilderExtensions
 
         group.MapPost("/{id:int}/publish", (IContentEditingService<TContentType> editing, int id, PublishContentRequest request) =>
         {
-            editing.Publish(id, request.VersionNumber, request.StartPublish, request.StopPublish);
+            editing.Publish(id, request.Language, request.VersionNumber, request.StartPublish, request.StopPublish);
             return Results.NoContent();
         });
 
-        group.MapPost("/{id:int}/unpublish", (IContentEditingService<TContentType> editing, int id) =>
+        group.MapPost("/{id:int}/unpublish", (IContentEditingService<TContentType> editing, int id, string language) =>
         {
-            editing.Unpublish(id);
+            editing.Unpublish(id, language);
             return Results.NoContent();
         });
 

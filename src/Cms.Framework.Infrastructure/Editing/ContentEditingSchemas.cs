@@ -40,7 +40,7 @@ public sealed class UpdateContentMetadata<TContentType>
     /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
     public int? LivePublishedVersionNumber { get; set; }
 
-    /// <summary>Languages that have a translation in the item's latest version.</summary>
+    /// <summary>Languages that have a branch (at least one version) for the item.</summary>
     public List<string> Languages { get; set; } = new();
 }
 
@@ -79,7 +79,7 @@ public sealed class ContentSummaryDto<TContentType>
     /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
     public int? LivePublishedVersionNumber { get; set; }
 
-    /// <summary>Languages that have a translation in the item's latest version. Filled by search and summary lookups, empty for history rows.</summary>
+    /// <summary>Languages that have a branch (at least one version) for the item. Filled by search and summary lookups, empty for history rows.</summary>
     public List<string> Languages { get; set; } = new();
 
     /// <summary>Who created this version, or <c>null</c> if unknown or user tracking is off.</summary>
@@ -103,9 +103,12 @@ public sealed class UserRefDto
     public bool Removed { get; set; }
 }
 
-/// <summary>Request body for publishing a specific version.</summary>
+/// <summary>Request body for publishing a specific version of one language branch.</summary>
 public sealed class PublishContentRequest
 {
+    /// <summary>The language branch whose version is published; other languages are unaffected.</summary>
+    public required string Language { get; set; }
+
     public required int VersionNumber { get; set; }
 
     /// <summary>When the version should start being live. <c>null</c> means immediately.</summary>

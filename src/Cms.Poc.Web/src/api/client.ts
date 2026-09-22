@@ -61,7 +61,7 @@ export interface UpdateContentMetadata {
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
   livePublishedVersionNumber: number | null;
-  /// Languages that have a translation in the latest version.
+  /// Languages that have a version branch.
   languages: string[];
 }
 
@@ -93,7 +93,7 @@ export interface ContentSummaryDto {
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
   livePublishedVersionNumber: number | null;
-  /// Languages that have a translation in the latest version (empty for version-history rows).
+  /// Languages that have a version branch (empty for version-history rows).
   languages: string[];
   /// Null when user tracking is off or the reference was removed.
   createdBy: UserRefDto | null;
@@ -114,6 +114,7 @@ export interface SearchContentOptions {
 }
 
 export interface PublishContentRequest {
+  language: string;
   versionNumber: number;
   startPublish?: string | null;
   stopPublish?: string | null;
@@ -208,6 +209,6 @@ export const api = {
       body: JSON.stringify(request),
     }).then(ensureOk),
 
-  unpublishContent: (id: number) =>
-    fetch(`${API_BASE}/api/content/${id}/unpublish`, { method: "POST" }).then(ensureOk),
+  unpublishContent: (id: number, language: string) =>
+    fetch(`${API_BASE}/api/content/${id}/unpublish${query({ language })}`, { method: "POST" }).then(ensureOk),
 };

@@ -15,7 +15,7 @@ public sealed class PublishingTests : IDisposable
 
         Assert.Empty(_fixture.Repository.Query<Content>("en", publishedOnly: true).Where(x => x.Id == created.Id).ToList());
 
-        _fixture.Editing.Publish(created.Id, created.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", created.VersionNumber, startPublish: null, stopPublish: null);
 
         var published = _fixture.Repository.Query<Content>("en", publishedOnly: true).Where(x => x.Id == created.Id).First();
         Assert.Equal(created.VersionNumber, published.VersionNumber);
@@ -29,8 +29,8 @@ public sealed class PublishingTests : IDisposable
         var v2 = _fixture.Repository.Update(created);
 
         var now = DateTime.UtcNow;
-        _fixture.Editing.Publish(created.Id, 1, startPublish: now.AddMinutes(-10), stopPublish: null);
-        _fixture.Editing.Publish(created.Id, v2.VersionNumber, startPublish: now.AddMinutes(-5), stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: now.AddMinutes(-10), stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", v2.VersionNumber, startPublish: now.AddMinutes(-5), stopPublish: null);
 
         var live = _fixture.Repository.Query<Content>("en", publishedOnly: true).Where(x => x.Id == created.Id).First();
         Assert.Equal(v2.VersionNumber, live.VersionNumber);
@@ -41,7 +41,7 @@ public sealed class PublishingTests : IDisposable
     {
         var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
 
-        _fixture.Editing.Publish(created.Id, created.VersionNumber, startPublish: DateTime.UtcNow.AddHours(1), stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", created.VersionNumber, startPublish: DateTime.UtcNow.AddHours(1), stopPublish: null);
 
         Assert.Empty(_fixture.Repository.Query<Content>("en", publishedOnly: true).Where(x => x.Id == created.Id).ToList());
     }
@@ -52,7 +52,7 @@ public sealed class PublishingTests : IDisposable
         var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
         var now = DateTime.UtcNow;
 
-        _fixture.Editing.Publish(created.Id, created.VersionNumber, startPublish: now.AddMinutes(-10), stopPublish: now.AddMinutes(-5));
+        _fixture.Editing.Publish(created.Id, "en", created.VersionNumber, startPublish: now.AddMinutes(-10), stopPublish: now.AddMinutes(-5));
 
         Assert.Empty(_fixture.Repository.Query<Content>("en", publishedOnly: true).Where(x => x.Id == created.Id).ToList());
     }
@@ -64,9 +64,9 @@ public sealed class PublishingTests : IDisposable
         created.RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent);
         var v2 = _fixture.Repository.Update(created);
 
-        _fixture.Editing.Publish(created.Id, 1, startPublish: null, stopPublish: null);
-        _fixture.Editing.Publish(created.Id, v2.VersionNumber, startPublish: null, stopPublish: null);
-        _fixture.Editing.Unpublish(created.Id);
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", v2.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Unpublish(created.Id, "en");
 
         Assert.Empty(_fixture.Repository.Query<Content>("en", publishedOnly: true).Where(x => x.Id == created.Id).ToList());
     }
@@ -75,9 +75,9 @@ public sealed class PublishingTests : IDisposable
     public void Unpublish_stops_whichever_version_is_currently_live()
     {
         var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
-        _fixture.Editing.Publish(created.Id, created.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", created.VersionNumber, startPublish: null, stopPublish: null);
 
-        _fixture.Editing.Unpublish(created.Id);
+        _fixture.Editing.Unpublish(created.Id, "en");
 
         var summary = _fixture.Editing.GetSummary(created.Id, "en");
         Assert.Null(summary!.LivePublishedVersionNumber);
@@ -88,7 +88,7 @@ public sealed class PublishingTests : IDisposable
     {
         var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
 
-        _fixture.Editing.Unpublish(created.Id);
+        _fixture.Editing.Unpublish(created.Id, "en");
 
         var summary = _fixture.Editing.GetSummary(created.Id, "en");
         Assert.Null(summary!.LivePublishedVersionNumber);
@@ -99,7 +99,7 @@ public sealed class PublishingTests : IDisposable
     {
         var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
 
-        Assert.Throws<KeyNotFoundException>(() => _fixture.Editing.Publish(created.Id, versionNumber: 99, startPublish: null, stopPublish: null));
+        Assert.Throws<KeyNotFoundException>(() => _fixture.Editing.Publish(created.Id, "en", versionNumber: 99, startPublish: null, stopPublish: null));
     }
 
     [Fact]
@@ -109,8 +109,8 @@ public sealed class PublishingTests : IDisposable
         var @event = _fixture.Repository.Create(new EventContent { Name = "E", Title = "T", Description = "D", StartDate = DateTime.UtcNow }, "en");
         var unpublishedNews = _fixture.Repository.Create(new NewsContent { Name = "N2", Heading = "H2", Body = "B2", RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent) }, "en");
 
-        _fixture.Editing.Publish(news.Id, news.VersionNumber, startPublish: null, stopPublish: null);
-        _fixture.Editing.Publish(@event.Id, @event.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(news.Id, "en", news.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(@event.Id, "en", @event.VersionNumber, startPublish: null, stopPublish: null);
 
         var results = _fixture.Repository.Query<Content>("en", publishedOnly: true).ToList();
 
@@ -134,7 +134,7 @@ public sealed class PublishingTests : IDisposable
         var draftSearch = _fixture.Editing.Search(query: null, "en", contentTypeKey: null, page: 1, pageSize: 20);
         Assert.Equal(new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent), draftSearch.Items.Single(i => i.Id == created.Id).Properties["RelatedContent"]);
 
-        _fixture.Editing.Publish(created.Id, 1, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: null, stopPublish: null);
 
         var publishedSummary = _fixture.Editing.GetSummary(created.Id, "en");
         Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), publishedSummary!.Properties["RelatedContent"]);

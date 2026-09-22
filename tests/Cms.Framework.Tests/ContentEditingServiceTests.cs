@@ -110,9 +110,9 @@ public sealed class ContentEditingServiceTests : IDisposable
         swedishSchema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
         var updated = _fixture.Editing.Update(swedishSchema);
 
-        Assert.Equal(2, updated.VersionNumber);
+        Assert.Equal(1, updated.VersionNumber); // a new language branch starts at its own version 1
 
-        // The English translation from before the new branch was added is untouched.
+        // The English branch is untouched.
         var english = _fixture.Editing.GetUpdateSchema(created.Id, "en");
         Assert.Equal("Hello", english.Properties["Heading"].Value);
     }

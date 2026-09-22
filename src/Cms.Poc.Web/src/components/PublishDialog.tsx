@@ -13,10 +13,11 @@ interface PublishTarget {
 }
 
 interface UsePublishActionsOptions {
+  language: string;
   id: number;
 }
 
-export function usePublishActions({ id }: UsePublishActionsOptions) {
+export function usePublishActions({ id, language }: UsePublishActionsOptions) {
   const queryClient = useQueryClient();
   const [publishTarget, setPublishTarget] = useState<PublishTarget | undefined>(undefined);
   const [startPublish, setStartPublish] = useState<string | null>(null);
@@ -24,7 +25,7 @@ export function usePublishActions({ id }: UsePublishActionsOptions) {
   const { confirm, confirmDialogProps } = useConfirmDialog();
 
   async function invalidateAfterPublishChange() {
-    // Publishing applies to the version as a whole, so every language's view of it goes stale.
+    // Publish state is per language branch, so only this language's views go stale.
     await queryClient.invalidateQueries({ queryKey: ["update-schema", id] });
     await queryClient.invalidateQueries({ queryKey: ["content-history", id] });
     await queryClient.invalidateQueries({ queryKey: ["content-search"] });
@@ -52,7 +53,7 @@ export function usePublishActions({ id }: UsePublishActionsOptions) {
       });
       if (!ok) return;
     }
-    await api.publishContent(id, { versionNumber, startPublish, stopPublish });
+    await api.publishContent(id, { language, versionNumber, startPublish, stopPublish });
     setPublishTarget(undefined);
     await invalidateAfterPublishChange();
   }
@@ -65,7 +66,7 @@ export function usePublishActions({ id }: UsePublishActionsOptions) {
       confirmColor: "warning",
     });
     if (!ok) return;
-    await api.unpublishContent(id);
+    await api.unpublishContent(id, language);
     await invalidateAfterPublishChange();
   }
 

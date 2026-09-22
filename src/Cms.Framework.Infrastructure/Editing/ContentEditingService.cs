@@ -71,26 +71,25 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             var historical = metadata.QueryHistory(_db, id, language).SingleOrDefault(x => x.VersionNumber == version.Value)
                 ?? throw new KeyNotFoundException($"Version '{version.Value}' of content '{id}' does not exist in language '{language}'.");
 
-            return ToUpdateSchema(historical, metadata, metadata.GetLivePublishedVersionNumber(_db, id));
+            return ToUpdateSchema(historical, metadata, metadata.GetLivePublishedVersionNumber(_db, id, language));
         }
 
         var current = _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
         if (current is not null)
         {
             var metadata = ResolveContentTypeByClrType(current.GetType());
-            return ToUpdateSchema(current, metadata, metadata.GetLivePublishedVersionNumber(_db, id));
+            return ToUpdateSchema(current, metadata, metadata.GetLivePublishedVersionNumber(_db, id, language));
         }
-
-        // The content exists but has no translation in this language yet -
-        // a new language branch. Start from the master-language projection so
-        // the shared values are shown as they are; the culture-specific
-        // values start blank. Update copies every other language's data
+        // The content exists but this language has no branch yet. Start from the
+        // master-language projection so the shared values are shown as they are;
+        // the culture-specific values start blank. The first save creates the
+        // branch at version 1, with its own history and publish state.
         // forward unchanged the first time this branch is saved.
         var master = _contentRepository.Query<Content>().Where(x => x.Id == id).FirstOrDefault()
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var masterMetadata = ResolveContentTypeByClrType(master.GetType());
 
-        var schema = ToUpdateSchema(master, masterMetadata, masterMetadata.GetLivePublishedVersionNumber(_db, id), blankCultureSpecific: true);
+        var schema = ToUpdateSchema(master, masterMetadata, livePublishedVersionNumber: null, blankCultureSpecific: true);
         schema.Metadata.Language = language;
         schema.Metadata.VersionNumber = 0;
         schema.Metadata.StartPublish = null;
@@ -186,7 +185,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         if (content is null) return null;
 
         var metadata = ResolveContentTypeByClrType(content.GetType());
-        var summary = ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id));
+        var summary = ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id, content.Language));
         AttachLanguages([summary]);
         ResolveUsers([summary]);
         return summary;
@@ -208,7 +207,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             results = results.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
 
         var summaries = results
-            .Select(content => ToSummary(content, ResolveContentTypeByClrType(content.GetType()).GetLivePublishedVersionNumber(_db, content.Id)))
+            .Select(content => ToSummary(content, ResolveContentTypeByClrType(content.GetType()).GetLivePublishedVersionNumber(_db, content.Id, content.Language)))
             .ToList();
 
         if (contentTypeKey is { } typeFilter)
@@ -244,47 +243,48 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
-        var livePublishedVersionNumber = metadata.GetLivePublishedVersionNumber(_db, id);
+        var branch = language ?? root.MasterLanguage;
+        var livePublishedVersionNumber = metadata.GetLivePublishedVersionNumber(_db, id, branch);
 
         var history = metadata.QueryHistory(_db, id, language).Select(content => ToSummary(content, livePublishedVersionNumber)).ToList();
         ResolveUsers(history);
         return history;
     }
 
-    public void Publish(int id, int versionNumber, DateTime? startPublish, DateTime? stopPublish)
+    public void Publish(int id, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish)
     {
         var userId = Authorize(CmsRole.Admin);
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
-        if (!metadata.VersionExists(_db, id, versionNumber))
-            throw new KeyNotFoundException($"Version '{versionNumber}' of content '{id}' does not exist.");
+        if (!metadata.VersionExists(_db, id, language, versionNumber))
+            throw new KeyNotFoundException($"Version '{versionNumber}' of content '{id}' does not exist in language '{language}'.");
 
         var start = startPublish ?? DateTime.UtcNow;
 
         // Whatever was live before this takes effect must stop exactly when
         // this version's window begins - otherwise it could resurface as
         // "live" again later (e.g. after this version is unpublished).
-        metadata.StopActivePublish(_db, id, start, userId);
-        metadata.SetPublishSchedule(_db, id, versionNumber, start, stopPublish, userId);
+        metadata.StopActivePublish(_db, id, language, start, userId);
+        metadata.SetPublishSchedule(_db, id, language, versionNumber, start, stopPublish, userId);
 
         foreach (var handler in _publishEventHandlers)
-            handler.OnPublished(id, versionNumber, start, stopPublish);
+            handler.OnPublished(id, language, versionNumber, start, stopPublish);
     }
 
-    public void Unpublish(int id)
+    public void Unpublish(int id, string language)
     {
         var userId = Authorize(CmsRole.Admin);
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
-        var live = metadata.GetLivePublishedVersionNumber(_db, id);
+        var live = metadata.GetLivePublishedVersionNumber(_db, id, language);
         if (live is null) return;
 
-        metadata.StopActivePublish(_db, id, DateTime.UtcNow, userId);
+        metadata.StopActivePublish(_db, id, language, DateTime.UtcNow, userId);
 
         foreach (var handler in _publishEventHandlers)
-            handler.OnUnpublished(id, live.Value);
+            handler.OnUnpublished(id, language, live.Value);
     }
 
     public void RemoveUserReferences(string userId)

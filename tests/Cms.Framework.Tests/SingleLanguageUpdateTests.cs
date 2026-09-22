@@ -3,13 +3,13 @@ using Cms.Poc.Domain;
 
 namespace Cms.Framework.Tests;
 
-/// <summary>Requirement #3: updating one language must not disturb the others.</summary>
+/// <summary>Each language is its own branch: updating one must not create versions in, or otherwise disturb, the others.</summary>
 public sealed class SingleLanguageUpdateTests : IDisposable
 {
     private readonly ContentTestFixture _fixture = new();
 
     [Fact]
-    public void Updating_one_language_leaves_other_languages_translations_intact_in_the_new_version()
+    public void Updating_one_language_leaves_other_languages_branches_untouched()
     {
         var created = _fixture.Repository.Create(new NewsContent
         {
@@ -39,10 +39,10 @@ public sealed class SingleLanguageUpdateTests : IDisposable
         var currentEnglish = _fixture.Repository.Query<NewsContent>("en").Where(x => x.Id == created.Id).First();
         var currentSwedish = _fixture.Repository.Query<NewsContent>("sv").Where(x => x.Id == created.Id).First();
 
-        Assert.Equal(3, currentEnglish.VersionNumber);
+        Assert.Equal(2, currentEnglish.VersionNumber);
         Assert.Equal("Hello (updated)", currentEnglish.Heading);
 
-        Assert.Equal(3, currentSwedish.VersionNumber); // same version row set, Swedish copied forward unchanged
+        Assert.Equal(1, currentSwedish.VersionNumber); // Swedish has its own numbering and was not touched
         Assert.Equal("Hej", currentSwedish.Heading);
         Assert.Equal("Varlden", currentSwedish.Body);
     }

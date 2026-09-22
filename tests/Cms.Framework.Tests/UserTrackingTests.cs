@@ -39,7 +39,7 @@ public sealed class UserTrackingTests : IDisposable
         using var untracked = new ContentTestFixture();
 
         var created = untracked.Repository.Create(NewNews(), "en");
-        untracked.Editing.Publish(created.Id, created.VersionNumber, startPublish: null, stopPublish: null);
+        untracked.Editing.Publish(created.Id, "en", created.VersionNumber, startPublish: null, stopPublish: null);
 
         var version = untracked.Repository.QueryHistory<NewsContent>(created.Id, "en").Single();
         Assert.Null(version.CreatedBy);
@@ -67,7 +67,7 @@ public sealed class UserTrackingTests : IDisposable
         _users.SignIn("alice", CmsRole.Admin);
         var created = _fixture.Repository.Create(NewNews(), "en");
 
-        _fixture.Editing.Publish(created.Id, created.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", created.VersionNumber, startPublish: null, stopPublish: null);
 
         var published = _fixture.Repository.Query<NewsContent>("en", publishedOnly: true).Where(x => x.Id == created.Id).First();
         Assert.Equal("alice", published.PublishedBy);
@@ -80,8 +80,8 @@ public sealed class UserTrackingTests : IDisposable
 
         var created = _fixture.Editing.Create(NewNewsRequest());
 
-        Assert.Throws<CmsForbiddenException>(() => _fixture.Editing.Publish(created.Id, created.VersionNumber, null, null));
-        Assert.Throws<CmsForbiddenException>(() => _fixture.Editing.Unpublish(created.Id));
+        Assert.Throws<CmsForbiddenException>(() => _fixture.Editing.Publish(created.Id, "en", created.VersionNumber, null, null));
+        Assert.Throws<CmsForbiddenException>(() => _fixture.Editing.Unpublish(created.Id, "en"));
     }
 
     [Fact]
@@ -90,7 +90,7 @@ public sealed class UserTrackingTests : IDisposable
         _users.SignIn("alice", CmsRole.Admin);
 
         var created = _fixture.Editing.Create(NewNewsRequest());
-        _fixture.Editing.Publish(created.Id, created.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", created.VersionNumber, startPublish: null, stopPublish: null);
 
         Assert.NotEmpty(_fixture.Repository.Query<Content>("en", publishedOnly: true).Where(x => x.Id == created.Id).ToList());
     }
@@ -138,7 +138,7 @@ public sealed class UserTrackingTests : IDisposable
             Name = "S", Heading = "H", Body = "B", SpecialBody = "SB",
             RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent),
         }, "en");
-        _fixture.Editing.Publish(news.Id, news.VersionNumber, startPublish: null, stopPublish: null);
+        _fixture.Editing.Publish(news.Id, "en", news.VersionNumber, startPublish: null, stopPublish: null);
 
         _users.SignIn("bob", CmsRole.Admin);
         _fixture.Editing.RemoveUserReferences("alice");
