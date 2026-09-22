@@ -73,6 +73,12 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// <summary>The languages that have a branch (the master language, or at least one translated version) for each given item.</summary>
     IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
+    /// <summary>Each given item's publish state per language branch - one <see cref="LanguageStatusDto"/> per language returned by <see cref="QueryLanguages"/>.</summary>
+    IReadOnlyDictionary<int, IReadOnlyList<LanguageStatusDto>> QueryLanguageStatuses(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
+
+    /// <summary>The most recent <see cref="Content.Created"/> across every version, in every language branch, of each given item.</summary>
+    IReadOnlyDictionary<int, DateTime> QueryLastModified(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
+
     /// <summary>The version number currently live for this root in <paramref name="language"/>, or <c>null</c> if none is.</summary>
     int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId, string language);
 
@@ -149,6 +155,12 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
 
     public IReadOnlyDictionary<int, IReadOnlyList<string>> QueryLanguages(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids)
         => _store.QueryLanguages(db, ids);
+
+    public IReadOnlyDictionary<int, IReadOnlyList<LanguageStatusDto>> QueryLanguageStatuses(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids)
+        => _store.QueryLanguageStatuses(db, ids);
+
+    public IReadOnlyDictionary<int, DateTime> QueryLastModified(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids)
+        => _store.QueryLastModified(db, ids);
 
     public int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId, string language)
         => _store.GetLivePublishedVersionNumber(db, rootId, language);

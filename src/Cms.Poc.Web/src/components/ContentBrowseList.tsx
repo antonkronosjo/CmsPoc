@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import {
   Box,
@@ -16,8 +17,9 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import dayjs from "dayjs";
+import dayjs from "../lib/dayjs";
 import { api, type ContentSummaryDto } from "../api/client";
+import { getBranchPublishStatus } from "../lib/publishStatus";
 import { useContentTypes } from "../hooks/useContentTypes";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import ContentTypeChip from "./ContentTypeChip";
@@ -105,12 +107,14 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
         <Table size="small">
           <TableHead>
             <TableRow>
+              {language === undefined && <TableCell>Id</TableCell>}
               <TableCell>Name</TableCell>
-              <TableCell>Type</TableCell>
+              <TableCell>Content Type</TableCell>
               {language === undefined && <TableCell>Languages</TableCell>}
-              <TableCell>Version</TableCell>
+              {language !== undefined && <TableCell>Version</TableCell>}
               <TableCell>Created</TableCell>
-              {!publishedOnly && <TableCell>Status</TableCell>}
+              {language === undefined && <TableCell>Last Modified</TableCell>}
+              {language !== undefined && !publishedOnly && <TableCell>Status</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -121,29 +125,56 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                 onClick={onSelect ? () => onSelect(item) : undefined}
                 sx={onSelect ? { cursor: "pointer" } : undefined}
               >
+                {language === undefined && <TableCell>{item.id}</TableCell>}
                 <TableCell>{item.name || <em>(untitled)</em>}</TableCell>
                 <TableCell>
                   <ContentTypeChip contentTypeKey={item.contentTypeKey} />
                 </TableCell>
                 {language === undefined && (
                   <TableCell>
-                    <Stack direction="row" spacing={0.5}>
-                      {item.languages.map((l) => (
-                        <Chip
-                          key={l}
-                          size="small"
-                          label={l}
-                          variant={l === item.masterLanguage ? "filled" : "outlined"}
-                          color={l === item.masterLanguage ? "primary" : "default"}
-                          title={l === item.masterLanguage ? "Master language" : undefined}
-                        />
-                      ))}
-                    </Stack>
+                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
+                      {(() => {
+                        const others = item.languages.filter((l) => l !== item.masterLanguage).sort((a, b) => a.localeCompare(b));
+                        const ordered = item.languages.includes(item.masterLanguage) ? [item.masterLanguage, ...others] : others;
+                        return ordered.map((l, index) => {
+                          const languageStatus = item.languageStatuses.find((s) => s.language === l);
+                          const status = getBranchPublishStatus(
+                            languageStatus ?? { startPublish: null, livePublishedVersionNumber: null, hasBeenPublished: false },
+                          );
+                          return (
+                            <Box key={l} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                              {index === 1 && (
+                                <Box component="span" sx={{ color: "text.disabled" }}>
+                                  ·
+                                </Box>
+                              )}
+                              <Chip
+                                component={RouterLink}
+                                to={`/cms/edit/${item.id}?lang=${l}`}
+                                clickable={false}
+                                size="small"
+                                label={l}
+                                color={status.color}
+                                title={`${status.label}${l === item.masterLanguage ? " · Master language" : ""}`}
+                              />
+                            </Box>
+                          );
+                        });
+                      })()}
+                    </Box>
                   </TableCell>
                 )}
-                <TableCell>v{item.versionNumber}</TableCell>
-                <TableCell>{dayjs(item.created).format("YYYY-MM-DD HH:mm")}</TableCell>
-                {!publishedOnly && (
+                {language !== undefined && <TableCell>v{item.versionNumber}</TableCell>}
+                <TableCell>
+                  {dayjs
+                    .utc(language === undefined ? item.rootCreated : item.created)
+                    .local()
+                    .format("YYYY-MM-DD HH:mm")}
+                </TableCell>
+                {language === undefined && (
+                  <TableCell>{dayjs.utc(item.lastModified).local().format("YYYY-MM-DD HH:mm")}</TableCell>
+                )}
+                {language !== undefined && !publishedOnly && (
                   <TableCell>
                     {item.livePublishedVersionNumber != null ? (
                       <Chip size="small" color="success" label="Published" />

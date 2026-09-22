@@ -82,6 +82,27 @@ public sealed class ContentSummaryDto<TContentType>
     /// <summary>Languages that have a branch (at least one version) for the item. Filled by search and summary lookups, empty for history rows.</summary>
     public List<string> Languages { get; set; } = new();
 
+    /// <summary>
+    /// Each language in <see cref="Languages"/>'s own publish state, resolved live from that
+    /// language's own branch - not copied from <see cref="StartPublish"/>/<see cref="LivePublishedVersionNumber"/>,
+    /// which only describe <see cref="Language"/>. Filled by search and summary lookups, empty for history rows.
+    /// </summary>
+    public List<LanguageStatusDto> LanguageStatuses { get; set; } = new();
+
+    /// <summary>
+    /// When the item itself was first created - invariant across every language and version,
+    /// unlike <see cref="Created"/> which is this row's own version's creation date. Filled by
+    /// search and summary lookups, default for history rows.
+    /// </summary>
+    public DateTime RootCreated { get; set; }
+
+    /// <summary>
+    /// The most recent change to the item as a whole: the newest <see cref="Created"/> across
+    /// every version, in every language branch - not just <see cref="Language"/>'s. Filled by
+    /// search and summary lookups, default for history rows.
+    /// </summary>
+    public DateTime LastModified { get; set; }
+
     /// <summary>Who created this version, or <c>null</c> if unknown or user tracking is off.</summary>
     public UserRefDto? CreatedBy { get; set; }
 

@@ -187,6 +187,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var metadata = ResolveContentTypeByClrType(content.GetType());
         var summary = ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id, content.Language));
         AttachLanguages([summary]);
+        AttachRootCreated([summary]);
         ResolveUsers([summary]);
         return summary;
     }
@@ -215,6 +216,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
 
         var items = summaries.Skip((page - 1) * pageSize).Take(pageSize).ToList();
         AttachLanguages(items);
+        AttachRootCreated(items);
         ResolveUsers(items);
 
         return new SearchContentResult<TContentType>
@@ -224,17 +226,36 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         };
     }
 
-    /// <summary>Fills <see cref="ContentSummaryDto{TContentType}.Languages"/> with one query per content type present.</summary>
+    /// <summary>
+    /// Fills <see cref="ContentSummaryDto{TContentType}.Languages"/>, <see cref="ContentSummaryDto{TContentType}.LanguageStatuses"/>
+    /// and <see cref="ContentSummaryDto{TContentType}.LastModified"/> with one trio of queries per content type present.
+    /// </summary>
     private void AttachLanguages(IReadOnlyCollection<ContentSummaryDto<TContentType>> summaries)
     {
         foreach (var group in summaries.GroupBy(s => s.ContentTypeKey))
         {
             var metadata = ResolveContentType(group.Key);
-            var languages = metadata.QueryLanguages(_db, group.Select(s => s.Id).ToList());
+            var ids = group.Select(s => s.Id).ToList();
+            var languages = metadata.QueryLanguages(_db, ids);
+            var statuses = metadata.QueryLanguageStatuses(_db, ids);
+            var lastModified = metadata.QueryLastModified(_db, ids);
             foreach (var summary in group)
             {
                 if (languages.TryGetValue(summary.Id, out var found)) summary.Languages = found.ToList();
+                if (statuses.TryGetValue(summary.Id, out var foundStatuses)) summary.LanguageStatuses = foundStatuses.ToList();
+                if (lastModified.TryGetValue(summary.Id, out var foundLastModified)) summary.LastModified = foundLastModified;
             }
+        }
+    }
+
+    /// <summary>Fills <see cref="ContentSummaryDto{TContentType}.RootCreated"/> with a single batched query, live from <see cref="ContentRoot{TContentType}.Created"/> - never copied elsewhere.</summary>
+    private void AttachRootCreated(IReadOnlyCollection<ContentSummaryDto<TContentType>> summaries)
+    {
+        var ids = summaries.Select(s => s.Id).ToList();
+        var created = _db.ContentRoots.Where(r => ids.Contains(r.Id)).ToDictionary(r => r.Id, r => r.Created);
+        foreach (var summary in summaries)
+        {
+            if (created.TryGetValue(summary.Id, out var rootCreated)) summary.RootCreated = rootCreated;
         }
     }
 

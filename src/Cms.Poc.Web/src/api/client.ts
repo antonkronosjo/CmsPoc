@@ -81,6 +81,16 @@ export interface UserRefDto {
   removed: boolean;
 }
 
+/// One language branch's publish state: enough to classify it as Published, Scheduled, Unpublished or Draft via getPublishStatus/getBranchPublishStatus.
+export interface LanguageStatusDto {
+  language: string;
+  versionNumber: number;
+  startPublish: string | null;
+  livePublishedVersionNumber: number | null;
+  /// Whether ANY version of this branch, ever, has had a publish window set - not just the latest one's.
+  hasBeenPublished: boolean;
+}
+
 export interface ContentSummaryDto {
   id: number;
   contentTypeKey: string;
@@ -95,6 +105,12 @@ export interface ContentSummaryDto {
   livePublishedVersionNumber: number | null;
   /// Languages that have a version branch (empty for version-history rows).
   languages: string[];
+  /// Each language in `languages`'s own publish state, resolved live (empty for version-history rows).
+  languageStatuses: LanguageStatusDto[];
+  /// When the item itself was first created - invariant across every language and version, unlike `created` (default for version-history rows).
+  rootCreated: string;
+  /// The most recent change to the item as a whole: the newest `created` across every version, in every language branch, not just `language`'s (default for version-history rows).
+  lastModified: string;
   /// Null when user tracking is off or the reference was removed.
   createdBy: UserRefDto | null;
   publishedBy: UserRefDto | null;

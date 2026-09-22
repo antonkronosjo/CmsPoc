@@ -414,6 +414,67 @@ internal static class CodeEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
 
+        // QueryLanguageStatuses
+        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyDictionary<int, global::System.Collections.Generic.IReadOnlyList<global::Cms.Framework.Infrastructure.LanguageStatusDto>> QueryLanguageStatuses(CmsDbContext<{contentTypeEnum}> db, global::System.Collections.Generic.IReadOnlyCollection<int> ids)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine("        var masterLanguageByRoot = db.ContentRoots.Where(r => ids.Contains(r.Id)).ToDictionary(r => r.Id, r => r.MasterLanguage);");
+        sb.AppendLine();
+        sb.AppendLine($"        var masterRows = db.Set<{V}>().Where(v => ids.Contains(v.RootId)).Select(v => new {{ v.RootId, v.VersionNumber, v.StartPublish, v.StopPublish }}).ToList();");
+        sb.AppendLine("        var masterEntries = masterRows");
+        sb.AppendLine("            .GroupBy(v => v.RootId)");
+        sb.AppendLine("            .Select(g =>");
+        sb.AppendLine("            {");
+        sb.AppendLine("                var latest = g.OrderByDescending(v => v.VersionNumber).First();");
+        sb.AppendLine($"                var live = g.Where(v => {masterWindow}).OrderByDescending(v => v.StartPublish).Select(v => (int?)v.VersionNumber).FirstOrDefault();");
+        sb.AppendLine("                return (RootId: g.Key, Status: new global::Cms.Framework.Infrastructure.LanguageStatusDto");
+        sb.AppendLine("                {");
+        sb.AppendLine("                    Language = masterLanguageByRoot[g.Key],");
+        sb.AppendLine("                    VersionNumber = latest.VersionNumber,");
+        sb.AppendLine("                    StartPublish = latest.StartPublish,");
+        sb.AppendLine("                    LivePublishedVersionNumber = live,");
+        sb.AppendLine("                    HasBeenPublished = g.Any(v => v.StartPublish != null),");
+        sb.AppendLine("                });");
+        sb.AppendLine("            })");
+        sb.AppendLine("            .ToList();");
+        sb.AppendLine();
+        sb.AppendLine($"        var translationRows = db.Set<{Tr}>().Where(t => ids.Contains(t.RootId)).Select(t => new {{ t.RootId, t.Language, t.VersionNumber, t.StartPublish, t.StopPublish }}).ToList();");
+        sb.AppendLine("        var translationEntries = translationRows");
+        sb.AppendLine("            .GroupBy(t => new { t.RootId, t.Language })");
+        sb.AppendLine("            .Select(g =>");
+        sb.AppendLine("            {");
+        sb.AppendLine("                var latest = g.OrderByDescending(t => t.VersionNumber).First();");
+        sb.AppendLine($"                var live = g.Where(t => {translationWindow}).OrderByDescending(t => t.StartPublish).Select(t => (int?)t.VersionNumber).FirstOrDefault();");
+        sb.AppendLine("                return (RootId: g.Key.RootId, Status: new global::Cms.Framework.Infrastructure.LanguageStatusDto");
+        sb.AppendLine("                {");
+        sb.AppendLine("                    Language = g.Key.Language,");
+        sb.AppendLine("                    VersionNumber = latest.VersionNumber,");
+        sb.AppendLine("                    StartPublish = latest.StartPublish,");
+        sb.AppendLine("                    LivePublishedVersionNumber = live,");
+        sb.AppendLine("                    HasBeenPublished = g.Any(t => t.StartPublish != null),");
+        sb.AppendLine("                });");
+        sb.AppendLine("            });");
+        sb.AppendLine();
+        sb.AppendLine("        return masterEntries");
+        sb.AppendLine("            .Concat(translationEntries)");
+        sb.AppendLine("            .GroupBy(e => e.RootId)");
+        sb.AppendLine("            .ToDictionary(g => g.Key, g => (global::System.Collections.Generic.IReadOnlyList<global::Cms.Framework.Infrastructure.LanguageStatusDto>)g.Select(e => e.Status).ToList());");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // QueryLastModified
+        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyDictionary<int, global::System.DateTime> QueryLastModified(CmsDbContext<{contentTypeEnum}> db, global::System.Collections.Generic.IReadOnlyCollection<int> ids)");
+        sb.AppendLine("    {");
+        sb.AppendLine($"        var masterMax = db.Set<{V}>().Where(v => ids.Contains(v.RootId)).GroupBy(v => v.RootId).Select(g => new {{ RootId = g.Key, Created = g.Max(v => v.Created) }});");
+        sb.AppendLine($"        var translationMax = db.Set<{Tr}>().Where(t => ids.Contains(t.RootId)).GroupBy(t => t.RootId).Select(g => new {{ RootId = g.Key, Created = g.Max(t => t.Created) }});");
+        sb.AppendLine("        return masterMax");
+        sb.AppendLine("            .Concat(translationMax)");
+        sb.AppendLine("            .ToList()");
+        sb.AppendLine("            .GroupBy(x => x.RootId)");
+        sb.AppendLine("            .ToDictionary(g => g.Key, g => g.Max(x => x.Created));");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
         // GetLivePublishedVersionNumber
         sb.AppendLine($"    public int? GetLivePublishedVersionNumber(CmsDbContext<{contentTypeEnum}> db, int rootId, string language)");
         sb.AppendLine("    {");
