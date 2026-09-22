@@ -164,9 +164,10 @@ export const CmsRole = {
 } as const;
 export type CmsRole = (typeof CmsRole)[keyof typeof CmsRole];
 
-/// The caller's status as reported by the backend: whether they are signed in, and which CMS roles they hold.
+/// The caller's status as reported by the backend: whether they are signed in, their display name, and which CMS roles they hold.
 export interface CurrentUserDto {
   isAuthenticated: boolean;
+  displayName: string | null;
   roles: CmsRole[];
 }
 

@@ -3,6 +3,7 @@ import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar 
 import { Add, Settings, ViewList } from "@mui/icons-material";
 import { useUser } from "../context/UserContext";
 import { CmsRole } from "../api/client";
+import { chromeShadow, useThemeMode } from "../theme/ThemeModeProvider";
 
 const NAV_ICON_MIN_WIDTH = 32;
 
@@ -17,6 +18,7 @@ const NAV_ITEMS = [
 export default function CmsLayout() {
   const location = useLocation();
   const { isInRole } = useUser();
+  const { mode } = useThemeMode();
   const navItems = NAV_ITEMS.filter((item) => !item.adminOnly || isInRole(CmsRole.Admin));
 
   return (
@@ -32,11 +34,12 @@ export default function CmsLayout() {
             position: "static",
             border: "none",
             backgroundColor: "background.paper",
+            boxShadow: chromeShadow(mode, "right"),
           },
         }}
       >
         <Toolbar />
-        <List sx={{ px: 1.5, py: 1, display: "flex", flexDirection: "column", gap: 0.25 }}>
+        <List sx={{ py: 1, display: "flex", flexDirection: "column", gap: 0.25 }}>
           {navItems.map((item) => {
             const selected = item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
             return (
@@ -46,7 +49,6 @@ export default function CmsLayout() {
                 to={item.to}
                 selected={selected}
                 sx={{
-                  borderRadius: 2,
                   py: 0.75,
                   "&.Mui-selected": {
                     bgcolor: (t) => (t.palette.mode === "light" ? "rgba(91,110,245,0.08)" : "rgba(138,147,255,0.14)"),

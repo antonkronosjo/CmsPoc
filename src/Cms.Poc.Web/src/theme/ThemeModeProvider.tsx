@@ -5,6 +5,15 @@ type ThemeMode = "light" | "dark";
 
 const STORAGE_KEY = "cms-poc-theme-mode";
 
+/// Shadow for fixed chrome (header, side nav) that should read as sitting above the
+/// content, not a resting card - stronger and directional rather than the subtle,
+/// even one on MuiCard/MuiPaper. Exported so CmsLayout's nav drawer (a separate file)
+/// can match it instead of hardcoding its own values.
+export function chromeShadow(mode: ThemeMode, direction: "down" | "right" = "down"): string {
+  const offset = direction === "down" ? "0px 3px" : "3px 0px";
+  return mode === "light" ? `${offset} 10px rgba(16,24,40,0.12)` : `${offset} 12px rgba(0,0,0,0.55)`;
+}
+
 function getInitialMode(): ThemeMode {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark") return stored;
@@ -73,7 +82,15 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
           defaultProps: { fontSize: "small" },
         },
         MuiCssBaseline: {
-          styleOverrides: { body: { backgroundColor: backgroundDefault } },
+          styleOverrides: {
+            body: { backgroundColor: backgroundDefault },
+            // The custom sharp-corners theme mutes MUI's default focus styling, so make
+            // keyboard focus explicit rather than relying on browser defaults.
+            "*:focus-visible": {
+              outline: `2px solid ${isLight ? "#5B6EF5" : "#007ACC"}`,
+              outlineOffset: 2,
+            },
+          },
         },
         MuiPaper: {
           styleOverrides: {
@@ -90,7 +107,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         MuiAppBar: {
           defaultProps: { elevation: 0, color: "transparent" },
           styleOverrides: {
-            root: { boxShadow: "none", backgroundColor: backgroundPaper, backgroundImage: "none" },
+            root: { boxShadow: chromeShadow(mode, "down"), backgroundColor: backgroundPaper, backgroundImage: "none" },
           },
         },
         MuiDrawer: {

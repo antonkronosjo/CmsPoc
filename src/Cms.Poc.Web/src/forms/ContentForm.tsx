@@ -1,5 +1,5 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
-import { Button, Stack, TextField, Tooltip, type TextFieldProps } from "@mui/material";
+import { Button, CircularProgress, Stack, TextField, Tooltip, type TextFieldProps } from "@mui/material";
 import { DatePicker, DateTimePicker } from "@mui/x-date-pickers";
 import { api, InputType, type ContentPropertyValueDto, type ContentReference } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
@@ -21,25 +21,35 @@ interface ContentFormProps {
   submitDisabledReason?: string;
 }
 
+export interface ContentFormHandle {
+  /// Runs the same validate-then-submit path as clicking the submit button - lets a
+  /// parent trigger a save from outside the form, e.g. a Ctrl/Cmd+S shortcut.
+  submit: () => void;
+}
+
 /// One generic form for every content type. Adding a field to a content
 /// type on the backend never touches this file - it just shows up here,
 /// rendered by whichever InputType case matches its schema.
-export default function ContentForm({
-  properties,
-  contentTypeName,
-  language,
-  masterLanguage,
-  onChange,
-  onSubmit,
-  submitText,
-  disabled,
-  submitDisabled,
-  submitDisabledReason,
-}: ContentFormProps) {
+const ContentForm = forwardRef<ContentFormHandle, ContentFormProps>(function ContentForm(
+  {
+    properties,
+    contentTypeName,
+    language,
+    masterLanguage,
+    onChange,
+    onSubmit,
+    submitText,
+    disabled,
+    submitDisabled,
+    submitDisabledReason,
+  },
+  ref,
+) {
   const fieldRefs = useRef<Record<string, FormElementHandle | null>>({});
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
+    if (disabled || submitting || submitDisabled) return;
     const keys = Object.keys(properties);
     const results = await Promise.all(keys.map((key) => fieldRefs.current[key]?.validate() ?? Promise.resolve(true)));
     if (!results.every(Boolean)) return;
@@ -51,6 +61,8 @@ export default function ContentForm({
       setSubmitting(false);
     }
   };
+
+  useImperativeHandle(ref, () => ({ submit: handleSubmit }));
 
   return (
     <Stack spacing={2} component="form" onSubmit={(e) => e.preventDefault()}>
@@ -71,14 +83,22 @@ export default function ContentForm({
       ))}
       <Tooltip title={!disabled && !submitting && submitDisabled ? submitDisabledReason ?? "" : ""}>
         <span style={{ alignSelf: "flex-end" }}>
-          <Button variant="contained" fullWidth disabled={disabled || submitting || submitDisabled} onClick={handleSubmit}>
-            {submitText}
+          <Button
+            variant="contained"
+            fullWidth
+            disabled={disabled || submitting || submitDisabled}
+            onClick={handleSubmit}
+            startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
+          >
+            {submitting ? "Saving…" : submitText}
           </Button>
         </span>
       </Tooltip>
     </Stack>
   );
-}
+});
+
+export default ContentForm;
 
 /// Explains which fields are shared between languages, so it is clear why one is read-only.
 function sharedNote(valueDto: ContentPropertyValueDto, language: string, masterLanguage: string | undefined): string | undefined {

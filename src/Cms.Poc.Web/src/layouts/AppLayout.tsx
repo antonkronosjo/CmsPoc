@@ -3,6 +3,7 @@ import { AppBar, Box, IconButton, MenuItem, Select, Toolbar, Typography } from "
 import { DarkMode, LightMode } from "@mui/icons-material";
 import { useThemeMode } from "../theme/ThemeModeProvider";
 import { useLanguage } from "../hooks/useLanguage";
+import UserMenu from "../components/UserMenu";
 
 export default function AppLayout() {
   const { mode, toggleMode } = useThemeMode();
@@ -12,7 +13,10 @@ export default function AppLayout() {
 
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
-      <AppBar position="static">
+      {/* position="relative" (rather than "static") gives the bar a stacking context so its
+          drop shadow paints on top of the CMS nav drawer sitting below it, instead of being
+          hidden behind the drawer's own opaque background. */}
+      <AppBar position="relative" sx={{ zIndex: (theme) => theme.zIndex.appBar }}>
         <Toolbar sx={{ gap: 2 }}>
           <Typography
             variant="h6"
@@ -31,9 +35,13 @@ export default function AppLayout() {
               ))}
             </Select>
           )}
-          <IconButton onClick={toggleMode} aria-label="Toggle dark mode">
-            {mode === "dark" ? <LightMode /> : <DarkMode />}
-          </IconButton>
+          {isCms ? (
+            <UserMenu />
+          ) : (
+            <IconButton onClick={toggleMode} aria-label="Toggle dark mode">
+              {mode === "dark" ? <LightMode /> : <DarkMode />}
+            </IconButton>
+          )}
         </Toolbar>
       </AppBar>
       <Box sx={{ flex: 1, display: "flex" }}>

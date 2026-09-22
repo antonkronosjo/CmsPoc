@@ -35,15 +35,17 @@ app.UseCors();
 app.MapCms<Cms.Poc.Domain.ContentTypeKey>("/api/content");
 app.MapCmsSettings();
 
-// Lets the frontend know whether the caller is signed in and which CMS roles they hold.
+// Lets the frontend know whether the caller is signed in, their display name, and which CMS roles they hold.
 app.MapGet("/api/user", (ICmsUserAdapter users) =>
 {
     var user = users.GetCurrentUser();
+    var displayName = user is null ? null : users.ResolveProfiles([user.Id]).GetValueOrDefault(user.Id)?.DisplayName;
     return new CurrentUserDto(
         user is not null,
+        displayName,
         user?.Roles.Select(r => r.ToString()).Order().ToArray() ?? []);
 });
 
 app.Run();
 
-internal sealed record CurrentUserDto(bool IsAuthenticated, string[] Roles);
+internal sealed record CurrentUserDto(bool IsAuthenticated, string? DisplayName, string[] Roles);

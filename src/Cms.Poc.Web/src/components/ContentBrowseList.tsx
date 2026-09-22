@@ -7,6 +7,7 @@ import {
   MenuItem,
   Pagination,
   Select,
+  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -24,7 +25,7 @@ import { useContentTypes } from "../hooks/useContentTypes";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import ContentTypeChip from "./ContentTypeChip";
 
-const PAGE_SIZE = 10;
+const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
 interface ContentBrowseListProps {
   /// Restricts the list to items translated into this language and shows them in it. Leave
@@ -46,6 +47,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
   const [term, setTerm] = useState("");
   const [contentTypeName, setContentTypeName] = useState("");
   const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
   const debouncedSetTerm = useDebouncedCallback((value: string) => {
     setTerm(value);
     setPage(1);
@@ -54,12 +56,16 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
   const { data: contentTypes = [] } = useContentTypes();
 
   const { data, isFetching } = useQuery({
-    queryKey: ["content-search", term, language, contentTypeName, page, publishedOnly],
-    queryFn: () => api.searchContent(term, language, { contentTypeKey: contentTypeName || undefined, page, pageSize: PAGE_SIZE, publishedOnly }),
+    queryKey: ["content-search", term, language, contentTypeName, page, pageSize, publishedOnly],
+    queryFn: () => api.searchContent(term, language, { contentTypeKey: contentTypeName || undefined, page, pageSize, publishedOnly }),
   });
 
   const items = data?.items ?? [];
-  const pageCount = data ? Math.max(1, Math.ceil(data.totalCount / PAGE_SIZE)) : 1;
+  const totalCount = data?.totalCount ?? 0;
+  const pageCount = data ? Math.max(1, Math.ceil(data.totalCount / pageSize)) : 1;
+  const columnCount = 3 + (language === undefined ? 3 : 1) + (language !== undefined && !publishedOnly ? 1 : 0);
+  const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
+  const rangeEnd = Math.min(page * pageSize, totalCount);
 
   return (
     <Stack spacing={2}>
@@ -97,7 +103,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
         )}
       </Stack>
 
-      {isFetching && (
+      {isFetching && data && (
         <Typography variant="caption" color="text.secondary">
           Loading…
         </Typography>
@@ -118,7 +124,17 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
             </TableRow>
           </TableHead>
           <TableBody>
-            {items.map((item) => (
+            {isFetching && !data
+              ? Array.from({ length: 5 }).map((_, i) => (
+                  <TableRow key={i}>
+                    {Array.from({ length: columnCount }).map((_, j) => (
+                      <TableCell key={j}>
+                        <Skeleton variant="text" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              : items.map((item) => (
               <TableRow
                 key={item.id}
                 hover={!!onSelect}
@@ -187,17 +203,37 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
             ))}
           </TableBody>
         </Table>
-        {!isFetching && items.length === 0 && (
+        {!isFetching && data && items.length === 0 && (
           <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
             No content found.
           </Typography>
         )}
       </TableContainer>
 
-      {pageCount > 1 && (
-        <Box sx={{ display: "flex", justifyContent: "center" }}>
-          <Pagination count={pageCount} page={page} onChange={(_, value) => setPage(value)} />
-        </Box>
+      {data && totalCount > 0 && (
+        <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
+          <Typography variant="caption" color="text.secondary">
+            Showing {rangeStart}–{rangeEnd} of {totalCount}
+          </Typography>
+          <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
+            <Select
+              size="small"
+              value={pageSize}
+              onChange={(e) => {
+                setPageSize(Number(e.target.value));
+                setPage(1);
+              }}
+              sx={{ minWidth: 110 }}
+            >
+              {PAGE_SIZE_OPTIONS.map((size) => (
+                <MenuItem key={size} value={size}>
+                  {size} / page
+                </MenuItem>
+              ))}
+            </Select>
+            {pageCount > 1 && <Pagination count={pageCount} page={page} onChange={(_, value) => setPage(value)} />}
+          </Stack>
+        </Stack>
       )}
     </Stack>
   );

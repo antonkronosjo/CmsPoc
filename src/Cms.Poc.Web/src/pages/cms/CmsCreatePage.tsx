@@ -1,11 +1,13 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useRef, useState } from "react";
+import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Card, MenuItem, Select, Stack, TextField, Typography } from "@mui/material";
+import { Box, Breadcrumbs, Card, MenuItem, Select, Skeleton, Stack, TextField, Typography } from "@mui/material";
+import { NoteAdd } from "@mui/icons-material";
 import { api, type CreateContentSchema } from "../../api/client";
 import { useLanguages } from "../../hooks/useLanguages";
-import ContentForm from "../../forms/ContentForm";
+import ContentForm, { type ContentFormHandle } from "../../forms/ContentForm";
 import ContentTypePicker from "../../forms/ContentTypePicker";
+import { useToast, errorMessage } from "../../context/ToastContext";
 
 export default function CmsCreatePage() {
   const { defaultLanguage, supportedLanguages } = useLanguages();
@@ -16,25 +18,40 @@ export default function CmsCreatePage() {
 
   return (
     <Stack spacing={2}>
+      <Breadcrumbs>
+        <Typography component={RouterLink} to="/cms" color="primary" sx={{ textDecoration: "none", fontWeight: 500, "&:hover": { textDecoration: "underline" } }}>
+          Browse content
+        </Typography>
+        <Typography color="text.secondary">Create</Typography>
+      </Breadcrumbs>
       <Typography variant="h5">Create content</Typography>
       <Card sx={{ p: 3 }}>
-        <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
-          <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
-          <Select
-            value={language}
-            onChange={(e) => setChosenLanguage(e.target.value)}
-            size="small"
-            sx={{ minWidth: 140, mb: 2 }}
-            renderValue={(l) => `Master language: ${l}`}
-          >
-            {supportedLanguages.map((l) => (
-              <MenuItem key={l} value={l}>
-                {l}
-              </MenuItem>
-            ))}
-          </Select>
+        <Stack spacing={2}>
+          <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+            <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
+            <Select
+              value={language}
+              onChange={(e) => setChosenLanguage(e.target.value)}
+              size="small"
+              sx={{ minWidth: 140 }}
+              renderValue={(l) => `Master language: ${l}`}
+            >
+              {supportedLanguages.map((l) => (
+                <MenuItem key={l} value={l}>
+                  {l}
+                </MenuItem>
+              ))}
+            </Select>
+          </Stack>
+          {contentTypeName ? (
+            <CreateForm key={contentTypeName + language} contentTypeName={contentTypeName} language={language} />
+          ) : (
+            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, py: 5, color: "text.secondary" }}>
+              <NoteAdd sx={{ fontSize: 32 }} />
+              <Typography variant="body2">Choose a content type above to get started.</Typography>
+            </Box>
+          )}
         </Stack>
-        {contentTypeName && <CreateForm key={contentTypeName + language} contentTypeName={contentTypeName} language={language} />}
       </Card>
     </Stack>
   );
@@ -42,6 +59,8 @@ export default function CmsCreatePage() {
 
 function CreateForm({ contentTypeName, language }: { contentTypeName: string; language: string }) {
   const navigate = useNavigate();
+  const { showToast } = useToast();
+  const formRef = useRef<ContentFormHandle>(null);
   const { data: schema, isLoading } = useQuery({
     queryKey: ["creation-schema", contentTypeName, language],
     queryFn: () => api.getCreationSchema(contentTypeName, language),
@@ -49,10 +68,25 @@ function CreateForm({ contentTypeName, language }: { contentTypeName: string; la
   const [draft, setDraft] = useState<CreateContentSchema | undefined>(undefined);
   const active = draft ?? schema;
 
-  if (isLoading || !active) return <Typography color="text.secondary">Loading…</Typography>;
+  if (isLoading || !active)
+    return (
+      <Stack spacing={2} sx={{ mt: 2 }}>
+        <Skeleton variant="rounded" height={56} />
+        <Skeleton variant="rounded" height={56} />
+        <Skeleton variant="rounded" height={100} />
+      </Stack>
+    );
 
   return (
-    <Stack spacing={2}>
+    <Stack
+      spacing={2}
+      onKeyDown={(e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+          e.preventDefault();
+          formRef.current?.submit();
+        }
+      }}
+    >
       <TextField
         label="Name"
         fullWidth
@@ -60,6 +94,7 @@ function CreateForm({ contentTypeName, language }: { contentTypeName: string; la
         onChange={(e) => setDraft({ ...active, metadata: { ...active.metadata, name: e.target.value } })}
       />
       <ContentForm
+        ref={formRef}
         contentTypeName={active.metadata.contentTypeKey}
         language={active.metadata.language}
         properties={active.properties}
@@ -68,8 +103,13 @@ function CreateForm({ contentTypeName, language }: { contentTypeName: string; la
           setDraft({ ...active, properties: { ...active.properties, [key]: { ...active.properties[key], value } } })
         }
         onSubmit={async () => {
-          const created = await api.createContent(active);
-          navigate(`/cms/edit/${created.metadata.id}`);
+          try {
+            const created = await api.createContent(active);
+            showToast("Content created.");
+            navigate(`/cms/edit/${created.metadata.id}`);
+          } catch (error) {
+            showToast(errorMessage(error, "Failed to create content."), "error");
+          }
         }}
       />
     </Stack>

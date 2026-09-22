@@ -11,7 +11,7 @@ export default function ContentTypePicker({ value, onChange }: ContentTypePicker
   const { data: contentTypes = [] } = useContentTypes();
 
   return (
-    <Select displayEmpty value={value} onChange={(e) => onChange(e.target.value)} size="small" sx={{ minWidth: 220, mb: 2 }}>
+    <Select displayEmpty value={value} onChange={(e) => onChange(e.target.value)} size="small" sx={{ minWidth: 220 }}>
       <MenuItem value="">
         <em>Choose a content type</em>
       </MenuItem>

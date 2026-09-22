@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { Box, Button, Drawer, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Button, CircularProgress, Drawer, IconButton, Stack, Typography } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import { DateTimePicker } from "@mui/x-date-pickers";
 import { api } from "../api/client";
 import dayjs from "../lib/dayjs";
 import ConfirmDialog, { useConfirmDialog } from "./ConfirmDialog";
+import { useToast, errorMessage } from "../context/ToastContext";
 
 interface PublishTarget {
   versionNumber: number;
@@ -20,9 +21,12 @@ interface UsePublishActionsOptions {
 
 export function usePublishActions({ id, language }: UsePublishActionsOptions) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const [publishTarget, setPublishTarget] = useState<PublishTarget | undefined>(undefined);
   const [startPublish, setStartPublish] = useState<string | null>(null);
   const [stopPublish, setStopPublish] = useState<string | null>(null);
+  const [publishing, setPublishing] = useState(false);
+  const [unpublishing, setUnpublishing] = useState(false);
   const { confirm, confirmDialogProps } = useConfirmDialog();
 
   async function invalidateAfterPublishChange() {
@@ -62,9 +66,17 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
       });
       if (!ok) return;
     }
-    await api.publishContent(id, { language, versionNumber, startPublish, stopPublish });
-    setPublishTarget(undefined);
-    await invalidateAfterPublishChange();
+    setPublishing(true);
+    try {
+      await api.publishContent(id, { language, versionNumber, startPublish, stopPublish });
+      setPublishTarget(undefined);
+      await invalidateAfterPublishChange();
+      showToast(`Version ${versionNumber} published.`);
+    } catch (error) {
+      showToast(errorMessage(error, "Failed to publish."), "error");
+    } finally {
+      setPublishing(false);
+    }
   }
 
   async function unpublish() {
@@ -75,14 +87,24 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
       confirmColor: "warning",
     });
     if (!ok) return;
-    await api.unpublishContent(id, language);
-    await invalidateAfterPublishChange();
+    setUnpublishing(true);
+    try {
+      await api.unpublishContent(id, language);
+      await invalidateAfterPublishChange();
+      showToast("Content unpublished.");
+    } catch (error) {
+      showToast(errorMessage(error, "Failed to unpublish."), "error");
+    } finally {
+      setUnpublishing(false);
+    }
   }
 
   return {
     publishTarget,
     startPublish,
     stopPublish,
+    publishing,
+    unpublishing,
     setStartPublish,
     setStopPublish,
     openPublishDialog,
@@ -100,6 +122,7 @@ export default function PublishDialog({
   publishTarget,
   startPublish,
   stopPublish,
+  publishing,
   setStartPublish,
   setStopPublish,
   closePublishDialog,
@@ -137,9 +160,16 @@ export default function PublishDialog({
           </Stack>
           <Box sx={{ borderBottom: "1px dotted", borderColor: "divider" }} />
           <Stack direction="row" spacing={1} sx={{ p: 2, justifyContent: "flex-end" }}>
-            <Button onClick={closePublishDialog}>Cancel</Button>
-            <Button variant="contained" onClick={confirmPublish}>
-              Publish
+            <Button onClick={closePublishDialog} disabled={publishing}>
+              Cancel
+            </Button>
+            <Button
+              variant="contained"
+              onClick={confirmPublish}
+              disabled={publishing}
+              startIcon={publishing ? <CircularProgress size={16} color="inherit" /> : undefined}
+            >
+              {publishing ? "Publishing…" : "Publish"}
             </Button>
           </Stack>
         </Box>

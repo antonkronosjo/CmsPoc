@@ -1,19 +1,20 @@
 import { useEffect, useState } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link as RouterLink } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Button, Card, MenuItem, Select, Stack, TextField, Typography } from "@mui/material";
+import { Breadcrumbs, Button, Card, CircularProgress, MenuItem, Select, Skeleton, Stack, TextField, Typography } from "@mui/material";
 import { api, CmsRole } from "../../api/client";
 import { useUser } from "../../context/UserContext";
+import { useToast, errorMessage } from "../../context/ToastContext";
 
 export default function CmsSettingsPage() {
   const { isInRole } = useUser();
   const { data, isLoading } = useQuery({ queryKey: ["languages"], queryFn: api.getLanguages });
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
 
   const [supportedLanguagesText, setSupportedLanguagesText] = useState("");
   const [defaultLanguage, setDefaultLanguage] = useState("");
   const [saving, setSaving] = useState(false);
-  const [result, setResult] = useState<{ kind: "success" | "error"; message: string } | undefined>(undefined);
 
   // Seed the draft from the loaded settings once, not on every refetch, so mid-edit isn't clobbered.
   useEffect(() => {
@@ -35,23 +36,35 @@ export default function CmsSettingsPage() {
 
   async function save() {
     setSaving(true);
-    setResult(undefined);
     try {
       await api.updateLanguages({ defaultLanguage, supportedLanguages });
       await queryClient.invalidateQueries({ queryKey: ["languages"] });
-      setResult({ kind: "success", message: "Settings saved." });
+      showToast("Settings saved.");
     } catch (e) {
-      setResult({ kind: "error", message: e instanceof Error ? e.message : "Failed to save settings." });
+      showToast(errorMessage(e, "Failed to save settings."), "error");
     } finally {
       setSaving(false);
     }
   }
 
   if (!isInRole(CmsRole.Admin)) return <Navigate to="/cms" replace />;
-  if (isLoading) return <Typography color="text.secondary">Loading…</Typography>;
+
+  if (isLoading)
+    return (
+      <Stack spacing={2}>
+        <Skeleton variant="text" width={120} height={40} />
+        <Skeleton variant="rounded" height={260} />
+      </Stack>
+    );
 
   return (
     <Stack spacing={2}>
+      <Breadcrumbs>
+        <Typography component={RouterLink} to="/cms" color="primary" sx={{ textDecoration: "none", fontWeight: 500, "&:hover": { textDecoration: "underline" } }}>
+          Browse content
+        </Typography>
+        <Typography color="text.secondary">Settings</Typography>
+      </Breadcrumbs>
       <Typography variant="h5">Settings</Typography>
       <Card sx={{ p: 3 }}>
         <Stack spacing={2} sx={{ maxWidth: 420 }}>
@@ -76,14 +89,14 @@ export default function CmsSettingsPage() {
               </MenuItem>
             ))}
           </Select>
-          {result && <Alert severity={result.kind}>{result.message}</Alert>}
           <Button
             variant="contained"
             onClick={save}
             disabled={saving || supportedLanguages.length === 0 || !supportedLanguages.includes(defaultLanguage)}
+            startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
             sx={{ alignSelf: "flex-start" }}
           >
-            Save
+            {saving ? "Saving…" : "Save"}
           </Button>
         </Stack>
       </Card>

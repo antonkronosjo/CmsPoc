@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes } from "react-router-dom";
+import { Navigate, Route, createBrowserRouter, createRoutesFromElements } from "react-router-dom";
 import AppLayout from "./layouts/AppLayout";
 import CmsLayout from "./layouts/CmsLayout";
 import HomePage from "./pages/HomePage";
@@ -20,25 +20,25 @@ function RedirectToDefaultLanguage() {
   return loaded ? <Navigate to={`/${defaultLanguage}`} replace /> : null;
 }
 
-export default function AppRoutes() {
-  return (
-    <Routes>
-      <Route element={<AppLayout />}>
-        <Route path="/" element={<RedirectToDefaultLanguage />} />
-        <Route path="/:language" element={<PublicLanguageRoute />}>
-          <Route index element={<HomePage />} />
-          <Route path="event/:id" element={<EventPage />} />
-          <Route path="news/:id" element={<NewsPage />} />
-          <Route path="specialnews/:id" element={<SpecialNewsPage />} />
-        </Route>
-        <Route path="/cms"element={<CmsLayout />}>
-          <Route index element={<CmsBrowsePage />} />
-          <Route path="create" element={<CmsCreatePage />} />
-          <Route path="edit/:contentId" element={<CmsEditPage />} />
-          <Route path="edit/:contentId/:versionId" element={<CmsEditPage />} />
-          <Route path="settings" element={<CmsSettingsPage />} />
-        </Route>
+// A data router (rather than plain <BrowserRouter>) is required for useBlocker,
+// which CmsEditPage uses to confirm navigation away from unsaved changes.
+export const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<AppLayout />}>
+      <Route path="/" element={<RedirectToDefaultLanguage />} />
+      <Route path="/:language" element={<PublicLanguageRoute />}>
+        <Route index element={<HomePage />} />
+        <Route path="event/:id" element={<EventPage />} />
+        <Route path="news/:id" element={<NewsPage />} />
+        <Route path="specialnews/:id" element={<SpecialNewsPage />} />
       </Route>
-    </Routes>
-  );
-}
+      <Route path="/cms" element={<CmsLayout />}>
+        <Route index element={<CmsBrowsePage />} />
+        <Route path="create" element={<CmsCreatePage />} />
+        <Route path="edit/:contentId" element={<CmsEditPage />} />
+        <Route path="edit/:contentId/:versionId" element={<CmsEditPage />} />
+        <Route path="settings" element={<CmsSettingsPage />} />
+      </Route>
+    </Route>,
+  ),
+);

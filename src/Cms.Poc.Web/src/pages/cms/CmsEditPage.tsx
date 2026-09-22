@@ -1,16 +1,36 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useBlocker, useNavigate, useParams, useSearchParams, Link as RouterLink } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Alert, Box, Button, Card, Drawer, Menu, MenuItem, Stack, Tab, Tabs, TextField, Tooltip, Typography } from "@mui/material";
+import {
+  Alert,
+  Box,
+  Breadcrumbs,
+  Button,
+  Card,
+  CircularProgress,
+  Drawer,
+  Fade,
+  Menu,
+  MenuItem,
+  Skeleton,
+  Stack,
+  Tab,
+  Tabs,
+  TextField,
+  Tooltip,
+  Typography,
+} from "@mui/material";
 import { Add, Circle, Edit, History } from "@mui/icons-material";
 import dayjs from "../../lib/dayjs";
 import { api, type UpdateContentSchema } from "../../api/client";
 import { useLanguages } from "../../hooks/useLanguages";
-import ContentForm from "../../forms/ContentForm";
+import ContentForm, { type ContentFormHandle } from "../../forms/ContentForm";
 import VersionHistory from "../../components/VersionHistory";
 import StatusIndicator from "../../components/StatusIndicator";
 import ContentTypeChip from "../../components/ContentTypeChip";
 import PublishDialog, { usePublishActions } from "../../components/PublishDialog";
+import ConfirmDialog from "../../components/ConfirmDialog";
+import { useToast, errorMessage } from "../../context/ToastContext";
 
 /// Edits one content item with a tab per language, so every translation is
 /// always in view. The item's master language comes first; shared
@@ -29,6 +49,7 @@ export default function CmsEditPage() {
   const [added, setAdded] = useState<string[]>([]);
   const [dirty, setDirty] = useState<ReadonlySet<string>>(new Set());
   const [addMenuAnchor, setAddMenuAnchor] = useState<HTMLElement | null>(null);
+  const hasUnsavedChanges = dirty.size > 0;
 
   // Which languages exist and which is the master, independent of any single language.
   const { data: summary, isError } = useQuery({
@@ -36,8 +57,42 @@ export default function CmsEditPage() {
     queryFn: () => api.getContentSummary(id),
   });
 
-  if (isError) return <Alert severity="error">Content {id} could not be loaded.</Alert>;
-  if (!summary) return <Typography color="text.secondary">Loading…</Typography>;
+  // Blocks in-app navigation away from the page while any language tab has unsaved
+  // edits; the browser's own dialog covers closing the tab or reloading.
+  const blocker = useBlocker(({ currentLocation, nextLocation }) => hasUnsavedChanges && currentLocation.pathname !== nextLocation.pathname);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    const onBeforeUnload = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [hasUnsavedChanges]);
+
+  const unsavedChangesGuard = (
+    <ConfirmDialog
+      open={blocker.state === "blocked"}
+      title="Leave without saving?"
+      message="You have unsaved changes that will be lost if you leave this page."
+      confirmText="Leave"
+      confirmColor="warning"
+      onConfirm={() => blocker.state === "blocked" && blocker.proceed()}
+      onCancel={() => blocker.state === "blocked" && blocker.reset()}
+    />
+  );
+
+  if (isError)
+    return (
+      <Alert severity="error" action={<Button onClick={() => navigate("/cms")}>Back to browse</Button>}>
+        Content {id} could not be loaded.
+      </Alert>
+    );
+  if (!summary)
+    return (
+      <Stack spacing={2}>
+        <Skeleton variant="text" width={160} height={40} />
+        <Skeleton variant="rounded" height={320} />
+      </Stack>
+    );
 
   const master = summary.masterLanguage;
   const requested = searchParams.get("lang");
@@ -65,6 +120,12 @@ export default function CmsEditPage() {
 
   return (
     <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
+      <Breadcrumbs>
+        <Typography component={RouterLink} to="/cms" color="primary" sx={{ textDecoration: "none", fontWeight: 500, "&:hover": { textDecoration: "underline" } }}>
+          Browse content
+        </Typography>
+        <Typography color="text.secondary">{summary.name || "(untitled)"}</Typography>
+      </Breadcrumbs>
       <Stack direction="row" sx={{ alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
         <Tabs value={active} onChange={(_, language) => selectLanguage(language)} variant="scrollable" sx={{ flex: 1 }}>
           {tabs.map((language) => (
@@ -105,20 +166,24 @@ export default function CmsEditPage() {
       {tabs.map((language) => {
         const panelVersion = language === active ? version : undefined;
         return (
-          <Box key={language} sx={{ display: language === active ? "block" : "none" }}>
-            <EditPanel
-              key={`${language}-${panelVersion}`}
-              id={id}
-              version={panelVersion}
-              language={language}
-              masterLanguage={master}
-              onSelectVersion={(v) => navigate({ pathname: `/cms/edit/${id}/${v}`, search: `?lang=${language}` })}
-              onSaved={() => selectLanguage(language)}
-              onDirtyChange={(isDirty) => setLanguageDirty(language, isDirty)}
-            />
-          </Box>
+          <Fade key={language} in={language === active} timeout={150}>
+            <Box sx={{ display: language === active ? "block" : "none" }}>
+              <EditPanel
+                key={`${language}-${panelVersion}`}
+                id={id}
+                version={panelVersion}
+                language={language}
+                masterLanguage={master}
+                isActive={language === active}
+                onSelectVersion={(v) => navigate({ pathname: `/cms/edit/${id}/${v}`, search: `?lang=${language}` })}
+                onSaved={() => selectLanguage(language)}
+                onDirtyChange={(isDirty) => setLanguageDirty(language, isDirty)}
+              />
+            </Box>
+          </Fade>
         );
       })}
+      {unsavedChangesGuard}
     </Stack>
   );
 }
@@ -199,6 +264,7 @@ function EditPanel({
   version,
   language,
   masterLanguage,
+  isActive,
   onSelectVersion,
   onSaved,
   onDirtyChange,
@@ -207,16 +273,19 @@ function EditPanel({
   version: number | undefined;
   language: string;
   masterLanguage: string;
+  isActive: boolean;
   onSelectVersion: (versionNumber: number) => void;
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
   const queryClient = useQueryClient();
+  const { showToast } = useToast();
   const queryKey = ["update-schema", id, language, version];
   const { data: schema, isLoading } = useQuery({ queryKey, queryFn: () => api.getUpdateSchema(id, language, version) });
   const [draft, setDraft] = useState<UpdateContentSchema | undefined>(undefined);
   const [historyOpen, setHistoryOpen] = useState(false);
   const publishActions = usePublishActions({ id, language });
+  const formRef = useRef<ContentFormHandle>(null);
   const active = draft ?? schema;
   const isMaster = language === masterLanguage;
   const hasChanges = hasEditableChanges(draft, schema, isMaster);
@@ -225,7 +294,28 @@ function EditPanel({
     onDirtyChange(hasChanges);
   }, [hasChanges, onDirtyChange]);
 
-  if (isLoading || !active) return <Typography color="text.secondary">Loading…</Typography>;
+  // Ctrl/Cmd+S saves the currently visible tab, matching the platform save convention.
+  useEffect(() => {
+    if (!isActive) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        formRef.current?.submit();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isActive]);
+
+  if (isLoading || !active)
+    return (
+      <Card sx={{ p: 3 }}>
+        <Skeleton variant="rounded" height={120} sx={{ mb: 2.5 }} />
+        <Skeleton variant="rounded" height={56} sx={{ mb: 2 }} />
+        <Skeleton variant="rounded" height={56} sx={{ mb: 2 }} />
+        <Skeleton variant="rounded" height={100} />
+      </Card>
+    );
 
   // Outside the master language shared values always show what is saved, never a stale draft of them.
   const displayProperties = Object.fromEntries(
@@ -258,9 +348,17 @@ function EditPanel({
             {!isNewLanguageBranch &&
               (isLive ? (
                 <Tooltip title="Unpublishes this language only">
-                  <Button variant="outlined" color="warning" onClick={() => publishActions.unpublish()}>
-                    Unpublish
-                  </Button>
+                  <span>
+                    <Button
+                      variant="outlined"
+                      color="warning"
+                      disabled={publishActions.unpublishing}
+                      onClick={() => publishActions.unpublish()}
+                      startIcon={publishActions.unpublishing ? <CircularProgress size={16} color="inherit" /> : undefined}
+                    >
+                      {publishActions.unpublishing ? "Unpublishing…" : "Unpublish"}
+                    </Button>
+                  </span>
                 </Tooltip>
               ) : (
                 <Tooltip title={hasChanges ? "You have pending changes, save before publishing" : "Publishes this version in this language only"}>
@@ -343,6 +441,7 @@ function EditPanel({
         )}
         <Stack spacing={2}>
           <ContentForm
+            ref={formRef}
             contentTypeName={active.metadata.contentTypeKey}
             language={language}
             masterLanguage={masterLanguage}
@@ -366,16 +465,21 @@ function EditPanel({
                 });
                 if (!ok) return;
               }
-              const updated = await api.updateContent(id, active);
-              setDraft(undefined);
-              queryClient.setQueryData(["update-schema", id, language, undefined], updated);
-              // A save creates a new version in this language only, but a first save adds a language, so the
-              // other tabs' list of languages is stale.
-              queryClient.invalidateQueries({ queryKey: ["update-schema", id], predicate: (q) => q.queryKey[2] !== language });
-              queryClient.invalidateQueries({ queryKey: ["content-summary", id] });
-              queryClient.invalidateQueries({ queryKey: ["content-history", id] });
-              queryClient.invalidateQueries({ queryKey: ["content-search"] });
-              onSaved();
+              try {
+                const updated = await api.updateContent(id, active);
+                setDraft(undefined);
+                queryClient.setQueryData(["update-schema", id, language, undefined], updated);
+                // A save creates a new version in this language only, but a first save adds a language, so the
+                // other tabs' list of languages is stale.
+                queryClient.invalidateQueries({ queryKey: ["update-schema", id], predicate: (q) => q.queryKey[2] !== language });
+                queryClient.invalidateQueries({ queryKey: ["content-summary", id] });
+                queryClient.invalidateQueries({ queryKey: ["content-history", id] });
+                queryClient.invalidateQueries({ queryKey: ["content-search"] });
+                onSaved();
+                showToast(isNewLanguageBranch ? `${language} translation added.` : "Saved.");
+              } catch (error) {
+                showToast(errorMessage(error, "Failed to save."), "error");
+              }
             }}
           />
         </Stack>
