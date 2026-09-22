@@ -14,6 +14,18 @@ export function chromeShadow(mode: ThemeMode, direction: "down" | "right" = "dow
   return mode === "light" ? `${offset} 10px rgba(16,24,40,0.12)` : `${offset} 12px rgba(0,0,0,0.55)`;
 }
 
+/// Frosted-glass surface (translucent background + blur) for chrome and elevated panels
+/// that sit above the app's gradient backdrop. Exported so CmsLayout's nav drawer (a
+/// separate file) can match it instead of hardcoding its own values.
+export function glassPanel(mode: ThemeMode): { backgroundColor: string; backdropFilter: string; WebkitBackdropFilter: string } {
+  const backdropFilter = "blur(16px) saturate(180%)";
+  return {
+    backgroundColor: mode === "light" ? "rgba(255,255,255,0.72)" : "rgba(37,37,38,0.72)",
+    backdropFilter,
+    WebkitBackdropFilter: backdropFilter,
+  };
+}
+
 function getInitialMode(): ThemeMode {
   const stored = localStorage.getItem(STORAGE_KEY);
   if (stored === "light" || stored === "dark") return stored;
@@ -52,6 +64,14 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
     const cellBorder = isLight ? "1px solid rgba(16,24,40,0.06)" : "1px solid rgba(255,255,255,0.06)";
     const backgroundDefault = isLight ? "#F6F7F9" : "#1E1E1E";
     const backgroundPaper = isLight ? "#FFFFFF" : "#252526";
+    // No explicit ellipse size - that defaults to farthest-corner, which scales with the
+    // viewport so the wash reaches the whole page instead of fading out a few hundred
+    // pixels from its center (fixed px sizes made this only visible near the top-left).
+    const backgroundGradient = isLight
+      ? "radial-gradient(at 10% -10%, rgba(91,110,245,0.14), transparent 55%), " +
+        "radial-gradient(at 90% 100%, rgba(0,172,193,0.10), transparent 60%)"
+      : "radial-gradient(at 10% -10%, rgba(0,122,204,0.22), transparent 55%), " +
+        "radial-gradient(at 90% 100%, rgba(123,97,255,0.16), transparent 60%)";
 
     return createTheme({
       palette: {
@@ -83,7 +103,12 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         },
         MuiCssBaseline: {
           styleOverrides: {
-            body: { backgroundColor: backgroundDefault },
+            body: {
+              backgroundColor: backgroundDefault,
+              backgroundImage: backgroundGradient,
+              backgroundAttachment: "fixed",
+              backgroundRepeat: "no-repeat",
+            },
             // The custom sharp-corners theme mutes MUI's default focus styling, so make
             // keyboard focus explicit rather than relying on browser defaults.
             "*:focus-visible": {
@@ -93,8 +118,11 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
           },
         },
         MuiPaper: {
+          // Paper underlies nearly every elevated surface (Card, AppBar, Drawer, Menu,
+          // Popover, Dialog, Select/Autocomplete dropdowns), so the glass treatment goes
+          // on its root once here rather than being repeated per-component.
           styleOverrides: {
-            root: { backgroundImage: "none", border: "none" },
+            root: { backgroundImage: "none", border: "none", ...glassPanel(mode) },
             elevation1: { boxShadow: cardShadow },
           },
         },
@@ -107,7 +135,7 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         MuiAppBar: {
           defaultProps: { elevation: 0, color: "transparent" },
           styleOverrides: {
-            root: { boxShadow: chromeShadow(mode, "down"), backgroundColor: backgroundPaper, backgroundImage: "none" },
+            root: { boxShadow: chromeShadow(mode, "down"), backgroundImage: "none" },
           },
         },
         MuiDrawer: {

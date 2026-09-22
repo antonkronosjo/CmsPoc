@@ -33,7 +33,6 @@ export default function CmsLayout() {
             boxSizing: "border-box",
             position: "static",
             border: "none",
-            backgroundColor: "background.paper",
             boxShadow: chromeShadow(mode, "right"),
           },
         }}
