@@ -20,7 +20,8 @@ import {
 } from "@mui/material";
 import dayjs from "../lib/dayjs";
 import { api, type ContentSummaryDto } from "../api/client";
-import { getBranchPublishStatus } from "../lib/publishStatus";
+import { getBranchPublishStatus, publishStatusColorHex } from "../lib/publishStatus";
+import { chipColorSx } from "../lib/chipColor";
 import { useContentTypes } from "../hooks/useContentTypes";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import ContentTypeChip from "./ContentTypeChip";
@@ -170,8 +171,8 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                                 clickable={false}
                                 size="small"
                                 label={l}
-                                color={status.color}
                                 title={`${status.label}${l === item.masterLanguage ? " · Master language" : ""}`}
+                                sx={(theme) => chipColorSx(publishStatusColorHex(theme, status.color))}
                               />
                             </Box>
                           );
