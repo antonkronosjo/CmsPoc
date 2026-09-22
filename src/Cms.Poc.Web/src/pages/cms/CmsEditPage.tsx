@@ -6,7 +6,6 @@ import {
   Box,
   Breadcrumbs,
   Button,
-  Card,
   CircularProgress,
   Drawer,
   Fade,
@@ -302,12 +301,12 @@ function EditPanel({
 
   if (isLoading || !active)
     return (
-      <Card sx={{ p: 3 }}>
+      <Box>
         <Skeleton variant="rounded" height={120} sx={{ mb: 2.5 }} />
         <Skeleton variant="rounded" height={56} sx={{ mb: 2 }} />
         <Skeleton variant="rounded" height={56} sx={{ mb: 2 }} />
         <Skeleton variant="rounded" height={100} />
-      </Card>
+      </Box>
     );
 
   // Outside the master language shared values always show what is saved, never a stale draft of them.
@@ -322,7 +321,7 @@ function EditPanel({
 
   return (
     <>
-      <Card sx={{ p: 3 }}>
+      <Box>
         <Box
           sx={{
             bgcolor: (theme) => (theme.palette.mode === "dark" ? "rgba(255,255,255,0.04)" : "grey.50"),
@@ -475,7 +474,7 @@ function EditPanel({
             }}
           />
         </Stack>
-      </Card>
+      </Box>
       <Drawer anchor="right" open={historyOpen} onClose={() => setHistoryOpen(false)}>
         <Box sx={{ maxWidth: "100vw" }}>
           <Typography variant="h6" sx={{ p: 3, pb: 2 }}>

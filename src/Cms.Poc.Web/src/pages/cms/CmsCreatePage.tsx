@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Box, Breadcrumbs, Card, MenuItem, Select, Skeleton, Stack, TextField, Typography } from "@mui/material";
+import { Box, Breadcrumbs, MenuItem, Select, Skeleton, Stack, TextField, Typography } from "@mui/material";
 import { NoteAdd } from "@mui/icons-material";
 import { api, type CreateContentSchema } from "../../api/client";
 import { useLanguages } from "../../hooks/useLanguages";
@@ -25,34 +25,32 @@ export default function CmsCreatePage() {
         <Typography color="text.secondary">Create</Typography>
       </Breadcrumbs>
       <Typography variant="h5">Create content</Typography>
-      <Card sx={{ p: 3 }}>
-        <Stack spacing={2}>
-          <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
-            <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
-            <Select
-              value={language}
-              onChange={(e) => setChosenLanguage(e.target.value)}
-              size="small"
-              sx={{ minWidth: 140 }}
-              renderValue={(l) => `Master language: ${l}`}
-            >
-              {supportedLanguages.map((l) => (
-                <MenuItem key={l} value={l}>
-                  {l}
-                </MenuItem>
-              ))}
-            </Select>
-          </Stack>
-          {contentTypeName ? (
-            <CreateForm key={contentTypeName + language} contentTypeName={contentTypeName} language={language} />
-          ) : (
-            <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, py: 5, color: "text.secondary" }}>
-              <NoteAdd sx={{ fontSize: 32 }} />
-              <Typography variant="body2">Choose a content type above to get started.</Typography>
-            </Box>
-          )}
+      <Stack spacing={2}>
+        <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
+          <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
+          <Select
+            value={language}
+            onChange={(e) => setChosenLanguage(e.target.value)}
+            size="small"
+            sx={{ minWidth: 140 }}
+            renderValue={(l) => `Master language: ${l}`}
+          >
+            {supportedLanguages.map((l) => (
+              <MenuItem key={l} value={l}>
+                {l}
+              </MenuItem>
+            ))}
+          </Select>
         </Stack>
-      </Card>
+        {contentTypeName ? (
+          <CreateForm key={contentTypeName + language} contentTypeName={contentTypeName} language={language} />
+        ) : (
+          <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, py: 5, color: "text.secondary" }}>
+            <NoteAdd sx={{ fontSize: 32 }} />
+            <Typography variant="body2">Choose a content type above to get started.</Typography>
+          </Box>
+        )}
+      </Stack>
     </Stack>
   );
 }

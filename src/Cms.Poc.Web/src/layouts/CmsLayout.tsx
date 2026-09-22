@@ -1,5 +1,5 @@
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
-import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar } from "@mui/material";
+import { Box, Card, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar } from "@mui/material";
 import { Add, Settings, ViewList } from "@mui/icons-material";
 import { useUser } from "../context/UserContext";
 import { CmsRole } from "../api/client";
@@ -77,9 +77,12 @@ export default function CmsLayout() {
         </List>
       </Drawer>
       <Box component="main" sx={{ flex: 1, p: 3, minWidth: 0 }}>
-        <Box sx={{ maxWidth: 1200 }}>
+        {/* Every /cms page's text (headings, breadcrumbs, tab bars) lives on this one
+            frosted card instead of directly on the gradient backdrop, so it keeps
+            readable contrast regardless of what the background looks like. */}
+        <Card sx={{ maxWidth: 1200, p: 3 }}>
           <Outlet />
-        </Box>
+        </Card>
       </Box>
     </Box>
   );

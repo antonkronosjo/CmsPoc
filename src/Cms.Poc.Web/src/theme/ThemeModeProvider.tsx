@@ -64,14 +64,16 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
     const cellBorder = isLight ? "1px solid rgba(16,24,40,0.06)" : "1px solid rgba(255,255,255,0.06)";
     const backgroundDefault = isLight ? "#F6F7F9" : "#1E1E1E";
     const backgroundPaper = isLight ? "#FFFFFF" : "#252526";
-    // No explicit ellipse size - that defaults to farthest-corner, which scales with the
-    // viewport so the wash reaches the whole page instead of fading out a few hundred
-    // pixels from its center (fixed px sizes made this only visible near the top-left).
+    // Modeled on Apple-style wallpaper gradients: color pools that read as distinct
+    // glassy discs rather than a diffuse wash - filled through most of their radius,
+    // then a brighter rim right at the edge, then a hard cutoff to transparent, instead
+    // of one long fade. Light mode keeps the same shape language but paler/airier;
+    // dark mode goes darker/richer rather than a bright glow.
     const backgroundGradient = isLight
-      ? "radial-gradient(at 10% -10%, rgba(91,110,245,0.14), transparent 55%), " +
-        "radial-gradient(at 90% 100%, rgba(0,172,193,0.10), transparent 60%)"
-      : "radial-gradient(at 10% -10%, rgba(0,122,204,0.22), transparent 55%), " +
-        "radial-gradient(at 90% 100%, rgba(123,97,255,0.16), transparent 60%)";
+      ? "radial-gradient(circle at 75% -10%, rgba(91,110,245,0.10) 0%, rgba(91,110,245,0.14) 45%, rgba(150,165,255,0.22) 60%, rgba(150,165,255,0.22) 63%, transparent 66%), " +
+        "radial-gradient(circle at 5% 100%, rgba(0,150,170,0.08) 0%, rgba(0,150,170,0.12) 45%, rgba(120,220,205,0.18) 60%, rgba(120,220,205,0.18) 63%, transparent 66%)"
+      : "radial-gradient(circle at 75% -10%, rgba(15,35,120,0.5) 0%, rgba(20,45,150,0.55) 45%, rgba(110,150,255,0.65) 60%, rgba(110,150,255,0.65) 63%, transparent 66%), " +
+        "radial-gradient(circle at 5% 100%, rgba(10,60,55,0.45) 0%, rgba(15,80,70,0.5) 45%, rgba(90,220,190,0.55) 60%, rgba(90,220,190,0.55) 63%, transparent 66%)";
 
     return createTheme({
       palette: {
