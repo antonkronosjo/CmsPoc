@@ -13,14 +13,25 @@ public sealed class PolymorphicQueryTests : IDisposable
     {
         var news = _fixture.Repository.Create(new NewsContent { Name = "HEJ", Heading = "Hello", Body = "World", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
         var @event = _fixture.Repository.Create(new EventContent { Name = "HEJ", Title = "T", Description = "D", StartDate = DateTime.UtcNow }, "en");
-        _fixture.Repository.Create(new NewsContent { Name = "SOMETHING_ELSE", Heading = "X", Body = "Y", RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent) }, "en");
+        var excluded = _fixture.Repository.Create(new NewsContent { Name = "SOMETHING_ELSE", Heading = "X", Body = "Y", RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent) }, "en");
 
-        var results = _fixture.Repository.Query<Content>("en").Where(x => x.Name == "HEJ").ToList();
+        // Name is culture-specific now, so it can't be used to filter before a
+        // language is resolved; Id is the supported root-level member instead.
+        var matchingIds = new[] { news.Id, @event.Id };
+        var results = _fixture.Repository.Query<Content>("en").Where(x => matchingIds.Contains(x.Id)).ToList();
 
         Assert.Equal(2, results.Count);
         Assert.Contains(results, c => c is NewsContent nc && nc.Id == news.Id && nc.RelatedContent == new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent));
         Assert.Contains(results, c => c is EventContent ec && ec.Id == @event.Id);
-        Assert.DoesNotContain(results, c => c.Name == "SOMETHING_ELSE");
+        Assert.DoesNotContain(results, c => c.Id == excluded.Id);
+    }
+
+    [Fact]
+    public void Query_over_Content_rejects_predicates_referencing_Name()
+    {
+        var query = _fixture.Repository.Query<Content>("en");
+
+        Assert.Throws<NotSupportedException>(() => query.Where(x => x.Name == "HEJ"));
     }
 
     [Fact]

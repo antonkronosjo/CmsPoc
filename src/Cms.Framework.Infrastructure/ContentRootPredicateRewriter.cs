@@ -6,14 +6,15 @@ namespace Cms.Framework.Infrastructure;
 /// <summary>
 /// Retargets a predicate written against the flat <see cref="Content"/> base
 /// class onto <see cref="ContentRoot{TContentType}"/>, the real EF entity it is answered
-/// against for <c>Query&lt;Content&gt;()</c>. Only <see cref="Content.Id"/>,
-/// <see cref="Content.Name"/> and <see cref="Content.Created"/> are
-/// supported: they are the only members that mean the same thing before a
-/// specific version/language has been resolved. <see cref="Content.Language"/>
-/// and <see cref="Content.VersionNumber"/> only exist on a hydrated,
-/// concrete-type projection, so referencing them here is a compile-time-valid
-/// but semantically meaningless query - rejected explicitly rather than
-/// silently mismapped.
+/// against for <c>Query&lt;Content&gt;()</c>. Only <see cref="Content.Id"/>
+/// and <see cref="Content.Created"/> are supported: they are the only
+/// members that mean the same thing before a specific version/language has
+/// been resolved. <see cref="Content.Name"/> is culture-specific and only
+/// exists per language branch, and <see cref="Content.Language"/> and
+/// <see cref="Content.VersionNumber"/> only exist on a hydrated,
+/// concrete-type projection, so referencing any of them here is a
+/// compile-time-valid but semantically meaningless query - rejected
+/// explicitly rather than silently mismapped.
 /// </summary>
 internal sealed class ContentRootPredicateRewriter<TContentType> : ExpressionVisitor
     where TContentType : struct, Enum
@@ -21,7 +22,6 @@ internal sealed class ContentRootPredicateRewriter<TContentType> : ExpressionVis
     private static readonly HashSet<string> SupportedMembers = new()
     {
         nameof(Content.Id),
-        nameof(Content.Name),
         nameof(Content.Created),
     };
 
@@ -45,7 +45,7 @@ internal sealed class ContentRootPredicateRewriter<TContentType> : ExpressionVis
             if (!SupportedMembers.Contains(node.Member.Name))
             {
                 throw new NotSupportedException(
-                    $"Query<Content>() predicates can only reference Content.Id, Content.Name or Content.Created. " +
+                    $"Query<Content>() predicates can only reference Content.Id or Content.Created. " +
                     $"'{node.Member.Name}' only exists once content has been resolved to a specific version and " +
                     $"language - query the concrete content type instead, or filter after the results are materialized.");
             }

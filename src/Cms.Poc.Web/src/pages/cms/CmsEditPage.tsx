@@ -209,16 +209,8 @@ function MetaItem({ label, value }: { label: string; value: ReactNode }) {
   );
 }
 
-function EditableName({ name, onChange, readOnly }: { name: string; onChange: (name: string) => void; readOnly?: boolean }) {
+function EditableName({ name, onChange }: { name: string; onChange: (name: string) => void }) {
   const [editing, setEditing] = useState(false);
-
-  if (readOnly) {
-    return (
-      <Tooltip title="The name is shared by all languages - edit it in the master language">
-        <Typography variant="h5">{name || "(untitled)"}</Typography>
-      </Tooltip>
-    );
-  }
 
   if (editing) {
     return (
@@ -248,11 +240,12 @@ function EditableName({ name, onChange, readOnly }: { name: string; onChange: (n
 }
 
 /// True when the draft differs from the saved schema in something this language may edit.
-/// Outside the master language only culture-specific values count: shared values are shown
-/// read-only from the saved schema and ignored by the backend.
+/// Name is culture-specific and always counts. Outside the master language, shared
+/// (non-culture-specific) property values are shown read-only from the saved schema and
+/// ignored by the backend.
 function hasEditableChanges(draft: UpdateContentSchema | undefined, schema: UpdateContentSchema | undefined, isMaster: boolean): boolean {
   if (!draft || !schema) return false;
-  if (isMaster && draft.metadata.name !== schema.metadata.name) return true;
+  if (draft.metadata.name !== schema.metadata.name) return true;
   return Object.entries(draft.properties).some(
     ([key, property]) =>
       (isMaster || property.cultureSpecific) && JSON.stringify(property.value) !== JSON.stringify(schema.properties[key]?.value),
@@ -342,7 +335,6 @@ function EditPanel({
           <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "flex-start" }}>
             <EditableName
               name={active.metadata.name}
-              readOnly={!isMaster}
               onChange={(name) => setDraft({ ...active, metadata: { ...active.metadata, name } })}
             />
             {!isNewLanguageBranch &&

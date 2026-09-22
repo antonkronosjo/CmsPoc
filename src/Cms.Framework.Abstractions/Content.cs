@@ -26,8 +26,9 @@ public abstract class Content
 
     /// <summary>
     /// The language this item was created in. Populated by the repository;
-    /// the shared (non-<see cref="CultureSpecificAttribute"/>) properties and
-    /// <see cref="Name"/> are only editable through this language.
+    /// the shared (non-<see cref="CultureSpecificAttribute"/>) properties are
+    /// only editable through this language. <see cref="Name"/> is
+    /// culture-specific and editable in every language.
     /// </summary>
     public string MasterLanguage { get; set; } = string.Empty;
 

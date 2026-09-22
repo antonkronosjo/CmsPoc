@@ -58,14 +58,15 @@ internal static class CodeEmitter
         sb.AppendLine("/// One version of the item's master-language branch. Holds both the");
         sb.AppendLine("/// language-invariant properties - the single place they are stored,");
         sb.AppendLine("/// every non-master branch resolves them from here rather than storing");
-        sb.AppendLine("/// its own copy - and the master language's own culture-specific text,");
-        sb.AppendLine("/// versioned together as one history.");
+        sb.AppendLine("/// its own copy - and the master language's own culture-specific text");
+        sb.AppendLine("/// (including its own <c>Name</c>), versioned together as one history.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine($"public sealed class {model.VersionTypeName}");
         sb.AppendLine("{");
         sb.AppendLine("    public int Id { get; set; }");
         sb.AppendLine("    public int RootId { get; set; }");
         sb.AppendLine($"    public global::Cms.Framework.Infrastructure.ContentRoot<{contentTypeEnum}> Root {{ get; set; }} = null!;");
+        sb.AppendLine("    public string Name { get; set; } = string.Empty;");
         sb.AppendLine("    public int VersionNumber { get; set; }");
         sb.AppendLine("    public global::System.DateTime Created { get; set; }");
         sb.AppendLine("    public global::System.DateTime? StartPublish { get; set; }");
@@ -88,18 +89,21 @@ internal static class CodeEmitter
         sb.AppendLine($"namespace {GeneratedNamespace};");
         sb.AppendLine();
         sb.AppendLine("/// <summary>");
-        sb.AppendLine("/// One version of one non-master-language branch. Holds only that");
-        sb.AppendLine("/// language's culture-specific text plus its own version number and");
-        sb.AppendLine("/// publish window - never the language-invariant properties. Those are");
-        sb.AppendLine("/// resolved live, at read time, from whichever version is currently");
+        sb.AppendLine("/// One version of one non-master-language branch. Holds that language's");
+        sb.AppendLine("/// own culture-specific text - including its own <c>Name</c>, stored and");
+        sb.AppendLine("/// editable independently per language, never copied from or resolved");
+        sb.AppendLine("/// against the master branch - plus its own version number and publish");
+        sb.AppendLine("/// window. The language-invariant properties are never stored here; they");
+        sb.AppendLine("/// are resolved live, at read time, from whichever version is currently");
         sb.AppendLine($"/// published (or, with nothing published, the latest version) on the");
-        sb.AppendLine($"/// item's master-language <see cref=\"{model.VersionTypeName}\"/> branch, so nothing is ever copied.");
+        sb.AppendLine($"/// item's master-language <see cref=\"{model.VersionTypeName}\"/> branch, so those are never copied.");
         sb.AppendLine("/// </summary>");
         sb.AppendLine($"public sealed class {model.TranslationTypeName}");
         sb.AppendLine("{");
         sb.AppendLine("    public int Id { get; set; }");
         sb.AppendLine("    public int RootId { get; set; }");
         sb.AppendLine($"    public global::Cms.Framework.Infrastructure.ContentRoot<{contentTypeEnum}> Root {{ get; set; }} = null!;");
+        sb.AppendLine("    public string Name { get; set; } = string.Empty;");
         sb.AppendLine("    public string Language { get; set; } = string.Empty;");
         sb.AppendLine("    public int VersionNumber { get; set; }");
         sb.AppendLine("    public global::System.DateTime Created { get; set; }");
@@ -132,6 +136,8 @@ internal static class CodeEmitter
         sb.AppendLine("        builder.HasKey(x => x.Id);");
         sb.AppendLine("        builder.HasOne(x => x.Root).WithMany().HasForeignKey(x => x.RootId).OnDelete(DeleteBehavior.Cascade);");
         sb.AppendLine("        builder.HasIndex(x => new { x.RootId, x.VersionNumber }).IsUnique();");
+        sb.AppendLine("        builder.Property(x => x.Name).IsRequired();");
+        sb.AppendLine("        builder.HasIndex(x => x.Name);");
         sb.AppendLine("        builder.Property(x => x.CreatedBy).HasMaxLength(256);");
         sb.AppendLine("        builder.Property(x => x.PublishedBy).HasMaxLength(256);");
         sb.AppendLine("    }");
@@ -147,6 +153,8 @@ internal static class CodeEmitter
         sb.AppendLine("        builder.HasKey(x => x.Id);");
         sb.AppendLine("        builder.HasOne(x => x.Root).WithMany().HasForeignKey(x => x.RootId).OnDelete(DeleteBehavior.Cascade);");
         sb.AppendLine("        builder.HasIndex(x => new { x.RootId, x.Language, x.VersionNumber }).IsUnique();");
+        sb.AppendLine("        builder.Property(x => x.Name).IsRequired();");
+        sb.AppendLine("        builder.HasIndex(x => x.Name);");
         sb.AppendLine("        builder.Property(x => x.CreatedBy).HasMaxLength(256);");
         sb.AppendLine("        builder.Property(x => x.PublishedBy).HasMaxLength(256);");
         sb.AppendLine("    }");
@@ -195,7 +203,7 @@ internal static class CodeEmitter
         sb.AppendLine($"    private static {C} ToMasterContent({V} v) => new {C}");
         sb.AppendLine("    {");
         sb.AppendLine("        Id = v.Root.Id,");
-        sb.AppendLine("        Name = v.Root.Name,");
+        sb.AppendLine("        Name = v.Name,");
         sb.AppendLine("        Language = v.Root.MasterLanguage,");
         sb.AppendLine("        MasterLanguage = v.Root.MasterLanguage,");
         sb.AppendLine("        VersionNumber = v.VersionNumber,");
@@ -213,7 +221,7 @@ internal static class CodeEmitter
         sb.AppendLine($"    private static {C} ToTranslationContent({Tr} t, {V} masterSource) => new {C}");
         sb.AppendLine("    {");
         sb.AppendLine("        Id = t.Root.Id,");
-        sb.AppendLine("        Name = t.Root.Name,");
+        sb.AppendLine("        Name = t.Name,");
         sb.AppendLine("        Language = t.Language,");
         sb.AppendLine("        MasterLanguage = t.Root.MasterLanguage,");
         sb.AppendLine("        VersionNumber = t.VersionNumber,");
@@ -246,7 +254,6 @@ internal static class CodeEmitter
         sb.AppendLine("    {");
         sb.AppendLine($"        var root = new global::Cms.Framework.Infrastructure.ContentRoot<{contentTypeEnum}>");
         sb.AppendLine("        {");
-        sb.AppendLine("            Name = content.Name,");
         sb.AppendLine("            ContentTypeKey = ContentTypeKey,");
         sb.AppendLine("            Created = global::System.DateTime.UtcNow,");
         sb.AppendLine("            MasterLanguage = language,");
@@ -256,6 +263,7 @@ internal static class CodeEmitter
         sb.AppendLine($"        var version = new {V}");
         sb.AppendLine("        {");
         sb.AppendLine("            Root = root,");
+        sb.AppendLine("            Name = content.Name,");
         sb.AppendLine("            VersionNumber = 1,");
         sb.AppendLine("            Created = root.Created,");
         sb.AppendLine("            CreatedBy = userId,");
@@ -281,6 +289,7 @@ internal static class CodeEmitter
         sb.AppendLine($"            var version = new {V}");
         sb.AppendLine("            {");
         sb.AppendLine("                Root = root,");
+        sb.AppendLine("                Name = content.Name,");
         sb.AppendLine("                VersionNumber = nextVersionNumber,");
         sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
         sb.AppendLine("                CreatedBy = userId,");
@@ -288,7 +297,6 @@ internal static class CodeEmitter
             sb.AppendLine($"                {p.Name} = content.{p.Name},");
         sb.AppendLine("            };");
         sb.AppendLine($"            db.Set<{V}>().Add(version);");
-        sb.AppendLine("            root.Name = content.Name;");
         sb.AppendLine("            db.SaveChanges();");
         sb.AppendLine("            return ToMasterContent(version);");
         sb.AppendLine("        }");
@@ -298,6 +306,7 @@ internal static class CodeEmitter
         sb.AppendLine($"            var translation = new {Tr}");
         sb.AppendLine("            {");
         sb.AppendLine("                Root = root,");
+        sb.AppendLine("                Name = content.Name,");
         sb.AppendLine("                Language = content.Language,");
         sb.AppendLine("                VersionNumber = nextVersionNumber,");
         sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
@@ -683,7 +692,7 @@ $@"COALESCE(
         return
 $@"SELECT
     r.Id AS Id,
-    r.Name AS Name,
+    v.Name AS Name,
     r.MasterLanguage AS Language,
     r.MasterLanguage AS MasterLanguage,
     v.VersionNumber AS VersionNumber,
@@ -701,7 +710,7 @@ UNION ALL
 
 SELECT
     r.Id AS Id,
-    r.Name AS Name,
+    t.Name AS Name,
     t.Language AS Language,
     r.MasterLanguage AS MasterLanguage,
     t.VersionNumber AS VersionNumber,

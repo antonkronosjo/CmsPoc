@@ -12,7 +12,6 @@ namespace Cms.Framework.Infrastructure;
 public class ContentRoot<TContentType> where TContentType : struct, Enum
 {
     public int Id { get; set; }
-    public string Name { get; set; } = string.Empty;
 
     /// <summary>Discriminator identifying the concrete content type. Stored by name as text.</summary>
     public TContentType ContentTypeKey { get; set; }
@@ -22,9 +21,11 @@ public class ContentRoot<TContentType> where TContentType : struct, Enum
     /// <summary>
     /// The language this item was created in. Its <c>{Type}Version</c> branch
     /// is always in this language, and it is the only language in which the
-    /// shared (non-culture-specific) properties and <see cref="Name"/> are
-    /// editable; every other language is a <c>{Type}Translation</c> branch
-    /// that resolves those values live from this one instead of storing them.
+    /// shared (non-culture-specific) properties are editable; every other
+    /// language is a <c>{Type}Translation</c> branch that resolves those
+    /// values live from this one instead of storing them. <c>Name</c> is
+    /// culture-specific: it is stored, and editable, on every branch's own
+    /// <c>{Type}Version</c>/<c>{Type}Translation</c> row, never here.
     /// </summary>
     public string MasterLanguage { get; set; } = string.Empty;
 }

@@ -90,6 +90,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
 
         var schema = ToUpdateSchema(master, masterMetadata, livePublishedVersionNumber: null, latestVersionNumber: null, blankCultureSpecific: true);
         schema.Metadata.Language = language;
+        schema.Metadata.Name = string.Empty;
         schema.Metadata.VersionNumber = 0;
         schema.Metadata.StartPublish = null;
         schema.Metadata.StopPublish = null;
@@ -143,10 +144,11 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             ?? _contentRepository.Query<Content>().Where(x => x.Id == request.Metadata.Id).FirstOrDefault()
             ?? throw new KeyNotFoundException($"Content '{request.Metadata.Id}' does not exist.");
 
-        // Shared properties and the name are only editable in the master
-        // language; edits to them from any other language are ignored.
+        // Shared properties are only editable in the master language; edits
+        // to them from any other language are ignored. Name is
+        // culture-specific and editable from every language.
         var isMaster = request.Metadata.Language == instance.MasterLanguage;
-        if (isMaster) instance.Name = request.Metadata.Name;
+        instance.Name = request.Metadata.Name;
         instance.Language = request.Metadata.Language;
         ApplyPropertyValues(instance, request.Properties, cultureSpecificOnly: !isMaster);
 

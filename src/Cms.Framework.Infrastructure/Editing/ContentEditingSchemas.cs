@@ -29,7 +29,7 @@ public sealed class UpdateContentMetadata<TContentType>
     public required TContentType ContentTypeKey { get; set; }
     public required string Language { get; set; }
 
-    /// <summary>The language the item was created in - the only one where shared properties and the name can be edited.</summary>
+    /// <summary>The language the item was created in - the only one where shared properties can be edited. <see cref="Name"/> is culture-specific and editable in every language.</summary>
     public required string MasterLanguage { get; set; }
     public required string Name { get; set; }
     public required int VersionNumber { get; set; }

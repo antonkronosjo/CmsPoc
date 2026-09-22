@@ -11,7 +11,13 @@ internal static class ContentTypeDiscovery
     private const string ContentTypeAttributeFullName = "Cms.Framework.Abstractions.ContentTypeAttribute";
     private const string CultureSpecificAttributeFullName = "Cms.Framework.Abstractions.CultureSpecificAttribute";
 
-    /// <summary>Names declared on <see cref="Cms.Framework.Abstractions.Content"/> itself - never re-emitted as Version/Translation columns.</summary>
+    /// <summary>
+    /// Names declared on <see cref="Cms.Framework.Abstractions.Content"/> itself - never
+    /// discovered as an attribute-driven Version/Translation column. <c>Name</c> is still
+    /// emitted onto every generated <c>{Type}Version</c>/<c>{Type}Translation</c> as a
+    /// built-in culture-specific column (see <see cref="CodeEmitter"/>), just not through
+    /// this attribute-scanning path since it isn't a per-type declared property.
+    /// </summary>
     private static readonly HashSet<string> BaseContentMemberNames = new()
     {
         "Id", "Name", "Language", "VersionNumber", "Created",
