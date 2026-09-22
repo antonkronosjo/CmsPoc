@@ -1,7 +1,5 @@
 using Cms.Framework.Abstractions.Users;
-using Cms.Framework.Infrastructure;
 using Cms.Framework.Infrastructure.Editing;
-using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
@@ -41,9 +39,6 @@ public static class CmsEndpointRouteBuilderExtensions
 
         group.MapGet("/types", (IContentEditingService<TContentType> editing)
             => editing.GetContentTypes());
-
-        group.MapGet("/languages", (IOptions<ContentRepositoryOptions> options)
-            => new { options.Value.DefaultLanguage, options.Value.SupportedLanguages });
 
         group.MapGet("/creationschema", (IContentEditingService<TContentType> editing, TContentType contentTypeKey, string language)
             => editing.GetCreationSchema(contentTypeKey, language));

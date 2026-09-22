@@ -11,6 +11,7 @@ builder.Services.AddCms<Cms.Poc.Domain.ContentTypeKey>(cms =>
     cms.UseSqlite("Data Source=cms-poc.db", typeof(Program).Assembly);
     cms.MigrateDatabase = true;
     cms.UseUserAdapter<Cms.Poc.Api.PocUserAdapter>();
+    cms.UseDatabaseSettingsStore();
 });
 builder.Services.AddCors(options =>
 {
@@ -32,6 +33,7 @@ if (app.Environment.IsDevelopment())
 app.UseCors();
 
 app.MapCms<Cms.Poc.Domain.ContentTypeKey>("/api/content");
+app.MapCmsSettings();
 
 // Lets the frontend know whether the caller is signed in and which CMS roles they hold.
 app.MapGet("/api/user", (ICmsUserAdapter users) =>

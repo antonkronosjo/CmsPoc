@@ -181,6 +181,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
           <DateTimePicker
             label={label}
             ampm={false}
+            format="YYYY-MM-DD HH:mm"
             value={valueDto.value ? dayjs.utc(valueDto.value as string).local() : null}
             onChange={(v) => handleChange(v ? v.utc().toISOString() : null)}
             disabled={disabled}

@@ -34,19 +34,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         _userAdapter = userAdapter;
     }
 
-    /// <summary>
-    /// Checks the current user holds <paramref name="requiredRole"/> and returns their
-    /// id for attribution. With no user adapter registered, user tracking is off:
-    /// nothing is enforced and <c>null</c> is returned.
-    /// </summary>
-    private string? Authorize(CmsRole requiredRole)
-    {
-        if (_userAdapter is null) return null;
-
-        var user = _userAdapter.GetCurrentUser() ?? throw new CmsUnauthenticatedException();
-        if (!user.IsInRole(requiredRole)) throw new CmsForbiddenException(requiredRole);
-        return user.Id;
-    }
+    private string? Authorize(CmsRole requiredRole) => CmsAuthorization.Authorize(_userAdapter, requiredRole);
 
     public IReadOnlyList<ContentTypeInfoDto> GetContentTypes()
         => _contentTypes.Select(x => new ContentTypeInfoDto { Key = x.ContentTypeKey.ToString(), Color = x.Color }).ToList();

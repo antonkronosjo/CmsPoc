@@ -1,6 +1,8 @@
 using System.Reflection;
 using Cms.Framework.Abstractions;
+using Cms.Framework.Abstractions.Settings;
 using Cms.Framework.Infrastructure.Editing;
+using Cms.Framework.Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -37,15 +39,20 @@ public static class CmsServiceCollectionExtensions
         services.AddDbContext<CmsDbContext<TContentType>>(databaseConfiguration);
         services.AddScoped<IContentRepository, ContentRepository<TContentType>>();
         services.AddScoped<IContentEditingService<TContentType>, ContentEditingService<TContentType>>();
-        if (!builder.SupportedLanguages.Contains(builder.DefaultLanguage))
-            throw new InvalidOperationException(
-                $"DefaultLanguage '{builder.DefaultLanguage}' must be one of SupportedLanguages ({string.Join(", ", builder.SupportedLanguages)}).");
 
-        services.Configure<ContentRepositoryOptions>(o =>
+        var languageSettings = new LanguageSettings
         {
-            o.DefaultLanguage = builder.DefaultLanguage;
-            o.SupportedLanguages = builder.SupportedLanguages;
-        });
+            DefaultLanguage = builder.DefaultLanguage,
+            SupportedLanguages = builder.SupportedLanguages,
+        };
+        languageSettings.Validate();
+
+        if (builder.DatabaseSettingsStoreEnabled)
+            services.AddScoped<ICmsSettingsStore, EfCmsSettingsStore<TContentType>>();
+
+        builder.ConfigureSettings(languageSettings);
+        services.AddScoped<ICmsSettingsService, CmsSettingsService>();
+
         foreach (var registration in builder.ServiceRegistrations)
             registration(services);
 

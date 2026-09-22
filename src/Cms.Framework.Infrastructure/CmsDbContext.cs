@@ -1,4 +1,5 @@
 using Cms.Framework.Abstractions;
+using Cms.Framework.Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
@@ -34,6 +35,8 @@ public sealed class CmsDbContext<TContentType> : DbContext where TContentType : 
 
     public DbSet<ContentRoot<TContentType>> ContentRoots => Set<ContentRoot<TContentType>>();
 
+    public DbSet<CmsSettingEntry> SettingEntries => Set<CmsSettingEntry>();
+
     protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
     {
         // Applies to every generated entity, so the generator needs no
@@ -46,6 +49,7 @@ public sealed class CmsDbContext<TContentType> : DbContext where TContentType : 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.ApplyConfiguration(new ContentRootConfiguration<TContentType>());
+        modelBuilder.ApplyConfiguration(new CmsSettingEntryConfiguration());
 
         foreach (var assembly in _contentTypes.Select(m => m.ClrType.Assembly).Distinct())
         {

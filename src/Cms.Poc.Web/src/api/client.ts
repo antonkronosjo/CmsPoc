@@ -169,7 +169,14 @@ export interface CurrentUserDto {
 export const api = {
   getCurrentUser: () => fetch(`${API_BASE}/api/user`).then((r) => json<CurrentUserDto>(r)),
 
-  getLanguages: () => fetch(`${API_BASE}/api/content/languages`).then((r) => json<LanguageSettingsDto>(r)),
+  getLanguages: () => fetch(`${API_BASE}/api/settings/languages`).then((r) => json<LanguageSettingsDto>(r)),
+
+  updateLanguages: (request: LanguageSettingsDto) =>
+    fetch(`${API_BASE}/api/settings/languages`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(request),
+    }).then(ensureOk),
 
   getContentTypes: () => fetch(`${API_BASE}/api/content/types`).then((r) => json<ContentTypeInfo[]>(r)),
 

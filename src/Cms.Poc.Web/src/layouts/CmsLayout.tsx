@@ -1,6 +1,8 @@
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar } from "@mui/material";
-import { Add, ViewList } from "@mui/icons-material";
+import { Add, Settings, ViewList } from "@mui/icons-material";
+import { useUser } from "../context/UserContext";
+import { CmsRole } from "../api/client";
 
 const NAV_ICON_MIN_WIDTH = 32;
 
@@ -9,10 +11,13 @@ const DRAWER_WIDTH = 220;
 const NAV_ITEMS = [
   { to: "/cms", label: "Browse", icon: <ViewList />, exact: true },
   { to: "/cms/create", label: "Create", icon: <Add />, exact: false },
+  { to: "/cms/settings", label: "Settings", icon: <Settings />, exact: false, adminOnly: true },
 ];
 
 export default function CmsLayout() {
   const location = useLocation();
+  const { isInRole } = useUser();
+  const navItems = NAV_ITEMS.filter((item) => !item.adminOnly || isInRole(CmsRole.Admin));
 
   return (
     <Box sx={{ display: "flex", flex: 1 }}>
@@ -32,7 +37,7 @@ export default function CmsLayout() {
       >
         <Toolbar />
         <List sx={{ px: 1.5, py: 1, display: "flex", flexDirection: "column", gap: 0.25 }}>
-          {NAV_ITEMS.map((item) => {
+          {navItems.map((item) => {
             const selected = item.exact ? location.pathname === item.to : location.pathname.startsWith(item.to);
             return (
               <ListItemButton
@@ -71,7 +76,9 @@ export default function CmsLayout() {
         </List>
       </Drawer>
       <Box component="main" sx={{ flex: 1, p: 3, minWidth: 0 }}>
-        <Outlet />
+        <Box sx={{ maxWidth: 1200 }}>
+          <Outlet />
+        </Box>
       </Box>
     </Box>
   );

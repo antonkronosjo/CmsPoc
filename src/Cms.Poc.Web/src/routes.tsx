@@ -7,6 +7,7 @@ import { useLanguages } from "./hooks/useLanguages";
 import CmsBrowsePage from "./pages/cms/CmsBrowsePage";
 import CmsCreatePage from "./pages/cms/CmsCreatePage";
 import CmsEditPage from "./pages/cms/CmsEditPage";
+import CmsSettingsPage from "./pages/cms/CmsSettingsPage";
 import EventPage from "./pages/contentpages/EventPage";
 import NewsPage from "./pages/contentpages/NewsPage";
 import SpecialNewsPage from "./pages/contentpages/SpecialNewsPage";
@@ -35,6 +36,7 @@ export default function AppRoutes() {
           <Route path="create" element={<CmsCreatePage />} />
           <Route path="edit/:contentId" element={<CmsEditPage />} />
           <Route path="edit/:contentId/:versionId" element={<CmsEditPage />} />
+          <Route path="settings" element={<CmsSettingsPage />} />
         </Route>
       </Route>
     </Routes>

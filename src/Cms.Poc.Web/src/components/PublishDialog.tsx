@@ -111,6 +111,7 @@ export default function PublishDialog({
             <DateTimePicker
               label="Publish at"
               ampm={false}
+              format="YYYY-MM-DD HH:mm"
               value={startPublish ? dayjs.utc(startPublish).local() : null}
               onChange={(v) => setStartPublish(v ? v.utc().toISOString() : null)}
               slotProps={{ textField: { fullWidth: true, helperText: "Defaults to now - clear to publish immediately" } }}
@@ -118,6 +119,7 @@ export default function PublishDialog({
             <DateTimePicker
               label="Unpublish at"
               ampm={false}
+              format="YYYY-MM-DD HH:mm"
               value={stopPublish ? dayjs.utc(stopPublish).local() : null}
               onChange={(v) => setStopPublish(v ? v.utc().toISOString() : null)}
               slotProps={{ textField: { fullWidth: true, helperText: "Leave empty for no scheduled end" } }}

@@ -1,5 +1,7 @@
 using System.Reflection;
+using Cms.Framework.Abstractions.Settings;
 using Cms.Framework.Abstractions.Users;
+using Cms.Framework.Infrastructure.Settings;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -14,6 +16,7 @@ public sealed class CmsBuilder
     internal Action<DbContextOptionsBuilder>? DatabaseConfiguration { get; private set; }
     internal IReadOnlyList<Assembly> ExtraContentAssemblies => _extraContentAssemblies;
     internal IReadOnlyList<Action<IServiceCollection>> ServiceRegistrations => _serviceRegistrations;
+    internal bool DatabaseSettingsStoreEnabled { get; private set; }
 
     /// <summary>Language pre-selected when creating new content.</summary>
     public string DefaultLanguage { get; set; } = "en";
@@ -57,6 +60,38 @@ public sealed class CmsBuilder
     /// </summary>
     public CmsBuilder UseUserAdapter<TAdapter>() where TAdapter : class, ICmsUserAdapter
         => ConfigureServices(services => services.AddScoped<ICmsUserAdapter, TAdapter>());
+
+    /// <summary>
+    /// Turns on persisted CMS settings (for example the available languages),
+    /// stored in the CMS database. Optional - without it, or without
+    /// <see cref="UseSettingsStore{TStore}"/>, every setting stays at whatever
+    /// hard-coded default was configured (for example <see cref="DefaultLanguage"/>
+    /// / <see cref="SupportedLanguages"/>) and cannot be changed at runtime.
+    /// </summary>
+    public CmsBuilder UseDatabaseSettingsStore()
+    {
+        DatabaseSettingsStoreEnabled = true;
+        return this;
+    }
+
+    /// <summary>
+    /// Turns on persisted CMS settings using a custom store (for example one
+    /// backed by something other than the CMS database), registered scoped.
+    /// Mutually exclusive with <see cref="UseDatabaseSettingsStore"/>.
+    /// </summary>
+    public CmsBuilder UseSettingsStore<TStore>() where TStore : class, ICmsSettingsStore
+        => ConfigureServices(services => services.AddScoped<ICmsSettingsStore, TStore>());
+
+    /// <summary>
+    /// Registers a CMS setting of type <typeparamref name="TSettings"/> with
+    /// <paramref name="defaultValue"/> as its hard-coded fallback, resolvable
+    /// afterwards as <c>CmsSettings&lt;TSettings&gt;</c>. This is how new,
+    /// add-on-defined settings plug into the same optional/DB-backed
+    /// mechanism as the CMS's own built-in settings.
+    /// </summary>
+    public CmsBuilder ConfigureSettings<TSettings>(TSettings defaultValue) where TSettings : class
+        => ConfigureServices(services => services.AddScoped(sp =>
+            new CmsSettings<TSettings>(sp.GetService<ICmsSettingsStore>(), defaultValue)));
 
     /// <summary>
     /// Lets an add-on (such as an adapter shortcut) register the extra services
