@@ -40,6 +40,9 @@ public sealed class UpdateContentMetadata<TContentType>
     /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
     public int? LivePublishedVersionNumber { get; set; }
 
+    /// <summary>The most recent version number for this branch, or <c>null</c> if the branch has no history yet - may differ from <see cref="VersionNumber"/>.</summary>
+    public int? LatestVersionNumber { get; set; }
+
     /// <summary>Languages that have a branch (at least one version) for the item.</summary>
     public List<string> Languages { get; set; } = new();
 }
@@ -78,6 +81,9 @@ public sealed class ContentSummaryDto<TContentType>
 
     /// <summary>The version number currently live for this content item, or <c>null</c> if none is - may differ from <see cref="VersionNumber"/>.</summary>
     public int? LivePublishedVersionNumber { get; set; }
+
+    /// <summary>The most recent version number for this branch, or <c>null</c> if the branch has no history yet - may differ from <see cref="VersionNumber"/>.</summary>
+    public int? LatestVersionNumber { get; set; }
 
     /// <summary>Languages that have a branch (at least one version) for the item. Filled by search and summary lookups, empty for history rows.</summary>
     public List<string> Languages { get; set; } = new();

@@ -46,7 +46,9 @@ public static class CmsEndpointRouteBuilderExtensions
         group.MapPost("",(IContentEditingService<TContentType> editing, CreateContentSchema<TContentType> request) =>
         {
             var created = editing.Create(request);
-            return editing.GetUpdateSchema(created.Id, created.Language);
+            // Reload the exact version just created, not whichever version GetUpdateSchema would
+            // otherwise default to (it prefers the published version when none is requested).
+            return editing.GetUpdateSchema(created.Id, created.Language, created.VersionNumber);
         });
 
         group.MapGet("/{id:int}/updateschema", (IContentEditingService<TContentType> editing, int id, string language, int? version)
@@ -54,8 +56,9 @@ public static class CmsEndpointRouteBuilderExtensions
 
         group.MapPut("/{id:int}", (IContentEditingService<TContentType> editing, int id, UpdateContentSchema<TContentType> request) =>
         {
-            editing.Update(request);
-            return editing.GetUpdateSchema(id, request.Metadata.Language);
+            var updated = editing.Update(request);
+            // Same reasoning as Create above: show the version just saved, regardless of publish state.
+            return editing.GetUpdateSchema(id, request.Metadata.Language, updated.VersionNumber);
         });
 
         group.MapGet("/{id:int}", (IContentEditingService<TContentType> editing, int id, string? language)

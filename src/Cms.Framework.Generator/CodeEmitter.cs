@@ -475,11 +475,27 @@ internal static class CodeEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
 
-        // GetLivePublishedVersionNumber
-        sb.AppendLine($"    public int? GetLivePublishedVersionNumber(CmsDbContext<{contentTypeEnum}> db, int rootId, string language)");
+        // GetVersionNumber
+        sb.AppendLine($"    public int? GetVersionNumber(CmsDbContext<{contentTypeEnum}> db, int rootId, string language, bool publishedOnly)");
         sb.AppendLine("    {");
         sb.AppendLine("        var masterLanguage = db.ContentRoots.Where(r => r.Id == rootId).Select(r => r.MasterLanguage).FirstOrDefault();");
         sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine();
+        sb.AppendLine("        if (!publishedOnly)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            if (language == masterLanguage)");
+        sb.AppendLine($"                return db.Set<{V}>()");
+        sb.AppendLine("                    .Where(v => v.RootId == rootId)");
+        sb.AppendLine("                    .OrderByDescending(v => v.VersionNumber)");
+        sb.AppendLine("                    .Select(v => (int?)v.VersionNumber)");
+        sb.AppendLine("                    .FirstOrDefault();");
+        sb.AppendLine();
+        sb.AppendLine($"            return db.Set<{Tr}>()");
+        sb.AppendLine("                .Where(t => t.RootId == rootId && t.Language == language)");
+        sb.AppendLine("                .OrderByDescending(t => t.VersionNumber)");
+        sb.AppendLine("                .Select(t => (int?)t.VersionNumber)");
+        sb.AppendLine("                .FirstOrDefault();");
+        sb.AppendLine("        }");
         sb.AppendLine();
         sb.AppendLine("        if (language == masterLanguage)");
         sb.AppendLine($"            return db.Set<{V}>()");

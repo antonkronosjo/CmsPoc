@@ -44,8 +44,12 @@ public interface IContentTypeStore<T, TContentType>
     /// <summary>The most recent <see cref="Content.Created"/> across every version, in every language branch, of each given item.</summary>
     IReadOnlyDictionary<int, DateTime> QueryLastModified(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
-    /// <summary>The version number currently live for this root's branch in <paramref name="language"/>, or <c>null</c> if none is.</summary>
-    int? GetLivePublishedVersionNumber(CmsDbContext<TContentType> db, int rootId, string language);
+    /// <summary>
+    /// The version number for this root's branch in <paramref name="language"/>. When <paramref name="publishedOnly"/>
+    /// is <c>false</c>, this is the most recent version number. When <c>true</c>, this is whichever version is
+    /// currently live (per its publish window), or <c>null</c> if none is.
+    /// </summary>
+    int? GetVersionNumber(CmsDbContext<TContentType> db, int rootId, string language, bool publishedOnly);
 
     /// <summary>Whether a version with this number exists for this root in <paramref name="language"/>.</summary>
     bool VersionExists(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber);

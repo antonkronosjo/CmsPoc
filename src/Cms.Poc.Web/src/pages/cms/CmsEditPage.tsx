@@ -233,8 +233,9 @@ function EditPanel({
   );
 
   const isNewLanguageBranch = active.metadata.versionNumber === 0;
-  const isViewingHistoricalVersion = version !== undefined && version !== active.metadata.versionNumber;
   const isLive = active.metadata.versionNumber === active.metadata.livePublishedVersionNumber;
+  const isNotLatest =
+    active.metadata.latestVersionNumber != null && active.metadata.versionNumber !== active.metadata.latestVersionNumber;
 
   return (
     <>
@@ -271,6 +272,7 @@ function EditPanel({
                         publishActions.openPublishDialog({
                           versionNumber: active.metadata.versionNumber,
                           currentLiveVersionNumber: active.metadata.livePublishedVersionNumber,
+                          latestVersionNumber: active.metadata.latestVersionNumber,
                         })
                       }
                     >
@@ -327,9 +329,16 @@ function EditPanel({
           )}
         </Box>
         <Box sx={{ borderBottom: "1px dotted", borderColor: "divider", my: 2.5 }} />
-        {isViewingHistoricalVersion && (
+        {isNotLatest && !isLive && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            You're viewing historical version {version}. Saving will create a new version based on this data.
+            You're viewing version {active.metadata.versionNumber}, not the latest (v{active.metadata.latestVersionNumber}). Saving
+            will create a new version based on this data.
+          </Alert>
+        )}
+        {isNotLatest && isLive && (
+          <Alert severity="info" sx={{ mb: 2 }}>
+            You're viewing version {active.metadata.versionNumber}, which is currently published, but a newer draft (v
+            {active.metadata.latestVersionNumber}) exists.
           </Alert>
         )}
         <Stack spacing={2}>
@@ -345,6 +354,18 @@ function EditPanel({
               setDraft({ ...active, properties: { ...active.properties, [key]: { ...active.properties[key], value } } })
             }
             onSubmit={async () => {
+              // Only warn for a genuinely stale version - one that's neither the latest draft nor
+              // the currently published version. Editing the published version is a normal path
+              // (it's what the edit view loads by default), so it shouldn't be confirmed here.
+              if (isNotLatest && !isLive) {
+                const ok = await publishActions.confirm({
+                  title: "Save over a newer version?",
+                  message: `Version ${active.metadata.versionNumber} is not the latest (v${active.metadata.latestVersionNumber}). Saving now will create version ${active.metadata.latestVersionNumber! + 1} based on this older data - any changes made since v${active.metadata.versionNumber} won't be reflected. Continue?`,
+                  confirmText: "Save anyway",
+                  confirmColor: "warning",
+                });
+                if (!ok) return;
+              }
               const updated = await api.updateContent(id, active);
               setDraft(undefined);
               queryClient.setQueryData(["update-schema", id, language, undefined], updated);

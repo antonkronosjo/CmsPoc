@@ -10,6 +10,7 @@ import ConfirmDialog, { useConfirmDialog } from "./ConfirmDialog";
 interface PublishTarget {
   versionNumber: number;
   currentLiveVersionNumber?: number | null;
+  latestVersionNumber?: number | null;
 }
 
 interface UsePublishActionsOptions {
@@ -43,11 +44,19 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
 
   async function confirmPublish() {
     if (!publishTarget) return;
-    const { versionNumber, currentLiveVersionNumber } = publishTarget;
-    if (currentLiveVersionNumber != null && versionNumber < currentLiveVersionNumber) {
+    const { versionNumber, currentLiveVersionNumber, latestVersionNumber } = publishTarget;
+    const isOlderThanLive = currentLiveVersionNumber != null && versionNumber < currentLiveVersionNumber;
+    const isOlderThanLatest = latestVersionNumber != null && versionNumber < latestVersionNumber;
+    if (isOlderThanLive || isOlderThanLatest) {
+      const message =
+        isOlderThanLive && isOlderThanLatest
+          ? `Version ${versionNumber} is older than both the currently published version (v${currentLiveVersionNumber}) and the latest draft (v${latestVersionNumber}). Publishing it will replace the live content with this older version. Are you sure you want to continue?`
+          : isOlderThanLive
+            ? `Version ${versionNumber} is older than the currently published version ${currentLiveVersionNumber}. Publishing it will replace the live content with this older version. Are you sure you want to continue?`
+            : `Version ${versionNumber} is older than the latest draft (v${latestVersionNumber}). Publishing it will not include any newer changes. Are you sure you want to continue?`;
       const ok = await confirm({
         title: "Publish an older version?",
-        message: `Version ${versionNumber} is older than the currently published version ${currentLiveVersionNumber}. Publishing it will replace the live content with this older version. Are you sure you want to continue?`,
+        message,
         confirmText: "Publish anyway",
         confirmColor: "warning",
       });
@@ -80,6 +89,7 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
     closePublishDialog,
     confirmPublish,
     unpublish,
+    confirm,
     confirmDialogProps,
   };
 }

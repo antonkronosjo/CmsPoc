@@ -59,14 +59,25 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             var historical = metadata.QueryHistory(_db, id, language).SingleOrDefault(x => x.VersionNumber == version.Value)
                 ?? throw new KeyNotFoundException($"Version '{version.Value}' of content '{id}' does not exist in language '{language}'.");
 
-            return ToUpdateSchema(historical, metadata, metadata.GetLivePublishedVersionNumber(_db, id, language));
+            return ToUpdateSchema(
+                historical,
+                metadata,
+                metadata.GetVersionNumber(_db, id, language, publishedOnly: true),
+                metadata.GetVersionNumber(_db, id, language, publishedOnly: false));
         }
 
-        var current = _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
+        // No specific version requested: show whatever is currently published, falling
+        // back to the latest draft when nothing is published yet - same preference as GetSummary.
+        var current = _contentRepository.Query<Content>(language, publishedOnly: true).Where(x => x.Id == id).FirstOrDefault()
+            ?? _contentRepository.Query<Content>(language).Where(x => x.Id == id).FirstOrDefault();
         if (current is not null)
         {
             var metadata = ResolveContentTypeByClrType(current.GetType());
-            return ToUpdateSchema(current, metadata, metadata.GetLivePublishedVersionNumber(_db, id, language));
+            return ToUpdateSchema(
+                current,
+                metadata,
+                metadata.GetVersionNumber(_db, id, language, publishedOnly: true),
+                metadata.GetVersionNumber(_db, id, language, publishedOnly: false));
         }
         // The content exists but this language has no branch yet. Start from the
         // master-language projection so the shared values are shown as they are;
@@ -77,7 +88,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var masterMetadata = ResolveContentTypeByClrType(master.GetType());
 
-        var schema = ToUpdateSchema(master, masterMetadata, livePublishedVersionNumber: null, blankCultureSpecific: true);
+        var schema = ToUpdateSchema(master, masterMetadata, livePublishedVersionNumber: null, latestVersionNumber: null, blankCultureSpecific: true);
         schema.Metadata.Language = language;
         schema.Metadata.VersionNumber = 0;
         schema.Metadata.StartPublish = null;
@@ -85,7 +96,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return schema;
     }
 
-    private UpdateContentSchema<TContentType> ToUpdateSchema(Content content, IContentTypeMetadata<TContentType> metadata, int? livePublishedVersionNumber, bool blankCultureSpecific = false)
+    private UpdateContentSchema<TContentType> ToUpdateSchema(Content content, IContentTypeMetadata<TContentType> metadata, int? livePublishedVersionNumber, int? latestVersionNumber, bool blankCultureSpecific = false)
         => new()
         {
             Metadata = new UpdateContentMetadata<TContentType>
@@ -100,6 +111,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
                 StartPublish = content.StartPublish,
                 StopPublish = content.StopPublish,
                 LivePublishedVersionNumber = livePublishedVersionNumber,
+                LatestVersionNumber = latestVersionNumber,
                 Languages = LanguagesOf(metadata, content.Id),
             },
             Properties = BuildPropertySchema(content.GetType(), content, blankCultureSpecific),
@@ -173,7 +185,10 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         if (content is null) return null;
 
         var metadata = ResolveContentTypeByClrType(content.GetType());
-        var summary = ToSummary(content, metadata.GetLivePublishedVersionNumber(_db, id, content.Language));
+        var summary = ToSummary(
+            content,
+            metadata.GetVersionNumber(_db, id, content.Language, publishedOnly: true),
+            metadata.GetVersionNumber(_db, id, content.Language, publishedOnly: false));
         AttachLanguages([summary]);
         AttachRootCreated([summary]);
         ResolveUsers([summary]);
@@ -196,7 +211,14 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             results = results.Where(x => x.Name.Contains(query, StringComparison.OrdinalIgnoreCase)).ToList();
 
         var summaries = results
-            .Select(content => ToSummary(content, ResolveContentTypeByClrType(content.GetType()).GetLivePublishedVersionNumber(_db, content.Id, content.Language)))
+            .Select(content =>
+            {
+                var metadata = ResolveContentTypeByClrType(content.GetType());
+                return ToSummary(
+                    content,
+                    metadata.GetVersionNumber(_db, content.Id, content.Language, publishedOnly: true),
+                    metadata.GetVersionNumber(_db, content.Id, content.Language, publishedOnly: false));
+            })
             .ToList();
 
         if (contentTypeKey is { } typeFilter)
@@ -253,9 +275,10 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
         var branch = language ?? root.MasterLanguage;
-        var livePublishedVersionNumber = metadata.GetLivePublishedVersionNumber(_db, id, branch);
+        var livePublishedVersionNumber = metadata.GetVersionNumber(_db, id, branch, publishedOnly: true);
+        var latestVersionNumber = metadata.GetVersionNumber(_db, id, branch, publishedOnly: false);
 
-        var history = metadata.QueryHistory(_db, id, language).Select(content => ToSummary(content, livePublishedVersionNumber)).ToList();
+        var history = metadata.QueryHistory(_db, id, language).Select(content => ToSummary(content, livePublishedVersionNumber, latestVersionNumber)).ToList();
         ResolveUsers(history);
         return history;
     }
@@ -287,7 +310,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
-        var live = metadata.GetLivePublishedVersionNumber(_db, id, language);
+        var live = metadata.GetVersionNumber(_db, id, language, publishedOnly: true);
         if (live is null) return;
 
         metadata.StopActivePublish(_db, id, language, DateTime.UtcNow, userId);
@@ -326,7 +349,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
     private static UserRefDto? ToUserRef(string? userId)
         => userId is null ? null : new UserRefDto { Id = userId };
 
-    private ContentSummaryDto<TContentType> ToSummary(Content content, int? livePublishedVersionNumber)
+    private ContentSummaryDto<TContentType> ToSummary(Content content, int? livePublishedVersionNumber, int? latestVersionNumber)
     {
         var metadata = ResolveContentTypeByClrType(content.GetType());
         return new ContentSummaryDto<TContentType>
@@ -341,6 +364,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             StartPublish = content.StartPublish,
             StopPublish = content.StopPublish,
             LivePublishedVersionNumber = livePublishedVersionNumber,
+            LatestVersionNumber = latestVersionNumber,
             CreatedBy = ToUserRef(content.CreatedBy),
             PublishedBy = ToUserRef(content.PublishedBy),
             Properties = GetContentProperties(content.GetType()).ToDictionary(p => p.Name, p => p.GetValue(content)),

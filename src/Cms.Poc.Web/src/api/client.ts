@@ -61,6 +61,8 @@ export interface UpdateContentMetadata {
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
   livePublishedVersionNumber: number | null;
+  /// The most recent version number for this branch, or null if the branch has no history yet - may differ from versionNumber.
+  latestVersionNumber: number | null;
   /// Languages that have a version branch.
   languages: string[];
 }
@@ -103,6 +105,8 @@ export interface ContentSummaryDto {
   stopPublish: string | null;
   /// The version number currently live for this content item, or null if none is - may differ from versionNumber.
   livePublishedVersionNumber: number | null;
+  /// The most recent version number for this branch, or null if the branch has no history yet - may differ from versionNumber.
+  latestVersionNumber: number | null;
   /// Languages that have a version branch (empty for version-history rows).
   languages: string[];
   /// Each language in `languages`'s own publish state, resolved live (empty for version-history rows).
