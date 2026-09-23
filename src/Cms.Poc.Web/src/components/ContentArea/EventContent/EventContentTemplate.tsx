@@ -2,18 +2,18 @@ import { Card, CardContent, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import ContentTypeChip from "../../ContentTypeChip";
-import { useContentTypeColor } from "../../../hooks/useContentTypes";
 import { getProperty, type ContentTemplateProps } from "../types";
+
+const ACCENT_COLOR = "#5B6EF5";
 
 export default function EventContentTemplate({ content }: ContentTemplateProps) {
   const { t } = useTranslation();
   const title = getProperty(content, "Title") || content.name;
   const description = getProperty(content, "Description");
   const startDate = getProperty(content, "StartDate");
-  const color = useContentTypeColor(content.contentTypeKey);
 
   return (
-    <Card sx={{ height: "100%", borderTop: color ? `4px solid ${color}` : undefined }}>
+    <Card sx={{ height: "100%", borderTop: `4px solid ${ACCENT_COLOR}` }}>
       <CardContent>
         <ContentTypeChip contentTypeKey={content.contentTypeKey} label={t("contentType.event")} sx={{ mb: 1 }} />
         <Typography variant="h6">{title}</Typography>

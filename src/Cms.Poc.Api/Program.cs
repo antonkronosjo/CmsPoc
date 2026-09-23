@@ -6,13 +6,15 @@ using Cms.Framework.Sqlite;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddOpenApi();
-builder.Services.AddCms<Cms.Poc.Domain.ContentTypeKey>(cms =>
-{
-    cms.UseSqlite("Data Source=cms-poc.db", typeof(Program).Assembly);
-    cms.MigrateDatabase = true;
-    cms.UseUserAdapter<Cms.Poc.Api.PocUserAdapter>();
-    cms.UseDatabaseSettingsStore();
-});
+
+        //CMS: Register CMS service
+        builder.Services.AddCms<Cms.Poc.Domain.ContentTypeKey>(cms =>
+        {
+            cms.UseSqlite("Data Source=cms-poc.db", typeof(Program).Assembly); //CMS: Use SqlLite db
+            cms.MigrateDatabase = true;                                        //CMS: Automatic migrations
+            cms.UseUserAdapter<Cms.Poc.Api.PocUserAdapter>();                  //CMS: Register user adapter
+            cms.UseDatabaseSettingsStore();                                    //CMS: Store cms-settings in CMS database
+        });
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy => policy
@@ -32,8 +34,10 @@ if (app.Environment.IsDevelopment())
 
 app.UseCors();
 
-app.MapCms<Cms.Poc.Domain.ContentTypeKey>("/api/content");
-app.MapCmsSettings();
+            //CMS: Map endpoints for CRUD-operation in admin UI
+            app.MapCms<Cms.Poc.Domain.ContentTypeKey>("/api/content");
+            //CMS: Map endpoint for CRUD-operations for CMS-settings stored in database
+            app.MapCmsSettings();
 
 // Lets the frontend know whether the caller is signed in, their display name, and which CMS roles they hold.
 app.MapGet("/api/user", (ICmsUserAdapter users) =>

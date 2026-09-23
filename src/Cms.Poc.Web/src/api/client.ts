@@ -26,10 +26,9 @@ export interface ContentPropertyValueDto {
   value: unknown;
 }
 
-/// A registered content type. color is the hex code from the backend's [ContentType(Color = ...)], or null if none was set.
+/// A registered content type.
 export interface ContentTypeInfo {
   key: string;
-  color: string | null;
 }
 
 export interface LanguageSettingsDto {

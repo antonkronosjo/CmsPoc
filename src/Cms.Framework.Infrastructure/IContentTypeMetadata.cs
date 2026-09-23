@@ -1,6 +1,4 @@
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Text.RegularExpressions;
 using Cms.Framework.Abstractions;
 
 namespace Cms.Framework.Infrastructure;
@@ -29,9 +27,6 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
 {
     TContentType ContentTypeKey { get; }
     Type ClrType { get; }
-
-    /// <summary>The hex color from <see cref="ContentTypeAttribute.Color"/>, or <c>null</c> if none was set.</summary>
-    string? Color { get; }
 
     /// <summary>
     /// Hydrates full flat objects for the given root ids, in the given
@@ -115,19 +110,10 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
     {
         _store = store;
         ContentTypeKey = store.ContentTypeKey;
-
-        var color = typeof(T).GetCustomAttribute<ContentTypeAttribute>(inherit: false)?.Color;
-        if (color is not null && !HexColor.IsMatch(color))
-            throw new InvalidOperationException(
-                $"[ContentType(Color = \"{color}\")] on {typeof(T).Name} is not a valid hex color; expected #RGB or #RRGGBB.");
-        Color = color;
     }
-
-    private static readonly Regex HexColor = new("^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$", RegexOptions.Compiled);
 
     public TContentType ContentTypeKey { get; }
     public Type ClrType => typeof(T);
-    public string? Color { get; }
 
     public IReadOnlyList<Content> QueryByIds(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids, string? language, bool publishedOnly = false)
         => _store.QueryCurrent(db, language, publishedOnly)

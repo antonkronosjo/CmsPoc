@@ -23,15 +23,6 @@ public sealed class ContentEditingServiceTests : IDisposable
     }
 
     [Fact]
-    public void GetContentTypes_exposes_the_color_from_the_ContentType_attribute()
-    {
-        var types = _fixture.Editing.GetContentTypes().ToDictionary(t => t.Key, t => t.Color);
-
-        Assert.Equal("#6B7280", types[nameof(NewsContent)]);
-        Assert.Equal("#5B6EF5", types[nameof(EventContent)]);
-    }
-
-    [Fact]
     public void Create_by_type_name_persists_content_from_a_property_dictionary()
     {
         var schema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");

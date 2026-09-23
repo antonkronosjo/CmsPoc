@@ -1,10 +1,9 @@
 namespace Cms.Framework.Infrastructure.Editing;
 
-/// <summary>A registered content type as listed to the UI: its key and the optional hex color from <c>[ContentType(Color = ...)]</c>.</summary>
+/// <summary>A registered content type as listed to the UI.</summary>
 public sealed class ContentTypeInfoDto
 {
     public required string Key { get; set; }
-    public string? Color { get; set; }
 }
 
 public sealed class CreateContentMetadata<TContentType>

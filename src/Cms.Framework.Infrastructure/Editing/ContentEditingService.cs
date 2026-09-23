@@ -37,7 +37,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
     private string? Authorize(CmsRole requiredRole) => CmsAuthorization.Authorize(_userAdapter, requiredRole);
 
     public IReadOnlyList<ContentTypeInfoDto> GetContentTypes()
-        => _contentTypes.Select(x => new ContentTypeInfoDto { Key = x.ContentTypeKey.ToString(), Color = x.Color }).ToList();
+        => _contentTypes.Select(x => new ContentTypeInfoDto { Key = x.ContentTypeKey.ToString() }).ToList();
 
     public CreateContentSchema<TContentType> GetCreationSchema(TContentType contentTypeKey, string language)
     {
