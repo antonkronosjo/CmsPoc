@@ -1,5 +1,4 @@
 import { MenuItem, Select } from "@mui/material";
-import ContentTypeChip from "../components/ContentTypeChip";
 import { useContentTypes } from "../hooks/useContentTypes";
 
 interface ContentTypePickerProps {
@@ -17,7 +16,7 @@ export default function ContentTypePicker({ value, onChange }: ContentTypePicker
       </MenuItem>
       {contentTypes.map((t) => (
         <MenuItem key={t.key} value={t.key}>
-          <ContentTypeChip contentTypeKey={t.key} />
+          {t.key}
         </MenuItem>
       ))}
     </Select>

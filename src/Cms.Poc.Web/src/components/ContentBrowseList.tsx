@@ -24,7 +24,6 @@ import { getBranchPublishStatus, publishStatusColorHex } from "../lib/publishSta
 import { chipColorSx } from "../lib/chipColor";
 import { useContentTypes } from "../hooks/useContentTypes";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
-import ContentTypeChip from "./ContentTypeChip";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
@@ -144,9 +143,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
               >
                 {language === undefined && <TableCell>{item.id}</TableCell>}
                 <TableCell>{item.name || <em>(untitled)</em>}</TableCell>
-                <TableCell>
-                  <ContentTypeChip contentTypeKey={item.contentTypeKey} />
-                </TableCell>
+                <TableCell>{item.contentTypeKey}</TableCell>
                 {language === undefined && (
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }} onClick={(e) => e.stopPropagation()}>

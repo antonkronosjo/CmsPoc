@@ -4,7 +4,6 @@ import { Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, TextFie
 import { Close } from "@mui/icons-material";
 import { api, type ContentReference } from "../api/client";
 import ContentSearchList from "../components/ContentSearchList";
-import ContentTypeChip from "../components/ContentTypeChip";
 
 interface ContentPickerProps {
   label: string;
@@ -43,21 +42,26 @@ export default function ContentPicker({ label, helperText, value, onChange, disa
             startAdornment:
               value != null ? (
                 <InputAdornment position="start">
-                  <ContentTypeChip
-                    contentTypeKey={resolved?.contentTypeKey ?? value.contentType}
-                    onDelete={
-                      disabled
-                        ? undefined
-                        : (e) => {
-                            e.stopPropagation();
-                            onChange(null);
-                          }
-                    }
-                    onMouseDown={(e) => e.stopPropagation()}
-                  />
+                  <Typography variant="body2" color="text.secondary">
+                    {resolved?.contentTypeKey ?? value.contentType}
+                  </Typography>
                   <Typography variant="body1" color="text.primary" sx={{ ml: 1 }}>
                     {resolved ? resolved.name || "(untitled)" : `#${value.id}`}
                   </Typography>
+                  {!disabled && (
+                    <IconButton
+                      size="small"
+                      aria-label="clear selection"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onChange(null);
+                      }}
+                      onMouseDown={(e) => e.stopPropagation()}
+                      sx={{ ml: 0.5 }}
+                    >
+                      <Close fontSize="small" />
+                    </IconButton>
+                  )}
                 </InputAdornment>
               ) : undefined,
           },

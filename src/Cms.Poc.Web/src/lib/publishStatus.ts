@@ -15,7 +15,10 @@ export interface PublishStatus {
 /// Resolves a PublishStatus color to a literal hex value, for callers (like a gradient
 /// chip fill) that need an actual color rather than a themed MUI component prop.
 export function publishStatusColorHex(theme: Theme, color: PublishStatus["color"]): string {
-  return color === "default" ? theme.palette.grey[500] : theme.palette[color].main;
+  if (color === "default") {
+    return theme.palette.mode === "light" ? theme.palette.grey[300] : theme.palette.grey[500];
+  }
+  return theme.palette[color].main;
 }
 
 /// This exact version's own status: whether it is the one currently live, scheduled to

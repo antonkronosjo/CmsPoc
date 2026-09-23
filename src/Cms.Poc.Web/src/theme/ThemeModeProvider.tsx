@@ -175,6 +175,10 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
         },
         MuiCssBaseline: {
           styleOverrides: {
+            // index.css sets `color-scheme: light dark` as a pre-hydration default, which
+            // leaves native chrome (scrollbars, form controls) following the OS preference
+            // instead of the app's own light/dark toggle. Pin it to the actual mode here.
+            html: { colorScheme: mode },
             body: frostedGlass
               ? {
                   backgroundColor: backgroundDefault,

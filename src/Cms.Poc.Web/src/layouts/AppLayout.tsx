@@ -1,9 +1,10 @@
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
-import { AppBar, Box, IconButton, MenuItem, Select, Toolbar, Typography } from "@mui/material";
+import { AppBar, Box, IconButton, MenuItem, Select, Toolbar } from "@mui/material";
 import { DarkMode, LightMode } from "@mui/icons-material";
 import { useThemeMode } from "../theme/ThemeModeProvider";
 import { useLanguage } from "../hooks/useLanguage";
 import UserMenu from "../components/UserMenu";
+import CmsEsLogo from "../components/CmsEsLogo";
 
 export default function AppLayout() {
   const { mode, toggleMode } = useThemeMode();
@@ -18,14 +19,13 @@ export default function AppLayout() {
           hidden behind the drawer's own opaque background. */}
       <AppBar position="relative" sx={{ zIndex: (theme) => theme.zIndex.appBar }}>
         <Toolbar sx={{ gap: 2 }}>
-          <Typography
-            variant="h6"
+          <Box
             component={RouterLink}
             to={`/${language}`}
-            sx={{ flexGrow: 1, color: "inherit", textDecoration: "none" }}
+            sx={{ flexGrow: 1, display: "flex", alignItems: "center", color: "text.primary" }}
           >
-            Content Framework POC
-          </Typography>
+            <CmsEsLogo height={22} />
+          </Box>
           {!isCms && (
             <Select value={language} onChange={(e) => setLanguage(e.target.value)} size="small" sx={{ width: 100 }}>
               {languages.map((l) => (

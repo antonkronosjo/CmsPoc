@@ -26,7 +26,6 @@ import { useLanguages } from "../../hooks/useLanguages";
 import ContentForm, { type ContentFormHandle } from "../../forms/ContentForm";
 import VersionHistory from "../../components/VersionHistory";
 import StatusIndicator from "../../components/StatusIndicator";
-import ContentTypeChip from "../../components/ContentTypeChip";
 import PublishDialog, { usePublishActions } from "../../components/PublishDialog";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import { useToast, errorMessage } from "../../context/ToastContext";
@@ -386,7 +385,7 @@ function EditPanel({
               }}
             >
               <MetaItem label="Id" value={active.metadata.id} />
-              <MetaItem label="Content type" value={<ContentTypeChip contentTypeKey={active.metadata.contentTypeKey} />} />
+              <MetaItem label="Content type" value={active.metadata.contentTypeKey} />
               <MetaItem
                 label="Version"
                 value={

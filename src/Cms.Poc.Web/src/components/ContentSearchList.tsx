@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Box, List, ListItemButton, ListItemText, Skeleton, Stack, TextField, Typography } from "@mui/material";
 import { api, type ContentSummaryDto } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
-import ContentTypeChip from "./ContentTypeChip";
 
 interface ContentSearchListProps {
   /// Language used to fetch results; leave undefined to search every item in its master language.
@@ -54,7 +53,9 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
                 <ListItemText
                   primary={
                     <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
-                      <ContentTypeChip contentTypeKey={item.contentTypeKey} />
+                      <Typography variant="caption" color="text.secondary">
+                        {item.contentTypeKey}
+                      </Typography>
                       <span>{item.name || <em>(untitled)</em>}</span>
                     </Box>
                   }
