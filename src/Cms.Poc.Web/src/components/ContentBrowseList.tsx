@@ -1,13 +1,12 @@
 import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import {
   Box,
   Chip,
   MenuItem,
   Pagination,
   Select,
-  Skeleton,
   Stack,
   Table,
   TableBody,
@@ -26,6 +25,7 @@ import { getBranchPublishStatus, publishStatusColorHex } from "../lib/publishSta
 import { chipColorSx } from "../lib/chipColor";
 import { useContentTypes } from "../hooks/useContentTypes";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
+import LoadingOverlay from "./LoadingOverlay";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
 
@@ -99,12 +99,19 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
   const { data, isFetching } = useQuery({
     queryKey: ["content-search", term, language, contentTypeName, page, pageSize, publishedOnly, sortBy, sortDescending],
     queryFn: () => api.searchContent(term, language, { contentTypeKey: contentTypeName || undefined, page, pageSize, publishedOnly, sortBy, sortDescending }),
+    // CMS content must read as current, not a stale snapshot - dropping the cache the moment
+    // a filter/sort/page combination isn't shown anymore means coming back to it (e.g.
+    // re-sorting, paging back) always re-fetches rather than flashing a possibly-outdated
+    // cached result before silently revalidating it.
+    gcTime: 0,
+    // Keep the previous rows on screen (blurred by LoadingOverlay, via isFetching) instead of
+    // clearing the table while the new fetch above is in flight.
+    placeholderData: keepPreviousData,
   });
 
   const items = data?.items ?? [];
   const totalCount = data?.totalCount ?? 0;
   const pageCount = data ? Math.max(1, Math.ceil(data.totalCount / pageSize)) : 1;
-  const columnCount = 3 + (language === undefined ? 3 : 1) + (language !== undefined && !publishedOnly ? 1 : 0);
   const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, totalCount);
 
@@ -144,150 +151,136 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
         )}
       </Stack>
 
-      {isFetching && data && (
-        <Typography variant="caption" color="text.secondary">
-          {t("common.loading")}
-        </Typography>
-      )}
-
-      <TableContainer>
-        <Table size="small">
-          <TableHead>
-            <TableRow>
-              {language === undefined && (
-                <SortableHeaderCell label={t("browseList.columns.id")} field="id" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort} />
-              )}
-              <SortableHeaderCell label={t("browseList.columns.name")} field="name" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort} />
-              <SortableHeaderCell
-                label={t("browseList.columns.contentType")}
-                field="contentTypeKey"
-                sortBy={sortBy}
-                sortDescending={sortDescending}
-                onSort={handleSort}
-              />
-              {/* Languages is a list, not a single sortable value, so it gets a plain header. */}
-              {language === undefined && <TableCell>{t("browseList.columns.languages")}</TableCell>}
-              {language !== undefined && (
-                <SortableHeaderCell
-                  label={t("browseList.columns.version")}
-                  field="versionNumber"
-                  sortBy={sortBy}
-                  sortDescending={sortDescending}
-                  onSort={handleSort}
-                />
-              )}
-              <SortableHeaderCell
-                label={t("browseList.columns.created")}
-                field={language === undefined ? "rootCreated" : "created"}
-                sortBy={sortBy}
-                sortDescending={sortDescending}
-                onSort={handleSort}
-              />
-              {language === undefined && (
-                <SortableHeaderCell
-                  label={t("browseList.columns.lastModified")}
-                  field="lastModified"
-                  sortBy={sortBy}
-                  sortDescending={sortDescending}
-                  onSort={handleSort}
-                />
-              )}
-              {language !== undefined && !publishedOnly && (
-                <SortableHeaderCell
-                  label={t("browseList.columns.status")}
-                  field="livePublishedVersionNumber"
-                  sortBy={sortBy}
-                  sortDescending={sortDescending}
-                  onSort={handleSort}
-                />
-              )}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {isFetching && !data
-              ? Array.from({ length: 5 }).map((_, i) => (
-                  <TableRow key={i}>
-                    {Array.from({ length: columnCount }).map((_, j) => (
-                      <TableCell key={j}>
-                        <Skeleton variant="text" />
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              : items.map((item) => (
-              <TableRow
-                key={item.id}
-                hover={!!onSelect}
-                onClick={onSelect ? () => onSelect(item) : undefined}
-                sx={onSelect ? { cursor: "pointer" } : undefined}
-              >
-                {language === undefined && <TableCell>{item.id}</TableCell>}
-                <TableCell>{item.name || <em>{t("common.untitled")}</em>}</TableCell>
-                <TableCell>{item.contentTypeKey}</TableCell>
+      <LoadingOverlay loading={isFetching}>
+        <TableContainer>
+          <Table size="small">
+            <TableHead>
+              <TableRow>
                 {language === undefined && (
-                  <TableCell>
-                    <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
-                      {(() => {
-                        const others = item.languages.filter((l) => l !== item.masterLanguage).sort((a, b) => a.localeCompare(b));
-                        const ordered = item.languages.includes(item.masterLanguage) ? [item.masterLanguage, ...others] : others;
-                        return ordered.map((l, index) => {
-                          const languageStatus = item.languageStatuses.find((s) => s.language === l);
-                          const status = getBranchPublishStatus(
-                            languageStatus ?? { startPublish: null, livePublishedVersionNumber: null, hasBeenPublished: false },
-                            t,
-                          );
-                          return (
-                            <Box key={l} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
-                              {index === 1 && (
-                                <Box component="span" sx={{ color: "text.disabled" }}>
-                                  ·
-                                </Box>
-                              )}
-                              <Chip
-                                component={RouterLink}
-                                to={`/cms/edit/${item.id}?lang=${l}`}
-                                clickable={false}
-                                size="small"
-                                label={l}
-                                title={`${status.label}${l === item.masterLanguage ? t("browseList.masterLanguageSuffix") : ""}`}
-                                sx={(theme) => chipColorSx(publishStatusColorHex(theme, status.color))}
-                              />
-                            </Box>
-                          );
-                        });
-                      })()}
-                    </Box>
-                  </TableCell>
+                  <SortableHeaderCell label={t("browseList.columns.id")} field="id" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort} />
                 )}
-                {language !== undefined && <TableCell>v{item.versionNumber}</TableCell>}
-                <TableCell>
-                  {dayjs
-                    .utc(language === undefined ? item.rootCreated : item.created)
-                    .local()
-                    .format("YYYY-MM-DD HH:mm")}
-                </TableCell>
+                <SortableHeaderCell label={t("browseList.columns.name")} field="name" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort} />
+                <SortableHeaderCell
+                  label={t("browseList.columns.contentType")}
+                  field="contentTypeKey"
+                  sortBy={sortBy}
+                  sortDescending={sortDescending}
+                  onSort={handleSort}
+                />
+                {/* Languages is a list, not a single sortable value, so it gets a plain header. */}
+                {language === undefined && <TableCell>{t("browseList.columns.languages")}</TableCell>}
+                {language !== undefined && (
+                  <SortableHeaderCell
+                    label={t("browseList.columns.version")}
+                    field="versionNumber"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  />
+                )}
+                <SortableHeaderCell
+                  label={t("browseList.columns.created")}
+                  field={language === undefined ? "rootCreated" : "created"}
+                  sortBy={sortBy}
+                  sortDescending={sortDescending}
+                  onSort={handleSort}
+                />
                 {language === undefined && (
-                  <TableCell>{dayjs.utc(item.lastModified).local().format("YYYY-MM-DD HH:mm")}</TableCell>
+                  <SortableHeaderCell
+                    label={t("browseList.columns.lastModified")}
+                    field="lastModified"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  />
                 )}
                 {language !== undefined && !publishedOnly && (
-                  <TableCell>
-                    {item.livePublishedVersionNumber != null ? (
-                      <Chip size="small" color="success" label={t("status.published")} />
-                    ) : (
-                      <Chip size="small" color="default" label={t("status.draft")} />
-                    )}
-                  </TableCell>
+                  <SortableHeaderCell
+                    label={t("browseList.columns.status")}
+                    field="livePublishedVersionNumber"
+                    sortBy={sortBy}
+                    sortDescending={sortDescending}
+                    onSort={handleSort}
+                  />
                 )}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-        {!isFetching && data && items.length === 0 && (
-          <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-            {t("common.noContentFound")}
-          </Typography>
-        )}
-      </TableContainer>
+            </TableHead>
+            <TableBody>
+              {items.map((item) => (
+                <TableRow
+                  key={item.id}
+                  hover={!!onSelect}
+                  onClick={onSelect ? () => onSelect(item) : undefined}
+                  sx={onSelect ? { cursor: "pointer" } : undefined}
+                >
+                  {language === undefined && <TableCell>{item.id}</TableCell>}
+                  <TableCell>{item.name || <em>{t("common.untitled")}</em>}</TableCell>
+                  <TableCell>{item.contentTypeKey}</TableCell>
+                  {language === undefined && (
+                    <TableCell>
+                      <Box sx={{ display: "flex", alignItems: "center", gap: 0.5 }} onClick={(e) => e.stopPropagation()}>
+                        {(() => {
+                          const others = item.languages.filter((l) => l !== item.masterLanguage).sort((a, b) => a.localeCompare(b));
+                          const ordered = item.languages.includes(item.masterLanguage) ? [item.masterLanguage, ...others] : others;
+                          return ordered.map((l, index) => {
+                            const languageStatus = item.languageStatuses.find((s) => s.language === l);
+                            const status = getBranchPublishStatus(
+                              languageStatus ?? { startPublish: null, livePublishedVersionNumber: null, hasBeenPublished: false },
+                              t,
+                            );
+                            return (
+                              <Box key={l} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
+                                {index === 1 && (
+                                  <Box component="span" sx={{ color: "text.disabled" }}>
+                                    ·
+                                  </Box>
+                                )}
+                                <Chip
+                                  component={RouterLink}
+                                  to={`/cms/edit/${item.id}?lang=${l}`}
+                                  clickable={false}
+                                  size="small"
+                                  label={l}
+                                  title={`${status.label}${l === item.masterLanguage ? t("browseList.masterLanguageSuffix") : ""}`}
+                                  sx={(theme) => chipColorSx(publishStatusColorHex(theme, status.color))}
+                                />
+                              </Box>
+                            );
+                          });
+                        })()}
+                      </Box>
+                    </TableCell>
+                  )}
+                  {language !== undefined && <TableCell>v{item.versionNumber}</TableCell>}
+                  <TableCell>
+                    {dayjs
+                      .utc(language === undefined ? item.rootCreated : item.created)
+                      .local()
+                      .format("YYYY-MM-DD HH:mm")}
+                  </TableCell>
+                  {language === undefined && (
+                    <TableCell>{dayjs.utc(item.lastModified).local().format("YYYY-MM-DD HH:mm")}</TableCell>
+                  )}
+                  {language !== undefined && !publishedOnly && (
+                    <TableCell>
+                      {item.livePublishedVersionNumber != null ? (
+                        <Chip size="small" color="success" label={t("status.published")} />
+                      ) : (
+                        <Chip size="small" color="default" label={t("status.draft")} />
+                      )}
+                    </TableCell>
+                  )}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          {!isFetching && data && items.length === 0 && (
+            <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
+              {t("common.noContentFound")}
+            </Typography>
+          )}
+        </TableContainer>
+      </LoadingOverlay>
 
       {data && totalCount > 0 && (
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>

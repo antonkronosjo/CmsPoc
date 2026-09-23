@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Container, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
@@ -14,6 +14,13 @@ export default function HomePage() {
   const { data, isFetching } = useQuery({
     queryKey: ["content-search", "", language, "", 1, true, PAGE_SIZE],
     queryFn: () => api.searchContent("", language, { pageSize: PAGE_SIZE, publishedOnly: true }),
+    // CMS content must read as current, not a stale snapshot - dropping the cache the moment
+    // this view isn't shown anymore means coming back to it always re-fetches rather than
+    // flashing whatever was last seen here.
+    gcTime: 0,
+    // Keep the previous content on screen (e.g. while switching language) instead of clearing
+    // it while the new fetch above is in flight.
+    placeholderData: keepPreviousData,
   });
   const items = data?.items ?? [];
 
