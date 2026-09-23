@@ -20,6 +20,15 @@
     "scheduled": "Scheduled",
     "unpublished": "Unpublished"
   },
+  "event": {
+    "starts": "Starts",
+    "ends": "Ends",
+    "status": {
+      "upcoming": "Upcoming",
+      "ongoing": "Ongoing",
+      "ended": "Ended"
+    }
+  },
   "contentType": {
     "event": "Event",
     "news": "News",

@@ -25,8 +25,10 @@ public class EventContent : Content
     public string Description { get; set; } = string.Empty;
 
     [ContentProperty(InputType.DateTime)]
+    [Required]
     public DateTime StartDate { get; set; }
 
     [ContentProperty(InputType.DateTime)]
+    [Required]
     public DateTime EndDate { get; set; }
 }

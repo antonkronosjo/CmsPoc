@@ -20,6 +20,15 @@
     "scheduled": "Schemalagd",
     "unpublished": "Avpublicerad"
   },
+  "event": {
+    "starts": "Börjar",
+    "ends": "Slutar",
+    "status": {
+      "upcoming": "Kommande",
+      "ongoing": "Pågår",
+      "ended": "Avslutat"
+    }
+  },
   "contentType": {
     "event": "Evenemang",
     "news": "Nyhet",
