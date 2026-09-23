@@ -66,8 +66,10 @@ public static class CmsEndpointRouteBuilderExtensions
                 ? Results.Ok(summary)
                 : Results.NotFound());
 
-        group.MapGet("/search", (IContentEditingService<TContentType> editing, string? query, string? language, TContentType? contentTypeKey, TContentType[]? contentTypeKeys, int? page, int? pageSize, bool? publishedOnly, string? sortBy, bool? sortDescending)
-            => editing.Search(query, language, contentTypeKey, page ?? 1, pageSize ?? 20, publishedOnly ?? false, sortBy, sortDescending ?? false, contentTypeKeys));
+        group.MapGet("/search", (IContentEditingService<TContentType> editing, string? query, string? language, TContentType? contentTypeKey, TContentType[]? contentTypeKeys, int? page, int? pageSize, bool? publishedOnly, string? sortBy, bool? sortDescending,
+                DateTime? startPublishFrom, DateTime? startPublishTo, string? propertyName, DateTime? propertyValueFrom, DateTime? propertyValueTo)
+            => editing.Search(query, language, contentTypeKey, page ?? 1, pageSize ?? 20, publishedOnly ?? false, sortBy, sortDescending ?? false, contentTypeKeys,
+                startPublishFrom, startPublishTo, propertyName, propertyValueFrom, propertyValueTo));
 
         group.MapGet("/{id:int}/history", (IContentEditingService<TContentType> editing, int id, string? language)
             => editing.GetHistory(id, language));

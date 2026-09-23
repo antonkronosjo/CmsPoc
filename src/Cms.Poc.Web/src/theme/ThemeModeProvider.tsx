@@ -29,8 +29,8 @@ function clampGlassBlur(value: number): number {
 /// content, not a resting card - stronger and directional rather than the subtle,
 /// even one on MuiCard/MuiPaper. Exported so CmsLayout's nav drawer (a separate file)
 /// can match it instead of hardcoding its own values.
-export function chromeShadow(mode: ThemeMode, direction: "down" | "right" = "down"): string {
-  const offset = direction === "down" ? "0px 3px" : "3px 0px";
+export function chromeShadow(mode: ThemeMode, direction: "down" | "up" | "right" = "down"): string {
+  const offset = direction === "down" ? "0px 3px" : direction === "up" ? "0px -3px" : "3px 0px";
   return mode === "light" ? `${offset} 10px rgba(16,24,40,0.12)` : `${offset} 12px rgba(0,0,0,0.55)`;
 }
 

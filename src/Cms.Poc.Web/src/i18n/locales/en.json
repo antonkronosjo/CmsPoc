@@ -29,7 +29,7 @@
     "browse": "Content",
     "create": "Create",
     "settings": "Settings",
-    "toggleDarkMode": "Toggle dark mode",
+    "appearance": "Appearance",
     "userSettings": "User settings",
     "news": "News",
     "events": "Events"
@@ -124,6 +124,13 @@
   "eventsListPage": {
     "heading": "Events"
   },
+  "contentListFilters": {
+    "contentType": "Content type",
+    "publishDate": "Publish date",
+    "startDate": "Start date",
+    "from": "From",
+    "to": "To"
+  },
   "footer": {
     "about": {
       "title": "About",
@@ -213,7 +220,6 @@
     "save": "Save"
   },
   "contentPageShell": {
-    "back": "Back",
     "edit": "Edit",
     "loading": "Loading…",
     "notFound": "Content not found."

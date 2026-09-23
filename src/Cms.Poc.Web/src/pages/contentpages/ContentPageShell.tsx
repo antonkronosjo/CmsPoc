@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Alert, Button, Container, Stack, Typography } from "@mui/material";
-import { ArrowBack, Edit } from "@mui/icons-material";
+import { Alert, Button, Card, Container, Stack, Typography } from "@mui/material";
+import { Edit } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { api, type ContentSummaryDto } from "../../api/client";
 import { useLanguage } from "../../hooks/useLanguage";
@@ -41,23 +41,25 @@ export default function ContentPageShell({ contentTypeKey, children }: ContentPa
 
   return (
     <Container maxWidth="md" sx={{ py: 4 }}>
-      <Stack direction="row" sx={{ justifyContent: "space-between", mb: 2 }}>
-        <Button component={RouterLink} to={`/${language}`} startIcon={<ArrowBack />}>
-          {t("contentPageShell.back")}
-        </Button>
-        {found && isAuthenticated && (
+      {found && isAuthenticated && (
+        <Stack direction="row" sx={{ justifyContent: "flex-end", mb: 2 }}>
           <Button component={RouterLink} to={`/cms/edit/${contentId}?lang=${language}`} startIcon={<Edit />} variant="outlined">
             {t("contentPageShell.edit")}
           </Button>
-        )}
-      </Stack>
-      {isLoading ? (
-        <Typography color="text.secondary">{t("contentPageShell.loading")}</Typography>
-      ) : found ? (
-        children(data)
-      ) : (
-        <Alert severity="warning">{t("contentPageShell.notFound")}</Alert>
+        </Stack>
       )}
+      {/* The page's content, including its loading/not-found states, sits on one Card (glass or
+          solid paper, per the theme) so text keeps readable contrast over the frosted-glass
+          gradient backdrop. The editor-only edit button stays outside it, above the page. */}
+      <Card sx={{ p: { xs: 2, sm: 4 } }}>
+        {isLoading ? (
+          <Typography color="text.secondary">{t("contentPageShell.loading")}</Typography>
+        ) : found ? (
+          children(data)
+        ) : (
+          <Alert severity="warning">{t("contentPageShell.notFound")}</Alert>
+        )}
+      </Card>
     </Container>
   );
 }

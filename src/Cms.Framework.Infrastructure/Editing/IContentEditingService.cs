@@ -57,7 +57,15 @@ public interface IContentEditingService<TContentType>
     /// Filters to any of several content types at once (e.g. a news type plus its variants).
     /// Takes priority over <paramref name="contentTypeKey"/> when both are given.
     /// </param>
-    SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null);
+    /// <param name="startPublishFrom">Only items whose (live) StartPublish is on or after this instant.</param>
+    /// <param name="startPublishTo">Only items whose (live) StartPublish is on or before this instant.</param>
+    /// <param name="propertyName">
+    /// A content type's own property name (case-insensitive) to range-filter by, e.g. an
+    /// event's <c>StartDate</c>. Only <see cref="DateTime"/>-typed properties are comparable;
+    /// items missing the property, or where it isn't a <see cref="DateTime"/>, are excluded.
+    /// Ignored unless at least one of <paramref name="propertyValueFrom"/>/<paramref name="propertyValueTo"/> is given.
+    /// </param>
+    SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null, DateTime? startPublishFrom = null, DateTime? startPublishTo = null, string? propertyName = null, DateTime? propertyValueFrom = null, DateTime? propertyValueTo = null);
 
     /// <summary>Version history in <paramref name="language"/> (<c>null</c> = the item's master language).</summary>
     List<ContentSummaryDto<TContentType>> GetHistory(int id, string? language);

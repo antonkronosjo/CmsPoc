@@ -1,16 +1,26 @@
 import { Box, Container, Grid, Link, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
+import { chromeShadow, glassPanel, useThemeMode } from "../theme/ThemeModeProvider";
 
 /// Static placeholder footer for the public site. Content is mock/dummy - not
 /// backed by real links or data.
 export default function Footer() {
   const { t } = useTranslation();
+  const { mode, frostedGlass, glassOpacity, glassBlur } = useThemeMode();
   const year = new Date().getFullYear();
 
   return (
     <Box
       component="footer"
-      sx={{ mt: "auto", borderTop: 1, borderColor: "divider", bgcolor: "background.paper" }}
+      // position="relative" gives the footer its own stacking context so its upward shadow
+      // paints over the page content above it. Background mirrors the AppBar: frosted glass when
+      // enabled, otherwise solid paper.
+      sx={{
+        mt: "auto",
+        position: "relative",
+        boxShadow: chromeShadow(mode, "up"),
+        ...(frostedGlass ? glassPanel(mode, glassOpacity, glassBlur) : { bgcolor: "background.paper" }),
+      }}
     >
       <Container maxWidth="lg" sx={{ py: 4 }}>
         <Grid container spacing={4}>

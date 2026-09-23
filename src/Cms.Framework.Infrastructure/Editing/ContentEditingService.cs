@@ -197,7 +197,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return summary;
     }
 
-    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null)
+    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null, DateTime? startPublishFrom = null, DateTime? startPublishTo = null, string? propertyName = null, DateTime? propertyValueFrom = null, DateTime? propertyValueTo = null)
     {
         var results = _contentRepository.Query<Content>(language, publishedOnly).ToList();
 
@@ -227,6 +227,26 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             summaries = summaries.Where(x => typeFilters.Contains(x.ContentTypeKey)).ToList();
         else if (contentTypeKey is { } typeFilter)
             summaries = summaries.Where(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, typeFilter)).ToList();
+
+        if (startPublishFrom is { } spFrom)
+            summaries = summaries.Where(x => x.StartPublish is { } sp && sp >= spFrom).ToList();
+        if (startPublishTo is { } spTo)
+            summaries = summaries.Where(x => x.StartPublish is { } sp && sp <= spTo).ToList();
+
+        // Generic date-range filter over a named content property (e.g. an event's
+        // StartDate) - values come through Properties as their real CLR type via
+        // reflection (see ToSummary), so a DateTime-typed property compares directly.
+        if (!string.IsNullOrWhiteSpace(propertyName) && (propertyValueFrom is not null || propertyValueTo is not null))
+        {
+            summaries = summaries.Where(x =>
+            {
+                var entry = x.Properties.FirstOrDefault(p => string.Equals(p.Key, propertyName, StringComparison.OrdinalIgnoreCase));
+                if (entry.Value is not DateTime value) return false;
+                if (propertyValueFrom is { } pFrom && value < pFrom) return false;
+                if (propertyValueTo is { } pTo && value > pTo) return false;
+                return true;
+            }).ToList();
+        }
 
         // Attached to every matching row, not just the current page, so that sorting by
         // RootCreated or LastModified (both filled in here) sees every row's real value.

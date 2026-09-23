@@ -137,6 +137,14 @@ export interface SearchContentOptions {
   /// names or non-comparable fields (like "languages") are ignored server-side, not an error.
   sortBy?: string;
   sortDescending?: boolean;
+  /// Only items whose (live) StartPublish falls on or after/before this instant (ISO string).
+  startPublishFrom?: string;
+  startPublishTo?: string;
+  /// Range-filters by a named DateTime-typed content property (e.g. an event's "StartDate").
+  /// Ignored unless propertyValueFrom and/or propertyValueTo is also given.
+  propertyName?: string;
+  propertyValueFrom?: string;
+  propertyValueTo?: string;
 }
 
 export interface PublishContentRequest {
@@ -231,6 +239,11 @@ export const api = {
         publishedOnly: options.publishedOnly,
         sortBy: options.sortBy,
         sortDescending: options.sortDescending,
+        startPublishFrom: options.startPublishFrom,
+        startPublishTo: options.startPublishTo,
+        propertyName: options.propertyName,
+        propertyValueFrom: options.propertyValueFrom,
+        propertyValueTo: options.propertyValueTo,
       })}`,
     ).then((r) => json<SearchContentResult>(r)),
 

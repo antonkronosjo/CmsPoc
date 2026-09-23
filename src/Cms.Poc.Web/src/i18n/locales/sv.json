@@ -29,7 +29,7 @@
     "browse": "Innehåll",
     "create": "Skapa",
     "settings": "Inställningar",
-    "toggleDarkMode": "Växla mörkt läge",
+    "appearance": "Utseende",
     "userSettings": "Användarinställningar",
     "news": "Nyheter",
     "events": "Evenemang"
@@ -124,6 +124,13 @@
   "eventsListPage": {
     "heading": "Evenemang"
   },
+  "contentListFilters": {
+    "contentType": "Innehållstyp",
+    "publishDate": "Publiceringsdatum",
+    "startDate": "Startdatum",
+    "from": "Från",
+    "to": "Till"
+  },
   "footer": {
     "about": {
       "title": "Om",
@@ -213,7 +220,6 @@
     "save": "Spara"
   },
   "contentPageShell": {
-    "back": "Tillbaka",
     "edit": "Redigera",
     "loading": "Laddar…",
     "notFound": "Innehållet hittades inte."
