@@ -18,6 +18,7 @@ public sealed class MasterLanguageTests : IDisposable
         var schema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, language);
         schema.Metadata.Name = name;
         schema.Properties["Heading"].Value = heading;
+        schema.Properties["Intro"].Value = "Intro";
         schema.Properties["Body"].Value = body;
         schema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
         return _fixture.Editing.Create(schema).Id;
@@ -27,6 +28,7 @@ public sealed class MasterLanguageTests : IDisposable
     {
         var schema = _fixture.Editing.GetUpdateSchema(id, language);
         schema.Properties["Heading"].Value = heading;
+        schema.Properties["Intro"].Value = "Intro";
         schema.Properties["Body"].Value = "Body " + language;
         _fixture.Editing.Update(schema);
     }
@@ -104,6 +106,7 @@ public sealed class MasterLanguageTests : IDisposable
         var schema = _fixture.Editing.GetUpdateSchema(id, "sv");
         schema.Metadata.Name = "Hacked name";
         schema.Properties["Heading"].Value = "Hej";
+        schema.Properties["Intro"].Value = "Intro";
         schema.Properties["Body"].Value = "Varlden";
         schema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(99, ContentTypeKey.NewsContent);
         _fixture.Editing.Update(schema);

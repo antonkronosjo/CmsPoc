@@ -21,6 +21,9 @@ export default function EventPage() {
                 {dayjs(startDate).format("dddd D MMMM YYYY, HH:mm")}
               </Typography>
             )}
+            <Typography variant="h6" component="p" sx={{ fontWeight: 500, whiteSpace: "pre-line" }}>
+              {getProperty(content, "Intro")}
+            </Typography>
             <Typography sx={{ whiteSpace: "pre-line" }}>{getProperty(content, "Description")}</Typography>
           </Stack>
         );

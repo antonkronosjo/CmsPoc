@@ -7,8 +7,7 @@ const ACCENT_COLOR = "#ED6C02";
 export default function SpecialNewsContentTemplate({ content }: ContentTemplateProps) {
   const { t } = useTranslation();
   const heading = getProperty(content, "Heading") || content.name;
-  const body = getProperty(content, "Body");
-  const specialBody = getProperty(content, "SpecialBody");
+  const intro = getProperty(content, "Intro");
 
   return (
     <Card sx={{ height: "100%", borderColor: ACCENT_COLOR, borderWidth: 2, borderStyle: "solid" }}>
@@ -17,10 +16,9 @@ export default function SpecialNewsContentTemplate({ content }: ContentTemplateP
         <Typography variant="h6" gutterBottom>
           {heading}
         </Typography>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          {body}
+        <Typography variant="body2" color="text.secondary">
+          {intro}
         </Typography>
-        <Typography variant="body2">{specialBody}</Typography>
       </CardContent>
     </Card>
   );

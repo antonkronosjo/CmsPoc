@@ -7,7 +7,7 @@ const ACCENT_COLOR = "#6B7280";
 export default function NewsContentTemplate({ content }: ContentTemplateProps) {
   const { t } = useTranslation();
   const heading = getProperty(content, "Heading") || content.name;
-  const body = getProperty(content, "Body");
+  const intro = getProperty(content, "Intro");
 
   return (
     <Card sx={{ height: "100%", borderTop: `4px solid ${ACCENT_COLOR}` }}>
@@ -17,7 +17,7 @@ export default function NewsContentTemplate({ content }: ContentTemplateProps) {
           {heading}
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          {body}
+          {intro}
         </Typography>
       </CardContent>
     </Card>

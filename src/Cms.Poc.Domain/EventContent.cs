@@ -11,6 +11,14 @@ public class EventContent : Content
     [Required]
     public string Title { get; set; } = string.Empty;
 
+    /// <summary>
+    /// Short lead text shown under the heading and on list cards - a summary, not the start of the body.
+    /// </summary>
+    [CultureSpecific]
+    [ContentProperty(InputType.TextArea)]
+    [Required]
+    public string Intro { get; set; } = string.Empty;
+
     [CultureSpecific]
     [ContentProperty(InputType.TextArea)]
     [Required]

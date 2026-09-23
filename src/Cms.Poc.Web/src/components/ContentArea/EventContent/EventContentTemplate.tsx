@@ -8,7 +8,7 @@ const ACCENT_COLOR = "#5B6EF5";
 export default function EventContentTemplate({ content }: ContentTemplateProps) {
   const { t } = useTranslation();
   const title = getProperty(content, "Title") || content.name;
-  const description = getProperty(content, "Description");
+  const intro = getProperty(content, "Intro");
   const startDate = getProperty(content, "StartDate");
 
   return (
@@ -22,7 +22,7 @@ export default function EventContentTemplate({ content }: ContentTemplateProps) 
           </Typography>
         )}
         <Typography variant="body2" color="text.secondary">
-          {description}
+          {intro}
         </Typography>
       </CardContent>
     </Card>

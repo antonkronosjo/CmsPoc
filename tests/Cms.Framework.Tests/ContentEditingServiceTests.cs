@@ -28,6 +28,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         var schema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         schema.Metadata.Name = "HEJ";
         schema.Properties["Heading"].Value = "Hello";
+        schema.Properties["Intro"].Value = "Intro";
         schema.Properties["Body"].Value = "World";
         schema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
 
@@ -47,6 +48,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         var creationSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
+        creationSchema.Properties["Intro"].Value = "Intro";
         creationSchema.Properties["Body"].Value = "World";
         creationSchema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
         var created = _fixture.Editing.Create(creationSchema);
@@ -85,6 +87,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         var creationSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
+        creationSchema.Properties["Intro"].Value = "Intro";
         creationSchema.Properties["Body"].Value = "World";
         creationSchema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
         var created = _fixture.Editing.Create(creationSchema);
@@ -97,6 +100,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         Assert.Null(swedishSchema.Properties["Heading"].Value);
 
         swedishSchema.Properties["Heading"].Value = "Hej";
+        swedishSchema.Properties["Intro"].Value = "Intro";
         swedishSchema.Properties["Body"].Value = "Varlden";
         swedishSchema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
         var updated = _fixture.Editing.Update(swedishSchema);
@@ -116,6 +120,7 @@ public sealed class ContentEditingServiceTests : IDisposable
             var news = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
             news.Metadata.Name = $"News {i}";
             news.Properties["Heading"].Value = $"Heading {i}";
+            news.Properties["Intro"].Value = "Intro";
             news.Properties["Body"].Value = "Body";
             news.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
             _fixture.Editing.Create(news);
@@ -124,6 +129,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         var eventSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.EventContent, "en");
         eventSchema.Metadata.Name = "Event 0";
         eventSchema.Properties["Title"].Value = "Title";
+        eventSchema.Properties["Intro"].Value = "Intro";
         eventSchema.Properties["Description"].Value = "Description";
         _fixture.Editing.Create(eventSchema);
 
@@ -150,6 +156,7 @@ public sealed class ContentEditingServiceTests : IDisposable
             var news = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
             news.Metadata.Name = name;
             news.Properties["Heading"].Value = "Heading";
+            news.Properties["Intro"].Value = "Intro";
             news.Properties["Body"].Value = "Body";
             news.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
             _fixture.Editing.Create(news);
@@ -168,6 +175,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         var news = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         news.Metadata.Name = "Only item";
         news.Properties["Heading"].Value = "Heading";
+        news.Properties["Intro"].Value = "Intro";
         news.Properties["Body"].Value = "Body";
         news.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
         _fixture.Editing.Create(news);
@@ -186,6 +194,7 @@ public sealed class ContentEditingServiceTests : IDisposable
         var creationSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
         creationSchema.Metadata.Name = "HEJ";
         creationSchema.Properties["Heading"].Value = "Hello";
+        creationSchema.Properties["Intro"].Value = "Intro";
         creationSchema.Properties["Body"].Value = "World";
         creationSchema.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
         var created = _fixture.Editing.Create(creationSchema);
