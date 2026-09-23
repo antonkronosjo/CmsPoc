@@ -1,8 +1,7 @@
-import { Stack, Typography } from "@mui/material";
+import { Chip, Stack, Typography } from "@mui/material";
 import dayjs from "dayjs";
 import { useTranslation } from "react-i18next";
 import { getProperty } from "../../components/ContentArea/types";
-import ContentTypeChip from "../../components/ContentTypeChip";
 import ContentPageShell from "./ContentPageShell";
 
 export default function EventPage() {
@@ -13,7 +12,7 @@ export default function EventPage() {
         const startDate = getProperty(content, "StartDate");
         return (
           <Stack spacing={2}>
-            <ContentTypeChip contentTypeKey={content.contentTypeKey} label={t("contentType.event")} sx={{ alignSelf: "flex-start" }} />
+            <Chip size="small" label={t("contentType.event")} sx={{ alignSelf: "flex-start" }} />
             <Typography variant="h3" component="h1">
               {getProperty(content, "Title") || content.name}
             </Typography>
