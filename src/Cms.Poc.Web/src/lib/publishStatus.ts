@@ -1,4 +1,5 @@
 import type { Theme } from "@mui/material/styles";
+import type { TFunction } from "i18next";
 import dayjs from "./dayjs";
 
 export interface PublishStatusInput {
@@ -23,17 +24,17 @@ export function publishStatusColorHex(theme: Theme, color: PublishStatus["color"
 
 /// This exact version's own status: whether it is the one currently live, scheduled to
 /// become live, previously live but not anymore, or never published.
-export function getPublishStatus(metadata: PublishStatusInput): PublishStatus {
+export function getPublishStatus(metadata: PublishStatusInput, t: TFunction): PublishStatus {
   if (metadata.versionNumber === metadata.livePublishedVersionNumber) {
-    return { label: "Published", color: "success" };
+    return { label: t("status.published"), color: "success" };
   }
   if (metadata.startPublish && dayjs(metadata.startPublish).isAfter(dayjs())) {
-    return { label: "Scheduled", color: "info" };
+    return { label: t("status.scheduled"), color: "info" };
   }
   if (metadata.startPublish) {
-    return { label: "Unpublished", color: "warning" };
+    return { label: t("status.unpublished"), color: "warning" };
   }
-  return { label: "Draft", color: "default" };
+  return { label: t("status.draft"), color: "default" };
 }
 
 export interface BranchStatusInput {
@@ -47,15 +48,15 @@ export interface BranchStatusInput {
 /// A language branch's overall status: whether ANY version of it is currently live, about to
 /// go live, was live before and has since been taken down - even if the newest version is a
 /// fresh, never-published draft sitting on top of that history - or has never been published at all.
-export function getBranchPublishStatus(input: BranchStatusInput): PublishStatus {
+export function getBranchPublishStatus(input: BranchStatusInput, t: TFunction): PublishStatus {
   if (input.livePublishedVersionNumber != null) {
-    return { label: "Published", color: "success" };
+    return { label: t("status.published"), color: "success" };
   }
   if (input.startPublish && dayjs(input.startPublish).isAfter(dayjs())) {
-    return { label: "Scheduled", color: "info" };
+    return { label: t("status.scheduled"), color: "info" };
   }
   if (input.hasBeenPublished) {
-    return { label: "Unpublished", color: "warning" };
+    return { label: t("status.unpublished"), color: "warning" };
   }
-  return { label: "Draft", color: "default" };
+  return { label: t("status.draft"), color: "default" };
 }

@@ -20,6 +20,8 @@ import {
   Typography,
 } from "@mui/material";
 import { Add, Circle, Edit, History } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import dayjs from "../../lib/dayjs";
 import { api, type UpdateContentSchema } from "../../api/client";
 import { useLanguages } from "../../hooks/useLanguages";
@@ -35,6 +37,7 @@ import { useToast, errorMessage } from "../../context/ToastContext";
 /// (non-culture-specific) fields and the name are only editable there.
 /// The selected tab lives in the URL (?lang=sv) so it can be linked to.
 export default function CmsEditPage() {
+  const { t } = useTranslation();
   const { contentId, versionId } = useParams();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -69,9 +72,9 @@ export default function CmsEditPage() {
   const unsavedChangesGuard = (
     <ConfirmDialog
       open={blocker.state === "blocked"}
-      title="Leave without saving?"
-      message="You have unsaved changes that will be lost if you leave this page."
-      confirmText="Leave"
+      title={t("cmsEditPage.leaveTitle")}
+      message={t("cmsEditPage.leaveMessage")}
+      confirmText={t("cmsEditPage.leave")}
       confirmColor="warning"
       onConfirm={() => blocker.state === "blocked" && blocker.proceed()}
       onCancel={() => blocker.state === "blocked" && blocker.reset()}
@@ -80,8 +83,8 @@ export default function CmsEditPage() {
 
   if (isError)
     return (
-      <Alert severity="error" action={<Button onClick={() => navigate("/cms")}>Back to browse</Button>}>
-        Content {id} could not be loaded.
+      <Alert severity="error" action={<Button onClick={() => navigate("/cms")}>{t("cmsEditPage.backToBrowse")}</Button>}>
+        {t("cmsEditPage.loadError", { id })}
       </Alert>
     );
   if (!summary)
@@ -120,9 +123,9 @@ export default function CmsEditPage() {
     <Stack spacing={2} sx={{ flex: 1, minWidth: 0 }}>
       <Breadcrumbs>
         <Typography component={RouterLink} to="/cms" color="primary" sx={{ textDecoration: "none", fontWeight: 500, "&:hover": { textDecoration: "underline" } }}>
-          Browse content
+          {t("cmsEditPage.breadcrumbBrowse")}
         </Typography>
-        <Typography color="text.secondary">{summary.name || "(untitled)"}</Typography>
+        <Typography color="text.secondary">{summary.name || t("common.untitled")}</Typography>
       </Breadcrumbs>
       <Stack direction="row" sx={{ alignItems: "center", borderBottom: 1, borderColor: "divider" }}>
         <Tabs value={active} onChange={(_, language) => selectLanguage(language)} variant="scrollable" sx={{ flex: 1 }}>
@@ -133,16 +136,16 @@ export default function CmsEditPage() {
               label={
                 <Stack direction="row" spacing={0.75} sx={{ alignItems: "center" }}>
                   <span>{language}</span>
-                  {language === master && <Typography variant="caption" color="text.secondary">master</Typography>}
-                  {!summary.languages.includes(language) && <Typography variant="caption" color="text.secondary">new</Typography>}
-                  {dirty.has(language) && <Circle color="warning" sx={{ fontSize: 8 }} titleAccess="Unsaved changes" />}
+                  {language === master && <Typography variant="caption" color="text.secondary">{t("cmsEditPage.masterTag")}</Typography>}
+                  {!summary.languages.includes(language) && <Typography variant="caption" color="text.secondary">{t("cmsEditPage.newTag")}</Typography>}
+                  {dirty.has(language) && <Circle color="warning" sx={{ fontSize: 8 }} titleAccess={t("cmsEditPage.unsavedChangesTitle")} />}
                 </Stack>
               }
             />
           ))}
         </Tabs>
         <Button startIcon={<Add />} disabled={addable.length === 0} onClick={(e) => setAddMenuAnchor(e.currentTarget)}>
-          Add language
+          {t("cmsEditPage.addLanguage")}
         </Button>
         <Menu anchorEl={addMenuAnchor} open={addMenuAnchor !== null} onClose={() => setAddMenuAnchor(null)}>
           {addable.map((language) => (
@@ -186,8 +189,8 @@ export default function CmsEditPage() {
   );
 }
 
-function formatDate(value: string | null): string {
-  return value ? dayjs.utc(value).local().format("YYYY-MM-DD HH:mm") : "—";
+function formatDate(value: string | null, t: TFunction): string {
+  return value ? dayjs.utc(value).local().format("YYYY-MM-DD HH:mm") : t("cmsEditPage.unsetDate");
 }
 
 function MetaItem({ label, value }: { label: string; value: ReactNode }) {
@@ -208,6 +211,7 @@ function MetaItem({ label, value }: { label: string; value: ReactNode }) {
 }
 
 function EditableName({ name, onChange }: { name: string; onChange: (name: string) => void }) {
+  const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
 
   if (editing) {
@@ -231,7 +235,7 @@ function EditableName({ name, onChange }: { name: string; onChange: (name: strin
       onClick={() => setEditing(true)}
       sx={{ display: "flex", alignItems: "center", gap: 0.75, cursor: "pointer", "&:hover .name-edit-icon": { opacity: 1 } }}
     >
-      <Typography variant="h5">{name || "(untitled)"}</Typography>
+      <Typography variant="h5">{name || t("common.untitled")}</Typography>
       <Edit fontSize="small" className="name-edit-icon" sx={{ opacity: 0, transition: "opacity 0.15s", color: "text.secondary" }} />
     </Box>
   );
@@ -269,6 +273,7 @@ function EditPanel({
   onSaved: () => void;
   onDirtyChange: (dirty: boolean) => void;
 }) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const queryKey = ["update-schema", id, language, version];
@@ -337,7 +342,7 @@ function EditPanel({
             />
             {!isNewLanguageBranch &&
               (isLive ? (
-                <Tooltip title="Unpublishes this language only">
+                <Tooltip title={t("cmsEditPage.unpublishTooltip")}>
                   <span>
                     <Button
                       variant="outlined"
@@ -346,12 +351,12 @@ function EditPanel({
                       onClick={() => publishActions.unpublish()}
                       startIcon={publishActions.unpublishing ? <CircularProgress size={16} color="inherit" /> : undefined}
                     >
-                      {publishActions.unpublishing ? "Unpublishing…" : "Unpublish"}
+                      {publishActions.unpublishing ? t("cmsEditPage.unpublishing") : t("cmsEditPage.unpublish")}
                     </Button>
                   </span>
                 </Tooltip>
               ) : (
-                <Tooltip title={hasChanges ? "You have pending changes, save before publishing" : "Publishes this version in this language only"}>
+                <Tooltip title={hasChanges ? t("cmsEditPage.pendingChangesTooltip") : t("cmsEditPage.publishTooltip")}>
                   <span>
                     <Button
                       variant="contained"
@@ -364,7 +369,7 @@ function EditPanel({
                         })
                       }
                     >
-                      Publish
+                      {t("cmsEditPage.publish")}
                     </Button>
                   </span>
                 </Tooltip>
@@ -372,7 +377,7 @@ function EditPanel({
           </Stack>
           {isNewLanguageBranch ? (
             <Typography variant="subtitle2" color="text.secondary" sx={{ mt: 0.5 }}>
-              no translation yet in this language
+              {t("cmsEditPage.noTranslationYet")}
             </Typography>
           ) : (
             <Box
@@ -384,10 +389,10 @@ function EditPanel({
                 mt: 1.5,
               }}
             >
-              <MetaItem label="Id" value={active.metadata.id} />
-              <MetaItem label="Content type" value={active.metadata.contentTypeKey} />
+              <MetaItem label={t("cmsEditPage.metaId")} value={active.metadata.id} />
+              <MetaItem label={t("cmsEditPage.metaContentType")} value={active.metadata.contentTypeKey} />
               <MetaItem
-                label="Version"
+                label={t("cmsEditPage.metaVersion")}
                 value={
                   <Button
                     size="small"
@@ -410,23 +415,27 @@ function EditPanel({
                   </Button>
                 }
               />
-              <MetaItem label="Status" value={<StatusIndicator metadata={active.metadata} sx={{ fontSize: "inherit" }} />} />
-              <MetaItem label="StartPublish" value={formatDate(active.metadata.startPublish)} />
-              <MetaItem label="StopPublish" value={formatDate(active.metadata.stopPublish)} />
+              <MetaItem label={t("cmsEditPage.metaStatus")} value={<StatusIndicator metadata={active.metadata} sx={{ fontSize: "inherit" }} />} />
+              <MetaItem label={t("cmsEditPage.metaStartPublish")} value={formatDate(active.metadata.startPublish, t)} />
+              <MetaItem label={t("cmsEditPage.metaStopPublish")} value={formatDate(active.metadata.stopPublish, t)} />
             </Box>
           )}
         </Box>
         <Box sx={{ borderBottom: "1px dotted", borderColor: "divider", my: 2.5 }} />
         {isNotLatest && !isLive && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            You're viewing version {active.metadata.versionNumber}, not the latest (v{active.metadata.latestVersionNumber}). Saving
-            will create a new version based on this data.
+            {t("cmsEditPage.viewingOldVersion", {
+              versionNumber: active.metadata.versionNumber,
+              latestVersionNumber: active.metadata.latestVersionNumber,
+            })}
           </Alert>
         )}
         {isNotLatest && isLive && (
           <Alert severity="info" sx={{ mb: 2 }}>
-            You're viewing version {active.metadata.versionNumber}, which is currently published, but a newer draft (v
-            {active.metadata.latestVersionNumber}) exists.
+            {t("cmsEditPage.viewingPublishedOldVersion", {
+              versionNumber: active.metadata.versionNumber,
+              latestVersionNumber: active.metadata.latestVersionNumber,
+            })}
           </Alert>
         )}
         <Stack spacing={2}>
@@ -436,9 +445,9 @@ function EditPanel({
             language={language}
             masterLanguage={masterLanguage}
             properties={displayProperties}
-            submitText={isNewLanguageBranch ? `Add ${language} translation` : "Save"}
+            submitText={isNewLanguageBranch ? t("cmsEditPage.addTranslationSubmit", { language }) : t("common.save")}
             submitDisabled={!hasChanges}
-            submitDisabledReason="No changes detected"
+            submitDisabledReason={t("cmsEditPage.noChangesDetected")}
             onChange={(key, value) =>
               setDraft({ ...active, properties: { ...active.properties, [key]: { ...active.properties[key], value } } })
             }
@@ -448,9 +457,13 @@ function EditPanel({
               // (it's what the edit view loads by default), so it shouldn't be confirmed here.
               if (isNotLatest && !isLive) {
                 const ok = await publishActions.confirm({
-                  title: "Save over a newer version?",
-                  message: `Version ${active.metadata.versionNumber} is not the latest (v${active.metadata.latestVersionNumber}). Saving now will create version ${active.metadata.latestVersionNumber! + 1} based on this older data - any changes made since v${active.metadata.versionNumber} won't be reflected. Continue?`,
-                  confirmText: "Save anyway",
+                  title: t("cmsEditPage.saveOverNewerTitle"),
+                  message: t("cmsEditPage.saveOverNewerMessage", {
+                    versionNumber: active.metadata.versionNumber,
+                    latestVersionNumber: active.metadata.latestVersionNumber,
+                    nextVersionNumber: active.metadata.latestVersionNumber! + 1,
+                  }),
+                  confirmText: t("cmsEditPage.saveAnyway"),
                   confirmColor: "warning",
                 });
                 if (!ok) return;
@@ -466,9 +479,9 @@ function EditPanel({
                 queryClient.invalidateQueries({ queryKey: ["content-history", id] });
                 queryClient.invalidateQueries({ queryKey: ["content-search"] });
                 onSaved();
-                showToast(isNewLanguageBranch ? `${language} translation added.` : "Saved.");
+                showToast(isNewLanguageBranch ? t("cmsEditPage.translationAddedToast", { language }) : t("cmsEditPage.savedToast"));
               } catch (error) {
-                showToast(errorMessage(error, "Failed to save."), "error");
+                showToast(errorMessage(error, t("cmsEditPage.saveFailed")), "error");
               }
             }}
           />
@@ -477,7 +490,7 @@ function EditPanel({
       <Drawer anchor="right" open={historyOpen} onClose={() => setHistoryOpen(false)}>
         <Box sx={{ maxWidth: "100vw" }}>
           <Typography variant="h6" sx={{ p: 3, pb: 2 }}>
-            Version history ({language})
+            {t("cmsEditPage.versionHistoryHeading", { language })}
           </Typography>
           <Box sx={{ borderBottom: "1px dotted", borderColor: "divider" }} />
           <VersionHistory

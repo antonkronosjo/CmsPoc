@@ -3,6 +3,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Box, Button, CircularProgress, Drawer, IconButton, Stack, Typography } from "@mui/material";
 import { Close } from "@mui/icons-material";
 import { DateTimePicker } from "@mui/x-date-pickers";
+import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import dayjs from "../lib/dayjs";
 import ConfirmDialog, { useConfirmDialog } from "./ConfirmDialog";
@@ -20,6 +21,7 @@ interface UsePublishActionsOptions {
 }
 
 export function usePublishActions({ id, language }: UsePublishActionsOptions) {
+  const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
   const [publishTarget, setPublishTarget] = useState<PublishTarget | undefined>(undefined);
@@ -54,14 +56,14 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
     if (isOlderThanLive || isOlderThanLatest) {
       const message =
         isOlderThanLive && isOlderThanLatest
-          ? `Version ${versionNumber} is older than both the currently published version (v${currentLiveVersionNumber}) and the latest draft (v${latestVersionNumber}). Publishing it will replace the live content with this older version. Are you sure you want to continue?`
+          ? t("publishDialog.confirmOlderBoth", { versionNumber, currentLiveVersionNumber, latestVersionNumber })
           : isOlderThanLive
-            ? `Version ${versionNumber} is older than the currently published version ${currentLiveVersionNumber}. Publishing it will replace the live content with this older version. Are you sure you want to continue?`
-            : `Version ${versionNumber} is older than the latest draft (v${latestVersionNumber}). Publishing it will not include any newer changes. Are you sure you want to continue?`;
+            ? t("publishDialog.confirmOlderThanLive", { versionNumber, currentLiveVersionNumber })
+            : t("publishDialog.confirmOlderThanDraft", { versionNumber, latestVersionNumber });
       const ok = await confirm({
-        title: "Publish an older version?",
+        title: t("publishDialog.publishOlderTitle"),
         message,
-        confirmText: "Publish anyway",
+        confirmText: t("publishDialog.publishAnyway"),
         confirmColor: "warning",
       });
       if (!ok) return;
@@ -71,9 +73,9 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
       await api.publishContent(id, { language, versionNumber, startPublish, stopPublish });
       setPublishTarget(undefined);
       await invalidateAfterPublishChange();
-      showToast(`Version ${versionNumber} published.`);
+      showToast(t("publishDialog.publishedToast", { versionNumber }));
     } catch (error) {
-      showToast(errorMessage(error, "Failed to publish."), "error");
+      showToast(errorMessage(error, t("publishDialog.publishFailed")), "error");
     } finally {
       setPublishing(false);
     }
@@ -81,9 +83,9 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
 
   async function unpublish() {
     const ok = await confirm({
-      title: "Unpublish content?",
-      message: "This will take the currently live version offline immediately. Are you sure you want to continue?",
-      confirmText: "Unpublish",
+      title: t("publishDialog.unpublishTitle"),
+      message: t("publishDialog.unpublishMessage"),
+      confirmText: t("publishDialog.unpublish"),
       confirmColor: "warning",
     });
     if (!ok) return;
@@ -91,9 +93,9 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
     try {
       await api.unpublishContent(id, language);
       await invalidateAfterPublishChange();
-      showToast("Content unpublished.");
+      showToast(t("publishDialog.unpublishedToast"));
     } catch (error) {
-      showToast(errorMessage(error, "Failed to unpublish."), "error");
+      showToast(errorMessage(error, t("publishDialog.unpublishFailed")), "error");
     } finally {
       setUnpublishing(false);
     }
@@ -129,39 +131,40 @@ export default function PublishDialog({
   confirmPublish,
   confirmDialogProps,
 }: PublishActions) {
+  const { t } = useTranslation();
   return (
     <>
       <Drawer anchor="right" open={!!publishTarget} onClose={closePublishDialog}>
         <Box sx={{ width: { xs: "85vw", sm: 380 }, display: "flex", flexDirection: "column", height: "100%" }}>
           <Stack direction="row" sx={{ alignItems: "center", justifyContent: "space-between", p: 3, pb: 2 }}>
-            <Typography variant="h6">Publish v{publishTarget?.versionNumber}</Typography>
-            <IconButton aria-label="close" onClick={closePublishDialog}>
+            <Typography variant="h6">{t("publishDialog.drawerHeading", { versionNumber: publishTarget?.versionNumber })}</Typography>
+            <IconButton aria-label={t("common.close")} onClick={closePublishDialog}>
               <Close />
             </IconButton>
           </Stack>
           <Box sx={{ borderBottom: "1px dotted", borderColor: "divider" }} />
           <Stack spacing={2} sx={{ p: 3, flex: 1 }}>
             <DateTimePicker
-              label="Publish at"
+              label={t("publishDialog.publishAtLabel")}
               ampm={false}
               format="YYYY-MM-DD HH:mm"
               value={startPublish ? dayjs.utc(startPublish).local() : null}
               onChange={(v) => setStartPublish(v ? v.utc().toISOString() : null)}
-              slotProps={{ textField: { fullWidth: true, helperText: "Defaults to now - clear to publish immediately" } }}
+              slotProps={{ textField: { fullWidth: true, helperText: t("publishDialog.publishAtHelper") } }}
             />
             <DateTimePicker
-              label="Unpublish at"
+              label={t("publishDialog.unpublishAtLabel")}
               ampm={false}
               format="YYYY-MM-DD HH:mm"
               value={stopPublish ? dayjs.utc(stopPublish).local() : null}
               onChange={(v) => setStopPublish(v ? v.utc().toISOString() : null)}
-              slotProps={{ textField: { fullWidth: true, helperText: "Leave empty for no scheduled end" } }}
+              slotProps={{ textField: { fullWidth: true, helperText: t("publishDialog.unpublishAtHelper") } }}
             />
           </Stack>
           <Box sx={{ borderBottom: "1px dotted", borderColor: "divider" }} />
           <Stack direction="row" spacing={1} sx={{ p: 2, justifyContent: "flex-end" }}>
             <Button onClick={closePublishDialog} disabled={publishing}>
-              Cancel
+              {t("common.cancel")}
             </Button>
             <Button
               variant="contained"
@@ -169,7 +172,7 @@ export default function PublishDialog({
               disabled={publishing}
               startIcon={publishing ? <CircularProgress size={16} color="inherit" /> : undefined}
             >
-              {publishing ? "Publishing…" : "Publish"}
+              {publishing ? t("publishDialog.publishing") : t("publishDialog.publish")}
             </Button>
           </Stack>
         </Box>

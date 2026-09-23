@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Container, Stack, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { api } from "../api/client";
 import ContentArea from "../components/ContentArea/ContentArea";
 import { useLanguage } from "../hooks/useLanguage";
@@ -7,6 +8,7 @@ import { useLanguage } from "../hooks/useLanguage";
 const PAGE_SIZE = 200;
 
 export default function HomePage() {
+  const { t } = useTranslation();
   const { language } = useLanguage();
 
   const { data, isFetching } = useQuery({
@@ -19,17 +21,14 @@ export default function HomePage() {
     <Container maxWidth="lg" sx={{ py: 4 }}>
       <Stack spacing={1} sx={{ mb: 3 }}>
         <Typography variant="h4" component="h1">
-          Published content
+          {t("homePage.heading")}
         </Typography>
-        <Typography color="text.secondary">
-          Everything currently live. Head to the CMS section to manage drafts, publish new versions, or edit existing
-          content.
-        </Typography>
+        <Typography color="text.secondary">{t("homePage.description")}</Typography>
       </Stack>
       <ContentArea content={items} />
       {!isFetching && items.length === 0 && (
         <Typography variant="body2" color="text.secondary">
-          No content found.
+          {t("common.noContentFound")}
         </Typography>
       )}
     </Container>

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Dialog, DialogContent, DialogTitle, IconButton, InputAdornment, TextField, Typography } from "@mui/material";
 import { Close } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import { api, type ContentReference } from "../api/client";
 import ContentSearchList from "../components/ContentSearchList";
 
@@ -18,6 +19,7 @@ interface ContentPickerProps {
 /// the user replace it through a searchable dialog. Registering it took one
 /// InputType enum value and one case in ContentForm's template switch.
 export default function ContentPicker({ label, helperText, value, onChange, disabled }: ContentPickerProps) {
+  const { t } = useTranslation();
   const [open, setOpen] = useState(false);
 
   const { data: resolved } = useQuery({
@@ -46,12 +48,12 @@ export default function ContentPicker({ label, helperText, value, onChange, disa
                     {resolved?.contentTypeKey ?? value.contentType}
                   </Typography>
                   <Typography variant="body1" color="text.primary" sx={{ ml: 1 }}>
-                    {resolved ? resolved.name || "(untitled)" : `#${value.id}`}
+                    {resolved ? resolved.name || t("common.untitled") : `#${value.id}`}
                   </Typography>
                   {!disabled && (
                     <IconButton
                       size="small"
-                      aria-label="clear selection"
+                      aria-label={t("contentPicker.clearSelection")}
                       onClick={(e) => {
                         e.stopPropagation();
                         onChange(null);
@@ -70,8 +72,8 @@ export default function ContentPicker({ label, helperText, value, onChange, disa
 
       <Dialog open={open} onClose={() => setOpen(false)} maxWidth="sm" fullWidth>
         <DialogTitle>
-          <Typography variant="h6">Select content</Typography>
-          <IconButton aria-label="close" onClick={() => setOpen(false)} sx={{ position: "absolute", right: 8, top: 8 }}>
+          <Typography variant="h6">{t("contentPicker.selectContent")}</Typography>
+          <IconButton aria-label={t("contentPicker.close")} onClick={() => setOpen(false)} sx={{ position: "absolute", right: 8, top: 8 }}>
             <Close />
           </IconButton>
         </DialogTitle>

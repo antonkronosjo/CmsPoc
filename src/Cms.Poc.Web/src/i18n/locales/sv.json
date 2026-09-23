@@ -1,0 +1,188 @@
+{
+  "common": {
+    "cancel": "Avbryt",
+    "confirm": "Bekräfta",
+    "save": "Spara",
+    "saving": "Sparar…",
+    "close": "stäng",
+    "back": "Tillbaka",
+    "edit": "Redigera",
+    "loading": "Laddar…",
+    "searching": "Söker…",
+    "searchByName": "Sök på namn",
+    "noContentFound": "Inget innehåll hittades.",
+    "untitled": "(namnlös)",
+    "reload": "Ladda om"
+  },
+  "status": {
+    "published": "Publicerad",
+    "draft": "Utkast",
+    "scheduled": "Schemalagd",
+    "unpublished": "Avpublicerad"
+  },
+  "contentType": {
+    "event": "Evenemang",
+    "news": "Nyhet",
+    "specialNews": "Specialnyhet"
+  },
+  "nav": {
+    "browse": "Innehåll",
+    "create": "Skapa",
+    "settings": "Inställningar",
+    "toggleDarkMode": "Växla mörkt läge",
+    "userSettings": "Användarinställningar"
+  },
+  "theme": {
+    "darkMode": "Mörkt läge",
+    "lightMode": "Ljust läge",
+    "frostedGlass": "Frostat glas",
+    "opacity": "Opacitet: {{percent}}%",
+    "blur": "Oskärpa: {{px}}px"
+  },
+  "language": {
+    "switchLabel": "Språk"
+  },
+  "errorBoundary": {
+    "title": "Något gick fel",
+    "body": "Ett oväntat fel inträffade."
+  },
+  "browseList": {
+    "allContentTypes": "Alla innehållstyper",
+    "columns": {
+      "id": "Id",
+      "name": "Namn",
+      "contentType": "Innehållstyp",
+      "languages": "Språk",
+      "version": "Version",
+      "created": "Skapad",
+      "lastModified": "Senast ändrad",
+      "status": "Status"
+    },
+    "masterLanguageSuffix": " · Huvudspråk",
+    "showingRange": "Visar {{start}}–{{end}} av {{total}}",
+    "perPage": "{{size}} / sida"
+  },
+  "publishDialog": {
+    "confirmOlderBoth": "Version {{versionNumber}} är äldre än både den publicerade versionen (v{{currentLiveVersionNumber}}) och det senaste utkastet (v{{latestVersionNumber}}). Att publicera den ersätter det publicerade innehållet med denna äldre version. Vill du fortsätta?",
+    "confirmOlderThanLive": "Version {{versionNumber}} är äldre än den publicerade versionen {{currentLiveVersionNumber}}. Att publicera den ersätter det publicerade innehållet med denna äldre version. Vill du fortsätta?",
+    "confirmOlderThanDraft": "Version {{versionNumber}} är äldre än det senaste utkastet (v{{latestVersionNumber}}). Att publicera den innebär att nyare ändringar inte kommer med. Vill du fortsätta?",
+    "publishOlderTitle": "Publicera en äldre version?",
+    "publishAnyway": "Publicera ändå",
+    "publishedToast": "Version {{versionNumber}} publicerades.",
+    "publishFailed": "Det gick inte att publicera.",
+    "unpublishTitle": "Avpublicera innehåll?",
+    "unpublishMessage": "Detta tar bort den publicerade versionen omedelbart. Vill du fortsätta?",
+    "unpublish": "Avpublicera",
+    "unpublishedToast": "Innehållet avpublicerades.",
+    "unpublishFailed": "Det gick inte att avpublicera.",
+    "drawerHeading": "Publicera v{{versionNumber}}",
+    "publishAtLabel": "Publicera vid",
+    "publishAtHelper": "Standard är nu - rensa för att publicera direkt",
+    "unpublishAtLabel": "Avpublicera vid",
+    "unpublishAtHelper": "Lämna tomt för inget schemalagt slut",
+    "publishing": "Publicerar…",
+    "publish": "Publicera"
+  },
+  "versionHistory": {
+    "unknownUser": "Okänd användare",
+    "noVersions": "Inga versioner på detta språk ännu.",
+    "columns": {
+      "status": "Status",
+      "version": "Version",
+      "created": "Skapad",
+      "createdBy": "Skapad av",
+      "publishedBy": "Publicerad av"
+    }
+  },
+  "contentForm": {
+    "sharedByAllLanguages": "Delas av alla språk",
+    "sharedByAllLanguagesEdit": "Delas av alla språk - redigera på {{masterLanguage}}",
+    "noTemplate": "Ingen mall definierad för egenskapen \"{{propertyName}}\""
+  },
+  "contentPicker": {
+    "clearSelection": "rensa val",
+    "selectContent": "Välj innehåll",
+    "close": "stäng"
+  },
+  "contentTypePicker": {
+    "choosePlaceholder": "Välj en innehållstyp"
+  },
+  "homePage": {
+    "heading": "Publicerat innehåll",
+    "description": "Allt som för närvarande är publicerat. Gå till CMS-avsnittet för att hantera utkast, publicera nya versioner eller redigera befintligt innehåll."
+  },
+  "publicLanguageRoute": {
+    "notFound": "Sidan hittades inte."
+  },
+  "cmsBrowsePage": {
+    "heading": "Allt innehåll"
+  },
+  "cmsCreatePage": {
+    "breadcrumbBrowse": "Innehåll",
+    "breadcrumbCreate": "Skapa",
+    "heading": "Skapa innehåll",
+    "masterLanguage": "Huvudspråk: {{language}}",
+    "chooseTypeEmpty": "Välj en innehållstyp ovan för att komma igång.",
+    "nameLabel": "Namn",
+    "createSubmit": "Skapa",
+    "createdToast": "Innehållet skapades.",
+    "createFailed": "Det gick inte att skapa innehållet."
+  },
+  "cmsEditPage": {
+    "leaveTitle": "Lämna utan att spara?",
+    "leaveMessage": "Du har osparade ändringar som kommer att gå förlorade om du lämnar denna sida.",
+    "leave": "Lämna",
+    "backToBrowse": "Tillbaka till bläddra",
+    "loadError": "Innehållet {{id}} kunde inte laddas.",
+    "breadcrumbBrowse": "Innehåll",
+    "masterTag": "huvud",
+    "newTag": "ny",
+    "unsavedChangesTitle": "Osparade ändringar",
+    "addLanguage": "Lägg till språk",
+    "unpublishTooltip": "Avpublicerar endast detta språk",
+    "unpublishing": "Avpublicerar…",
+    "unpublish": "Avpublicera",
+    "pendingChangesTooltip": "Du har väntande ändringar, spara innan du publicerar",
+    "publishTooltip": "Publicerar endast denna version på detta språk",
+    "publish": "Publicera",
+    "noTranslationYet": "ingen översättning ännu på detta språk",
+    "metaId": "Id",
+    "metaContentType": "Innehållstyp",
+    "metaVersion": "Version",
+    "metaStatus": "Status",
+    "metaStartPublish": "Publiceringsstart",
+    "metaStopPublish": "Publiceringsslut",
+    "unsetDate": "—",
+    "viewingOldVersion": "Du visar version {{versionNumber}}, inte den senaste (v{{latestVersionNumber}}). Att spara skapar en ny version baserad på denna data.",
+    "viewingPublishedOldVersion": "Du visar version {{versionNumber}}, som är publicerad, men ett nyare utkast (v{{latestVersionNumber}}) finns.",
+    "addTranslationSubmit": "Lägg till {{language}}-översättning",
+    "noChangesDetected": "Inga ändringar upptäcktes",
+    "saveOverNewerTitle": "Spara över en nyare version?",
+    "saveOverNewerMessage": "Version {{versionNumber}} är inte den senaste (v{{latestVersionNumber}}). Att spara nu skapar version {{nextVersionNumber}} baserad på denna äldre data - ändringar gjorda sedan v{{versionNumber}} kommer inte med. Fortsätta?",
+    "saveAnyway": "Spara ändå",
+    "translationAddedToast": "{{language}}-översättningen lades till.",
+    "savedToast": "Sparat.",
+    "saveFailed": "Det gick inte att spara.",
+    "versionHistoryHeading": "Versionshistorik ({{language}})"
+  },
+  "cmsSettingsPage": {
+    "savedToast": "Inställningarna sparades.",
+    "saveFailed": "Det gick inte att spara inställningarna.",
+    "breadcrumbBrowse": "Innehåll",
+    "breadcrumbSettings": "Inställningar",
+    "heading": "Inställningar",
+    "availableLanguages": "Tillgängliga språk",
+    "supportedLanguagesLabel": "Språk som stöds",
+    "supportedLanguagesHelper": "Kommaseparerade språkkoder, t.ex. en, sv",
+    "defaultLanguageSelected": "Standardspråk: {{language}}",
+    "chooseDefaultLanguage": "Välj ett standardspråk",
+    "saving": "Sparar…",
+    "save": "Spara"
+  },
+  "contentPageShell": {
+    "back": "Tillbaka",
+    "edit": "Redigera",
+    "loading": "Laddar…",
+    "notFound": "Innehållet hittades inte."
+  }
+}

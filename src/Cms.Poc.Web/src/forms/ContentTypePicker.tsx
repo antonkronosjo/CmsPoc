@@ -1,4 +1,5 @@
 import { MenuItem, Select } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { useContentTypes } from "../hooks/useContentTypes";
 
 interface ContentTypePickerProps {
@@ -7,16 +8,17 @@ interface ContentTypePickerProps {
 }
 
 export default function ContentTypePicker({ value, onChange }: ContentTypePickerProps) {
+  const { t } = useTranslation();
   const { data: contentTypes = [] } = useContentTypes();
 
   return (
     <Select displayEmpty value={value} onChange={(e) => onChange(e.target.value)} size="small" sx={{ minWidth: 220 }}>
       <MenuItem value="">
-        <em>Choose a content type</em>
+        <em>{t("contentTypePicker.choosePlaceholder")}</em>
       </MenuItem>
-      {contentTypes.map((t) => (
-        <MenuItem key={t.key} value={t.key}>
-          {t.key}
+      {contentTypes.map((contentType) => (
+        <MenuItem key={contentType.key} value={contentType.key}>
+          {contentType.key}
         </MenuItem>
       ))}
     </Select>

@@ -1,0 +1,188 @@
+{
+  "common": {
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "saving": "Saving…",
+    "close": "close",
+    "back": "Back",
+    "edit": "Edit",
+    "loading": "Loading…",
+    "searching": "Searching…",
+    "searchByName": "Search by name",
+    "noContentFound": "No content found.",
+    "untitled": "(untitled)",
+    "reload": "Reload"
+  },
+  "status": {
+    "published": "Published",
+    "draft": "Draft",
+    "scheduled": "Scheduled",
+    "unpublished": "Unpublished"
+  },
+  "contentType": {
+    "event": "Event",
+    "news": "News",
+    "specialNews": "Special news"
+  },
+  "nav": {
+    "browse": "Content",
+    "create": "Create",
+    "settings": "Settings",
+    "toggleDarkMode": "Toggle dark mode",
+    "userSettings": "User settings"
+  },
+  "theme": {
+    "darkMode": "Dark mode",
+    "lightMode": "Light mode",
+    "frostedGlass": "Frosted glass",
+    "opacity": "Opacity: {{percent}}%",
+    "blur": "Blur: {{px}}px"
+  },
+  "language": {
+    "switchLabel": "Language"
+  },
+  "errorBoundary": {
+    "title": "Something went wrong",
+    "body": "An unexpected error occurred."
+  },
+  "browseList": {
+    "allContentTypes": "All content types",
+    "columns": {
+      "id": "Id",
+      "name": "Name",
+      "contentType": "Content Type",
+      "languages": "Languages",
+      "version": "Version",
+      "created": "Created",
+      "lastModified": "Last Modified",
+      "status": "Status"
+    },
+    "masterLanguageSuffix": " · Master language",
+    "showingRange": "Showing {{start}}–{{end}} of {{total}}",
+    "perPage": "{{size}} / page"
+  },
+  "publishDialog": {
+    "confirmOlderBoth": "Version {{versionNumber}} is older than both the currently published version (v{{currentLiveVersionNumber}}) and the latest draft (v{{latestVersionNumber}}). Publishing it will replace the live content with this older version. Are you sure you want to continue?",
+    "confirmOlderThanLive": "Version {{versionNumber}} is older than the currently published version {{currentLiveVersionNumber}}. Publishing it will replace the live content with this older version. Are you sure you want to continue?",
+    "confirmOlderThanDraft": "Version {{versionNumber}} is older than the latest draft (v{{latestVersionNumber}}). Publishing it will not include any newer changes. Are you sure you want to continue?",
+    "publishOlderTitle": "Publish an older version?",
+    "publishAnyway": "Publish anyway",
+    "publishedToast": "Version {{versionNumber}} published.",
+    "publishFailed": "Failed to publish.",
+    "unpublishTitle": "Unpublish content?",
+    "unpublishMessage": "This will take the currently live version offline immediately. Are you sure you want to continue?",
+    "unpublish": "Unpublish",
+    "unpublishedToast": "Content unpublished.",
+    "unpublishFailed": "Failed to unpublish.",
+    "drawerHeading": "Publish v{{versionNumber}}",
+    "publishAtLabel": "Publish at",
+    "publishAtHelper": "Defaults to now - clear to publish immediately",
+    "unpublishAtLabel": "Unpublish at",
+    "unpublishAtHelper": "Leave empty for no scheduled end",
+    "publishing": "Publishing…",
+    "publish": "Publish"
+  },
+  "versionHistory": {
+    "unknownUser": "Unknown user",
+    "noVersions": "No versions in this language yet.",
+    "columns": {
+      "status": "Status",
+      "version": "Version",
+      "created": "Created",
+      "createdBy": "Created by",
+      "publishedBy": "Published by"
+    }
+  },
+  "contentForm": {
+    "sharedByAllLanguages": "Shared by all languages",
+    "sharedByAllLanguagesEdit": "Shared by all languages - edit in {{masterLanguage}}",
+    "noTemplate": "No template defined for property \"{{propertyName}}\""
+  },
+  "contentPicker": {
+    "clearSelection": "clear selection",
+    "selectContent": "Select content",
+    "close": "close"
+  },
+  "contentTypePicker": {
+    "choosePlaceholder": "Choose a content type"
+  },
+  "homePage": {
+    "heading": "Published content",
+    "description": "Everything currently live. Head to the CMS section to manage drafts, publish new versions, or edit existing content."
+  },
+  "publicLanguageRoute": {
+    "notFound": "Page not found."
+  },
+  "cmsBrowsePage": {
+    "heading": "All content"
+  },
+  "cmsCreatePage": {
+    "breadcrumbBrowse": "Content",
+    "breadcrumbCreate": "Create",
+    "heading": "Create content",
+    "masterLanguage": "Master language: {{language}}",
+    "chooseTypeEmpty": "Choose a content type above to get started.",
+    "nameLabel": "Name",
+    "createSubmit": "Create",
+    "createdToast": "Content created.",
+    "createFailed": "Failed to create content."
+  },
+  "cmsEditPage": {
+    "leaveTitle": "Leave without saving?",
+    "leaveMessage": "You have unsaved changes that will be lost if you leave this page.",
+    "leave": "Leave",
+    "backToBrowse": "Back to browse",
+    "loadError": "Content {{id}} could not be loaded.",
+    "breadcrumbBrowse": "Content",
+    "masterTag": "master",
+    "newTag": "new",
+    "unsavedChangesTitle": "Unsaved changes",
+    "addLanguage": "Add language",
+    "unpublishTooltip": "Unpublishes this language only",
+    "unpublishing": "Unpublishing…",
+    "unpublish": "Unpublish",
+    "pendingChangesTooltip": "You have pending changes, save before publishing",
+    "publishTooltip": "Publishes this version in this language only",
+    "publish": "Publish",
+    "noTranslationYet": "no translation yet in this language",
+    "metaId": "Id",
+    "metaContentType": "Content type",
+    "metaVersion": "Version",
+    "metaStatus": "Status",
+    "metaStartPublish": "StartPublish",
+    "metaStopPublish": "StopPublish",
+    "unsetDate": "—",
+    "viewingOldVersion": "You're viewing version {{versionNumber}}, not the latest (v{{latestVersionNumber}}). Saving will create a new version based on this data.",
+    "viewingPublishedOldVersion": "You're viewing version {{versionNumber}}, which is currently published, but a newer draft (v{{latestVersionNumber}}) exists.",
+    "addTranslationSubmit": "Add {{language}} translation",
+    "noChangesDetected": "No changes detected",
+    "saveOverNewerTitle": "Save over a newer version?",
+    "saveOverNewerMessage": "Version {{versionNumber}} is not the latest (v{{latestVersionNumber}}). Saving now will create version {{nextVersionNumber}} based on this older data - any changes made since v{{versionNumber}} won't be reflected. Continue?",
+    "saveAnyway": "Save anyway",
+    "translationAddedToast": "{{language}} translation added.",
+    "savedToast": "Saved.",
+    "saveFailed": "Failed to save.",
+    "versionHistoryHeading": "Version history ({{language}})"
+  },
+  "cmsSettingsPage": {
+    "savedToast": "Settings saved.",
+    "saveFailed": "Failed to save settings.",
+    "breadcrumbBrowse": "Content",
+    "breadcrumbSettings": "Settings",
+    "heading": "Settings",
+    "availableLanguages": "Available languages",
+    "supportedLanguagesLabel": "Supported languages",
+    "supportedLanguagesHelper": "Comma-separated language codes, e.g. en, sv",
+    "defaultLanguageSelected": "Default language: {{language}}",
+    "chooseDefaultLanguage": "Choose a default language",
+    "saving": "Saving…",
+    "save": "Save"
+  },
+  "contentPageShell": {
+    "back": "Back",
+    "edit": "Edit",
+    "loading": "Loading…",
+    "notFound": "Content not found."
+  }
+}

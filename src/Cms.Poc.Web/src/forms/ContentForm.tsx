@@ -1,6 +1,8 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from "react";
 import { Button, CircularProgress, Stack, TextField, Tooltip, type TextFieldProps } from "@mui/material";
 import { DatePicker, DateTimePicker } from "@mui/x-date-pickers";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { api, InputType, type ContentPropertyValueDto, type ContentReference } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import ContentPicker from "./ContentPicker";
@@ -45,6 +47,7 @@ const ContentForm = forwardRef<ContentFormHandle, ContentFormProps>(function Con
   },
   ref,
 ) {
+  const { t } = useTranslation();
   const fieldRefs = useRef<Record<string, FormElementHandle | null>>({});
   const [submitting, setSubmitting] = useState(false);
 
@@ -77,7 +80,7 @@ const ContentForm = forwardRef<ContentFormHandle, ContentFormProps>(function Con
           propertyName={key}
           valueDto={valueDto}
           disabled={disabled || (masterLanguage !== undefined && language !== masterLanguage && !valueDto.cultureSpecific)}
-          note={sharedNote(valueDto, language, masterLanguage)}
+          note={sharedNote(valueDto, language, masterLanguage, t)}
           onChange={(value) => onChange(key, value)}
         />
       ))}
@@ -90,7 +93,7 @@ const ContentForm = forwardRef<ContentFormHandle, ContentFormProps>(function Con
             onClick={handleSubmit}
             startIcon={submitting ? <CircularProgress size={16} color="inherit" /> : undefined}
           >
-            {submitting ? "Saving…" : submitText}
+            {submitting ? t("common.saving") : submitText}
           </Button>
         </span>
       </Tooltip>
@@ -101,9 +104,16 @@ const ContentForm = forwardRef<ContentFormHandle, ContentFormProps>(function Con
 export default ContentForm;
 
 /// Explains which fields are shared between languages, so it is clear why one is read-only.
-function sharedNote(valueDto: ContentPropertyValueDto, language: string, masterLanguage: string | undefined): string | undefined {
+function sharedNote(
+  valueDto: ContentPropertyValueDto,
+  language: string,
+  masterLanguage: string | undefined,
+  t: TFunction,
+): string | undefined {
   if (masterLanguage === undefined || valueDto.cultureSpecific) return undefined;
-  return language === masterLanguage ? "Shared by all languages" : `Shared by all languages - edit in ${masterLanguage}`;
+  return language === masterLanguage
+    ? t("contentForm.sharedByAllLanguages")
+    : t("contentForm.sharedByAllLanguagesEdit", { masterLanguage });
 }
 
 interface FormElementTemplateProps {
@@ -122,6 +132,7 @@ interface FormElementHandle {
 
 const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplateProps>(
   ({ label, propertyName, contentTypeName, valueDto, note, disabled, onChange }, ref) => {
+    const { t } = useTranslation();
     const [errors, setErrors] = useState<string[]>([]);
     const [touched, setTouched] = useState(false);
 
@@ -229,7 +240,7 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
         );
 
       default:
-        return <>No template defined for property "{propertyName}"</>;
+        return <>{t("contentForm.noTemplate", { propertyName })}</>;
     }
   },
 );

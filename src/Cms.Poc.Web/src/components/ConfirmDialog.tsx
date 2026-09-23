@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { Button, Dialog, DialogActions, DialogContent, DialogContentText, DialogTitle, type ButtonProps } from "@mui/material";
+import { useTranslation } from "react-i18next";
 
 interface ConfirmOptions {
   title: string;
@@ -57,12 +58,13 @@ export default function ConfirmDialog({
   open,
   title,
   message,
-  confirmText = "Confirm",
-  cancelText = "Cancel",
+  confirmText,
+  cancelText,
   confirmColor = "primary",
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const { t } = useTranslation();
   return (
     <Dialog open={open} onClose={onCancel} maxWidth="xs" fullWidth>
       <DialogTitle>{title}</DialogTitle>
@@ -70,9 +72,9 @@ export default function ConfirmDialog({
         <DialogContentText>{message}</DialogContentText>
       </DialogContent>
       <DialogActions>
-        <Button onClick={onCancel}>{cancelText}</Button>
+        <Button onClick={onCancel}>{cancelText ?? t("common.cancel")}</Button>
         <Button variant="contained" color={confirmColor} onClick={onConfirm} autoFocus>
-          {confirmText}
+          {confirmText ?? t("common.confirm")}
         </Button>
       </DialogActions>
     </Dialog>

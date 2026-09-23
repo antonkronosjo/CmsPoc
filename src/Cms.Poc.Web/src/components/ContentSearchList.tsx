@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Box, List, ListItemButton, ListItemText, Skeleton, Stack, TextField, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { api, type ContentSummaryDto } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 
@@ -14,6 +15,7 @@ interface ContentSearchListProps {
 /// Searchable list of content, shared by the main search panel and the
 /// ContentPicker template - one place implements "find content by name."
 export default function ContentSearchList({ language, onSelect, excludeId }: ContentSearchListProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [term, setTerm] = useState("");
   const debouncedSetTerm = useDebouncedCallback(setTerm, 250);
@@ -29,7 +31,7 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
   return (
     <Stack spacing={1}>
       <TextField
-        label="Search by name"
+        label={t("common.searchByName")}
         size="small"
         fullWidth
         value={input}
@@ -38,7 +40,7 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
           debouncedSetTerm(e.target.value);
         }}
       />
-      {isFetching && data && <Typography variant="caption" color="text.secondary">Searching…</Typography>}
+      {isFetching && data && <Typography variant="caption" color="text.secondary">{t("common.searching")}</Typography>}
       <List dense disablePadding sx={{ maxHeight: 360, overflowY: "auto" }}>
         {isFetching && !data ? (
           Array.from({ length: 4 }).map((_, i) => (
@@ -56,7 +58,7 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
                       <Typography variant="caption" color="text.secondary">
                         {item.contentTypeKey}
                       </Typography>
-                      <span>{item.name || <em>(untitled)</em>}</span>
+                      <span>{item.name || <em>{t("common.untitled")}</em>}</span>
                     </Box>
                   }
                   secondary={`#${item.id} · v${item.versionNumber} · ${item.language}`}
@@ -65,7 +67,7 @@ export default function ContentSearchList({ language, onSelect, excludeId }: Con
             ))}
             {!isFetching && filtered.length === 0 && (
               <Typography variant="body2" color="text.secondary" sx={{ py: 1 }}>
-                No content found.
+                {t("common.noContentFound")}
               </Typography>
             )}
           </>

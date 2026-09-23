@@ -1,5 +1,6 @@
 import { Chip, Tooltip, type ChipProps } from "@mui/material";
 import { Cancel, CheckCircle, FiberManualRecord, Schedule } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import { getPublishStatus, type PublishStatusInput } from "../lib/publishStatus";
 
 const STATUS_ICONS = {
@@ -15,7 +16,8 @@ interface StatusIndicatorProps extends Omit<ChipProps, "color" | "label" | "vari
 }
 
 export default function StatusIndicator({ metadata, variant = "chip", sx, ...chipProps }: StatusIndicatorProps) {
-  const status = getPublishStatus(metadata);
+  const { t } = useTranslation();
+  const status = getPublishStatus(metadata, t);
 
   if (variant === "icon") {
     const { icon: Icon, color } = STATUS_ICONS[status.color];

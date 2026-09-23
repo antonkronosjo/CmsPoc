@@ -1,14 +1,18 @@
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
-import { AppBar, Box, IconButton, MenuItem, Select, Toolbar } from "@mui/material";
-import { DarkMode, LightMode } from "@mui/icons-material";
+import { AppBar, Box, Button, IconButton, MenuItem, Select, Toolbar, Tooltip } from "@mui/material";
+import { DarkMode, LightMode, Translate } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import { useThemeMode } from "../theme/ThemeModeProvider";
 import { useLanguage } from "../hooks/useLanguage";
+import { useUiLanguage } from "../hooks/useUiLanguage";
 import UserMenu from "../components/UserMenu";
 import CmsEsLogo from "../components/CmsEsLogo";
 
 export default function AppLayout() {
+  const { t } = useTranslation();
   const { mode, toggleMode } = useThemeMode();
   const { language, setLanguage, languages } = useLanguage();
+  const { uiLanguage, setUiLanguage } = useUiLanguage();
   // The CMS shows every language at once, so the selector is for the public site only.
   const isCms = useLocation().pathname.startsWith("/cms");
 
@@ -38,9 +42,22 @@ export default function AppLayout() {
           {isCms ? (
             <UserMenu />
           ) : (
-            <IconButton onClick={toggleMode} aria-label="Toggle dark mode">
-              {mode === "dark" ? <LightMode /> : <DarkMode />}
-            </IconButton>
+            <>
+              <Tooltip title={t("language.switchLabel")}>
+                <Button
+                  onClick={() => setUiLanguage(uiLanguage === "en" ? "sv" : "en")}
+                  color="inherit"
+                  size="small"
+                  startIcon={<Translate fontSize="small" />}
+                  sx={{ minWidth: 0 }}
+                >
+                  {uiLanguage.toUpperCase()}
+                </Button>
+              </Tooltip>
+              <IconButton onClick={toggleMode} aria-label={t("nav.toggleDarkMode")}>
+                {mode === "dark" ? <LightMode /> : <DarkMode />}
+              </IconButton>
+            </>
           )}
         </Toolbar>
       </AppBar>

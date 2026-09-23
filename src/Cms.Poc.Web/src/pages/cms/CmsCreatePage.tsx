@@ -3,6 +3,7 @@ import { useNavigate, Link as RouterLink } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Box, Breadcrumbs, MenuItem, Select, Skeleton, Stack, TextField, Typography } from "@mui/material";
 import { NoteAdd } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import { api, type CreateContentSchema } from "../../api/client";
 import { useLanguages } from "../../hooks/useLanguages";
 import ContentForm, { type ContentFormHandle } from "../../forms/ContentForm";
@@ -10,6 +11,7 @@ import ContentTypePicker from "../../forms/ContentTypePicker";
 import { useToast, errorMessage } from "../../context/ToastContext";
 
 export default function CmsCreatePage() {
+  const { t } = useTranslation();
   const { defaultLanguage, supportedLanguages } = useLanguages();
   const [contentTypeName, setContentTypeName] = useState("");
   // The language an item is created in becomes its master language.
@@ -20,11 +22,11 @@ export default function CmsCreatePage() {
     <Stack spacing={2}>
       <Breadcrumbs>
         <Typography component={RouterLink} to="/cms" color="primary" sx={{ textDecoration: "none", fontWeight: 500, "&:hover": { textDecoration: "underline" } }}>
-          Browse content
+          {t("cmsCreatePage.breadcrumbBrowse")}
         </Typography>
-        <Typography color="text.secondary">Create</Typography>
+        <Typography color="text.secondary">{t("cmsCreatePage.breadcrumbCreate")}</Typography>
       </Breadcrumbs>
-      <Typography variant="h5">Create content</Typography>
+      <Typography variant="h5">{t("cmsCreatePage.heading")}</Typography>
       <Stack spacing={2}>
         <Stack direction="row" spacing={2} sx={{ alignItems: "flex-start" }}>
           <ContentTypePicker value={contentTypeName} onChange={setContentTypeName} />
@@ -33,7 +35,7 @@ export default function CmsCreatePage() {
             onChange={(e) => setChosenLanguage(e.target.value)}
             size="small"
             sx={{ minWidth: 140 }}
-            renderValue={(l) => `Master language: ${l}`}
+            renderValue={(l) => t("cmsCreatePage.masterLanguage", { language: l })}
           >
             {supportedLanguages.map((l) => (
               <MenuItem key={l} value={l}>
@@ -47,7 +49,7 @@ export default function CmsCreatePage() {
         ) : (
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1, py: 5, color: "text.secondary" }}>
             <NoteAdd sx={{ fontSize: 32 }} />
-            <Typography variant="body2">Choose a content type above to get started.</Typography>
+            <Typography variant="body2">{t("cmsCreatePage.chooseTypeEmpty")}</Typography>
           </Box>
         )}
       </Stack>
@@ -56,6 +58,7 @@ export default function CmsCreatePage() {
 }
 
 function CreateForm({ contentTypeName, language }: { contentTypeName: string; language: string }) {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const { showToast } = useToast();
   const formRef = useRef<ContentFormHandle>(null);
@@ -86,7 +89,7 @@ function CreateForm({ contentTypeName, language }: { contentTypeName: string; la
       }}
     >
       <TextField
-        label="Name"
+        label={t("cmsCreatePage.nameLabel")}
         fullWidth
         value={active.metadata.name}
         onChange={(e) => setDraft({ ...active, metadata: { ...active.metadata, name: e.target.value } })}
@@ -96,17 +99,17 @@ function CreateForm({ contentTypeName, language }: { contentTypeName: string; la
         contentTypeName={active.metadata.contentTypeKey}
         language={active.metadata.language}
         properties={active.properties}
-        submitText="Create"
+        submitText={t("cmsCreatePage.createSubmit")}
         onChange={(key, value) =>
           setDraft({ ...active, properties: { ...active.properties, [key]: { ...active.properties[key], value } } })
         }
         onSubmit={async () => {
           try {
             const created = await api.createContent(active);
-            showToast("Content created.");
+            showToast(t("cmsCreatePage.createdToast"));
             navigate(`/cms/edit/${created.metadata.id}`);
           } catch (error) {
-            showToast(errorMessage(error, "Failed to create content."), "error");
+            showToast(errorMessage(error, t("cmsCreatePage.createFailed")), "error");
           }
         }}
       />

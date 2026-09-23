@@ -18,6 +18,7 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import dayjs from "../lib/dayjs";
 import { api, type ContentSummaryDto } from "../api/client";
 import { getBranchPublishStatus, publishStatusColorHex } from "../lib/publishStatus";
@@ -43,6 +44,7 @@ interface ContentBrowseListProps {
 /// home page (published-only) and the /cms browse page (everything, with a
 /// type filter and a publish status badge).
 export default function ContentBrowseList({ language, onSelect, showTypeFilter = false, publishedOnly = false }: ContentBrowseListProps) {
+  const { t } = useTranslation();
   const [input, setInput] = useState("");
   const [term, setTerm] = useState("");
   const [contentTypeName, setContentTypeName] = useState("");
@@ -71,7 +73,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
     <Stack spacing={2}>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
         <TextField
-          label="Search by name"
+          label={t("common.searchByName")}
           size="small"
           fullWidth
           value={input}
@@ -92,11 +94,11 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
             sx={{ minWidth: 200 }}
           >
             <MenuItem value="">
-              <em>All content types</em>
+              <em>{t("browseList.allContentTypes")}</em>
             </MenuItem>
-            {contentTypes.map((t) => (
-              <MenuItem key={t.key} value={t.key}>
-                {t.key}
+            {contentTypes.map((contentType) => (
+              <MenuItem key={contentType.key} value={contentType.key}>
+                {contentType.key}
               </MenuItem>
             ))}
           </Select>
@@ -105,7 +107,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
 
       {isFetching && data && (
         <Typography variant="caption" color="text.secondary">
-          Loading…
+          {t("common.loading")}
         </Typography>
       )}
 
@@ -113,14 +115,14 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
         <Table size="small">
           <TableHead>
             <TableRow>
-              {language === undefined && <TableCell>Id</TableCell>}
-              <TableCell>Name</TableCell>
-              <TableCell>Content Type</TableCell>
-              {language === undefined && <TableCell>Languages</TableCell>}
-              {language !== undefined && <TableCell>Version</TableCell>}
-              <TableCell>Created</TableCell>
-              {language === undefined && <TableCell>Last Modified</TableCell>}
-              {language !== undefined && !publishedOnly && <TableCell>Status</TableCell>}
+              {language === undefined && <TableCell>{t("browseList.columns.id")}</TableCell>}
+              <TableCell>{t("browseList.columns.name")}</TableCell>
+              <TableCell>{t("browseList.columns.contentType")}</TableCell>
+              {language === undefined && <TableCell>{t("browseList.columns.languages")}</TableCell>}
+              {language !== undefined && <TableCell>{t("browseList.columns.version")}</TableCell>}
+              <TableCell>{t("browseList.columns.created")}</TableCell>
+              {language === undefined && <TableCell>{t("browseList.columns.lastModified")}</TableCell>}
+              {language !== undefined && !publishedOnly && <TableCell>{t("browseList.columns.status")}</TableCell>}
             </TableRow>
           </TableHead>
           <TableBody>
@@ -142,7 +144,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                 sx={onSelect ? { cursor: "pointer" } : undefined}
               >
                 {language === undefined && <TableCell>{item.id}</TableCell>}
-                <TableCell>{item.name || <em>(untitled)</em>}</TableCell>
+                <TableCell>{item.name || <em>{t("common.untitled")}</em>}</TableCell>
                 <TableCell>{item.contentTypeKey}</TableCell>
                 {language === undefined && (
                   <TableCell>
@@ -154,6 +156,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                           const languageStatus = item.languageStatuses.find((s) => s.language === l);
                           const status = getBranchPublishStatus(
                             languageStatus ?? { startPublish: null, livePublishedVersionNumber: null, hasBeenPublished: false },
+                            t,
                           );
                           return (
                             <Box key={l} sx={{ display: "flex", alignItems: "center", gap: 0.5 }}>
@@ -168,7 +171,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                                 clickable={false}
                                 size="small"
                                 label={l}
-                                title={`${status.label}${l === item.masterLanguage ? " · Master language" : ""}`}
+                                title={`${status.label}${l === item.masterLanguage ? t("browseList.masterLanguageSuffix") : ""}`}
                                 sx={(theme) => chipColorSx(publishStatusColorHex(theme, status.color))}
                               />
                             </Box>
@@ -191,9 +194,9 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
                 {language !== undefined && !publishedOnly && (
                   <TableCell>
                     {item.livePublishedVersionNumber != null ? (
-                      <Chip size="small" color="success" label="Published" />
+                      <Chip size="small" color="success" label={t("status.published")} />
                     ) : (
-                      <Chip size="small" color="default" label="Draft" />
+                      <Chip size="small" color="default" label={t("status.draft")} />
                     )}
                   </TableCell>
                 )}
@@ -203,7 +206,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
         </Table>
         {!isFetching && data && items.length === 0 && (
           <Typography variant="body2" color="text.secondary" sx={{ py: 2 }}>
-            No content found.
+            {t("common.noContentFound")}
           </Typography>
         )}
       </TableContainer>
@@ -211,7 +214,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
       {data && totalCount > 0 && (
         <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: "center", justifyContent: "space-between" }}>
           <Typography variant="caption" color="text.secondary">
-            Showing {rangeStart}–{rangeEnd} of {totalCount}
+            {t("browseList.showingRange", { start: rangeStart, end: rangeEnd, total: totalCount })}
           </Typography>
           <Stack direction="row" spacing={2} sx={{ alignItems: "center" }}>
             <Select
@@ -225,7 +228,7 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
             >
               {PAGE_SIZE_OPTIONS.map((size) => (
                 <MenuItem key={size} value={size}>
-                  {size} / page
+                  {t("browseList.perPage", { size })}
                 </MenuItem>
               ))}
             </Select>

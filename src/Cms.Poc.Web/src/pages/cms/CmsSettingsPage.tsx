@@ -2,11 +2,13 @@ import { useEffect, useState } from "react";
 import { Navigate, Link as RouterLink } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Breadcrumbs, Button, CircularProgress, MenuItem, Select, Skeleton, Stack, TextField, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
 import { api, CmsRole } from "../../api/client";
 import { useUser } from "../../context/UserContext";
 import { useToast, errorMessage } from "../../context/ToastContext";
 
 export default function CmsSettingsPage() {
+  const { t } = useTranslation();
   const { isInRole } = useUser();
   const { data, isLoading } = useQuery({ queryKey: ["languages"], queryFn: api.getLanguages });
   const queryClient = useQueryClient();
@@ -39,9 +41,9 @@ export default function CmsSettingsPage() {
     try {
       await api.updateLanguages({ defaultLanguage, supportedLanguages });
       await queryClient.invalidateQueries({ queryKey: ["languages"] });
-      showToast("Settings saved.");
+      showToast(t("cmsSettingsPage.savedToast"));
     } catch (e) {
-      showToast(errorMessage(e, "Failed to save settings."), "error");
+      showToast(errorMessage(e, t("cmsSettingsPage.saveFailed")), "error");
     } finally {
       setSaving(false);
     }
@@ -61,16 +63,16 @@ export default function CmsSettingsPage() {
     <Stack spacing={2}>
       <Breadcrumbs>
         <Typography component={RouterLink} to="/cms" color="primary" sx={{ textDecoration: "none", fontWeight: 500, "&:hover": { textDecoration: "underline" } }}>
-          Browse content
+          {t("cmsSettingsPage.breadcrumbBrowse")}
         </Typography>
-        <Typography color="text.secondary">Settings</Typography>
+        <Typography color="text.secondary">{t("cmsSettingsPage.breadcrumbSettings")}</Typography>
       </Breadcrumbs>
-      <Typography variant="h5">Settings</Typography>
+      <Typography variant="h5">{t("cmsSettingsPage.heading")}</Typography>
       <Stack spacing={2} sx={{ maxWidth: 420 }}>
-        <Typography variant="subtitle1">Available languages</Typography>
+        <Typography variant="subtitle1">{t("cmsSettingsPage.availableLanguages")}</Typography>
         <TextField
-          label="Supported languages"
-          helperText="Comma-separated language codes, e.g. en, sv"
+          label={t("cmsSettingsPage.supportedLanguagesLabel")}
+          helperText={t("cmsSettingsPage.supportedLanguagesHelper")}
           value={supportedLanguagesText}
           onChange={(e) => setSupportedLanguagesText(e.target.value)}
           fullWidth
@@ -79,7 +81,7 @@ export default function CmsSettingsPage() {
           value={supportedLanguages.includes(defaultLanguage) ? defaultLanguage : ""}
           onChange={(e) => setDefaultLanguage(e.target.value)}
           displayEmpty
-          renderValue={(l) => (l ? `Default language: ${l}` : "Choose a default language")}
+          renderValue={(l) => (l ? t("cmsSettingsPage.defaultLanguageSelected", { language: l }) : t("cmsSettingsPage.chooseDefaultLanguage"))}
           disabled={supportedLanguages.length === 0}
         >
           {supportedLanguages.map((l) => (
@@ -95,7 +97,7 @@ export default function CmsSettingsPage() {
           startIcon={saving ? <CircularProgress size={16} color="inherit" /> : undefined}
           sx={{ alignSelf: "flex-start" }}
         >
-          {saving ? "Saving…" : "Save"}
+          {saving ? t("cmsSettingsPage.saving") : t("cmsSettingsPage.save")}
         </Button>
       </Stack>
     </Stack>

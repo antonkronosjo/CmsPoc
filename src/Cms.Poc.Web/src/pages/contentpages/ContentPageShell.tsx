@@ -3,6 +3,7 @@ import { Link as RouterLink, useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Alert, Button, Container, Stack, Typography } from "@mui/material";
 import { ArrowBack, Edit } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import { api, type ContentSummaryDto } from "../../api/client";
 import { useLanguage } from "../../hooks/useLanguage";
 import { useUser } from "../../context/UserContext";
@@ -17,6 +18,7 @@ interface ContentPageShellProps {
 /// loads the published content, and handles loading / not-found states so each
 /// page only has to render its own content type.
 export default function ContentPageShell({ contentTypeKey, children }: ContentPageShellProps) {
+  const { t } = useTranslation();
   const { id } = useParams();
   const { language } = useLanguage();
   const { isAuthenticated } = useUser();
@@ -41,20 +43,20 @@ export default function ContentPageShell({ contentTypeKey, children }: ContentPa
     <Container maxWidth="md" sx={{ py: 4 }}>
       <Stack direction="row" sx={{ justifyContent: "space-between", mb: 2 }}>
         <Button component={RouterLink} to={`/${language}`} startIcon={<ArrowBack />}>
-          Back
+          {t("contentPageShell.back")}
         </Button>
         {found && isAuthenticated && (
           <Button component={RouterLink} to={`/cms/edit/${contentId}?lang=${language}`} startIcon={<Edit />} variant="outlined">
-            Edit
+            {t("contentPageShell.edit")}
           </Button>
         )}
       </Stack>
       {isLoading ? (
-        <Typography color="text.secondary">Loading…</Typography>
+        <Typography color="text.secondary">{t("contentPageShell.loading")}</Typography>
       ) : found ? (
         children(data)
       ) : (
-        <Alert severity="warning">Content not found.</Alert>
+        <Alert severity="warning">{t("contentPageShell.notFound")}</Alert>
       )}
     </Container>
   );

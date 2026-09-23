@@ -1,13 +1,15 @@
 import { useQuery } from "@tanstack/react-query";
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Typography } from "@mui/material";
+import { useTranslation } from "react-i18next";
+import type { TFunction } from "i18next";
 import { api, type UserRefDto } from "../api/client";
 import StatusIndicator from "./StatusIndicator";
 import PublishDialog, { usePublishActions } from "./PublishDialog";
 import dayjs from "../lib/dayjs";
 
-function userLabel(user: UserRefDto | null) {
+function userLabel(user: UserRefDto | null, t: TFunction) {
   if (!user) return "";
-  return user.removed ? "Unknown user" : (user.displayName ?? user.id);
+  return user.removed ? t("versionHistory.unknownUser") : (user.displayName ?? user.id);
 }
 
 interface VersionHistoryProps {
@@ -18,6 +20,7 @@ interface VersionHistoryProps {
 }
 
 export default function VersionHistory({ id, language, activeVersion, onSelectVersion }: VersionHistoryProps) {
+  const { t } = useTranslation();
   const { data: history = [] } = useQuery({
     queryKey: ["content-history", id, language],
     queryFn: () => api.getHistory(id, language),
@@ -28,7 +31,7 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
   if (history.length === 0) {
     return (
       <Typography color="text.secondary" sx={{ px: 3, pb: 3 }}>
-        No versions in this language yet.
+        {t("versionHistory.noVersions")}
       </Typography>
     );
   }
@@ -39,11 +42,11 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
         <Table size="small">
           <TableHead>
             <TableRow>
-              <TableCell>Status</TableCell>
-              <TableCell>Version</TableCell>
-              <TableCell>Created</TableCell>
-              <TableCell>Created by</TableCell>
-              <TableCell>Published by</TableCell>
+              <TableCell>{t("versionHistory.columns.status")}</TableCell>
+              <TableCell>{t("versionHistory.columns.version")}</TableCell>
+              <TableCell>{t("versionHistory.columns.created")}</TableCell>
+              <TableCell>{t("versionHistory.columns.createdBy")}</TableCell>
+              <TableCell>{t("versionHistory.columns.publishedBy")}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -61,8 +64,8 @@ export default function VersionHistory({ id, language, activeVersion, onSelectVe
                   </TableCell>
                   <TableCell>v{version.versionNumber}</TableCell>
                   <TableCell>{dayjs(version.created).format("YYYY-MM-DD HH:mm")}</TableCell>
-                  <TableCell>{userLabel(version.createdBy)}</TableCell>
-                  <TableCell>{userLabel(version.publishedBy)}</TableCell>
+                  <TableCell>{userLabel(version.createdBy, t)}</TableCell>
+                  <TableCell>{userLabel(version.publishedBy, t)}</TableCell>
                 </TableRow>
               );
             })}

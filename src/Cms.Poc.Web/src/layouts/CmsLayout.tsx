@@ -1,6 +1,7 @@
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
 import { Box, Card, Drawer, List, ListItemButton, ListItemIcon, ListItemText, Toolbar } from "@mui/material";
 import { Add, Settings, ViewList } from "@mui/icons-material";
+import { useTranslation } from "react-i18next";
 import { useUser } from "../context/UserContext";
 import { CmsRole } from "../api/client";
 import { chromeShadow, useThemeMode } from "../theme/ThemeModeProvider";
@@ -10,12 +11,13 @@ const NAV_ICON_MIN_WIDTH = 32;
 const DRAWER_WIDTH = 220;
 
 const NAV_ITEMS = [
-  { to: "/cms", label: "Browse", icon: <ViewList />, exact: true },
-  { to: "/cms/create", label: "Create", icon: <Add />, exact: false },
-  { to: "/cms/settings", label: "Settings", icon: <Settings />, exact: false, adminOnly: true },
-];
+  { to: "/cms", labelKey: "nav.browse", icon: <ViewList />, exact: true, adminOnly: false },
+  { to: "/cms/create", labelKey: "nav.create", icon: <Add />, exact: false, adminOnly: false },
+  { to: "/cms/settings", labelKey: "nav.settings", icon: <Settings />, exact: false, adminOnly: true },
+] as const;
 
 export default function CmsLayout() {
+  const { t } = useTranslation();
   const location = useLocation();
   const { isInRole } = useUser();
   const { mode } = useThemeMode();
@@ -50,9 +52,9 @@ export default function CmsLayout() {
                 sx={{
                   py: 0.75,
                   "&.Mui-selected": {
-                    bgcolor: (t) => (t.palette.mode === "light" ? "rgba(91,110,245,0.08)" : "rgba(138,147,255,0.14)"),
+                    bgcolor: (theme) => (theme.palette.mode === "light" ? "rgba(91,110,245,0.08)" : "rgba(138,147,255,0.14)"),
                     "&:hover": {
-                      bgcolor: (t) => (t.palette.mode === "light" ? "rgba(91,110,245,0.12)" : "rgba(138,147,255,0.2)"),
+                      bgcolor: (theme) => (theme.palette.mode === "light" ? "rgba(91,110,245,0.12)" : "rgba(138,147,255,0.2)"),
                     },
                   },
                 }}
@@ -61,7 +63,7 @@ export default function CmsLayout() {
                   {item.icon}
                 </ListItemIcon>
                 <ListItemText
-                  primary={item.label}
+                  primary={t(item.labelKey)}
                   slotProps={{
                     primary: { sx: { fontWeight: selected ? 600 : 500, color: selected ? "primary.main" : "text.primary" } },
                   }}
