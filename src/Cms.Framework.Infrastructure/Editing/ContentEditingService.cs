@@ -197,7 +197,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return summary;
     }
 
-    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false)
+    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null)
     {
         var results = _contentRepository.Query<Content>(language, publishedOnly).ToList();
 
@@ -223,7 +223,9 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             })
             .ToList();
 
-        if (contentTypeKey is { } typeFilter)
+        if (contentTypeKeys is { Count: > 0 } typeFilters)
+            summaries = summaries.Where(x => typeFilters.Contains(x.ContentTypeKey)).ToList();
+        else if (contentTypeKey is { } typeFilter)
             summaries = summaries.Where(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, typeFilter)).ToList();
 
         // Attached to every matching row, not just the current page, so that sorting by

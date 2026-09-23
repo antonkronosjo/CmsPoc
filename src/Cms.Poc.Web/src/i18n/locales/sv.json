@@ -30,7 +30,9 @@
     "create": "Skapa",
     "settings": "Inställningar",
     "toggleDarkMode": "Växla mörkt läge",
-    "userSettings": "Användarinställningar"
+    "userSettings": "Användarinställningar",
+    "news": "Nyheter",
+    "events": "Evenemang"
   },
   "theme": {
     "darkMode": "Mörkt läge",
@@ -109,7 +111,38 @@
   },
   "homePage": {
     "heading": "Publicerat innehåll",
-    "description": "Allt som för närvarande är publicerat. Gå till CMS-avsnittet för att hantera utkast, publicera nya versioner eller redigera befintligt innehåll."
+    "description": "Allt som för närvarande är publicerat. Gå till CMS-avsnittet för att hantera utkast, publicera nya versioner eller redigera befintligt innehåll.",
+    "latestItems": "Senaste materialet",
+    "latestNews": "Nyheter",
+    "latestEvents": "Evenemang",
+    "allNews": "Alla nyheter",
+    "allEvents": "Alla evenemang"
+  },
+  "newsListPage": {
+    "heading": "Nyheter"
+  },
+  "eventsListPage": {
+    "heading": "Evenemang"
+  },
+  "footer": {
+    "about": {
+      "title": "Om",
+      "text": "Det här är en demosida byggd på plattformen CMS Test Project. Allt innehåll som visas här är exempeldata."
+    },
+    "links": {
+      "title": "Länkar",
+      "about": "Om oss",
+      "news": "Nyheter",
+      "events": "Evenemang",
+      "contact": "Kontakt"
+    },
+    "contact": {
+      "title": "Kontakt",
+      "address": "Exempelgatan 123, 123 45 Exempelstad",
+      "email": "hello@example.com",
+      "phone": "+46 12 345 67 89"
+    },
+    "copyright": "© {{year}} CMS Test Project. Alla rättigheter förbehållna."
   },
   "publicLanguageRoute": {
     "notFound": "Sidan hittades inte."

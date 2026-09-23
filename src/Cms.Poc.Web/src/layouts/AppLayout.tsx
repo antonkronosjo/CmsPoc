@@ -1,5 +1,5 @@
 import { Outlet, Link as RouterLink, useLocation } from "react-router-dom";
-import { AppBar, Box, Button, IconButton, MenuItem, Select, Toolbar, Tooltip } from "@mui/material";
+import { AppBar, Box, Button, IconButton, MenuItem, Select, Stack, Toolbar, Tooltip } from "@mui/material";
 import { DarkMode, LightMode, Translate } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { useThemeMode } from "../theme/ThemeModeProvider";
@@ -7,6 +7,7 @@ import { useLanguage } from "../hooks/useLanguage";
 import { useUiLanguage } from "../hooks/useUiLanguage";
 import UserMenu from "../components/UserMenu";
 import CmsEsLogo from "../components/CmsEsLogo";
+import Footer from "../components/Footer";
 
 export default function AppLayout() {
   const { t } = useTranslation();
@@ -30,6 +31,16 @@ export default function AppLayout() {
           >
             <CmsEsLogo height={22} />
           </Box>
+          {!isCms && (
+            <Stack direction="row" spacing={1}>
+              <Button component={RouterLink} to={`/${language}/news`} color="inherit" size="small">
+                {t("nav.news")}
+              </Button>
+              <Button component={RouterLink} to={`/${language}/events`} color="inherit" size="small">
+                {t("nav.events")}
+              </Button>
+            </Stack>
+          )}
           {!isCms && (
             <Select value={language} onChange={(e) => setLanguage(e.target.value)} size="small" sx={{ width: 100 }}>
               {languages.map((l) => (
@@ -64,6 +75,7 @@ export default function AppLayout() {
       <Box sx={{ flex: 1, display: "flex" }}>
         <Outlet />
       </Box>
+      {!isCms && <Footer />}
     </Box>
   );
 }

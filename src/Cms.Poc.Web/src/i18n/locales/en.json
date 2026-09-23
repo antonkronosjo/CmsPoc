@@ -30,7 +30,9 @@
     "create": "Create",
     "settings": "Settings",
     "toggleDarkMode": "Toggle dark mode",
-    "userSettings": "User settings"
+    "userSettings": "User settings",
+    "news": "News",
+    "events": "Events"
   },
   "theme": {
     "darkMode": "Dark mode",
@@ -109,7 +111,38 @@
   },
   "homePage": {
     "heading": "Published content",
-    "description": "Everything currently live. Head to the CMS section to manage drafts, publish new versions, or edit existing content."
+    "description": "Everything currently live. Head to the CMS section to manage drafts, publish new versions, or edit existing content.",
+    "latestItems": "Latest items",
+    "latestNews": "News",
+    "latestEvents": "Events",
+    "allNews": "All news",
+    "allEvents": "All events"
+  },
+  "newsListPage": {
+    "heading": "News"
+  },
+  "eventsListPage": {
+    "heading": "Events"
+  },
+  "footer": {
+    "about": {
+      "title": "About",
+      "text": "This is a demo site built on the CMS Test Project platform. All content shown here is sample data."
+    },
+    "links": {
+      "title": "Links",
+      "about": "About us",
+      "news": "News",
+      "events": "Events",
+      "contact": "Contact"
+    },
+    "contact": {
+      "title": "Contact",
+      "address": "123 Example Street, 12345 Sample City",
+      "email": "hello@example.com",
+      "phone": "+1 234 567 890"
+    },
+    "copyright": "© {{year}} CMS Test Project. All rights reserved."
   },
   "publicLanguageRoute": {
     "notFound": "Page not found."

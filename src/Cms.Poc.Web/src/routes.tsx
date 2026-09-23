@@ -11,6 +11,8 @@ import CmsSettingsPage from "./pages/cms/CmsSettingsPage";
 import EventPage from "./pages/contentpages/EventPage";
 import NewsPage from "./pages/contentpages/NewsPage";
 import SpecialNewsPage from "./pages/contentpages/SpecialNewsPage";
+import NewsListPage from "./pages/NewsListPage";
+import EventsListPage from "./pages/EventsListPage";
 
 /// Single source of truth for the route tree. Adding a page elsewhere in
 /// the app means adding one file under `pages/` and one <Route> line here.
@@ -28,6 +30,8 @@ export const router = createBrowserRouter(
       <Route path="/" element={<RedirectToDefaultLanguage />} />
       <Route path="/:language" element={<PublicLanguageRoute />}>
         <Route index element={<HomePage />} />
+        <Route path="news" element={<NewsListPage />} />
+        <Route path="events" element={<EventsListPage />} />
         <Route path="event/:id" element={<EventPage />} />
         <Route path="news/:id" element={<NewsPage />} />
         <Route path="specialnews/:id" element={<SpecialNewsPage />} />

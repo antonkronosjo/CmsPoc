@@ -127,6 +127,9 @@ export interface SearchContentResult {
 
 export interface SearchContentOptions {
   contentTypeKey?: string;
+  /// Filters to any of several content types at once (e.g. a news type plus its variants).
+  /// Takes priority over contentTypeKey when both are given.
+  contentTypeKeys?: string[];
   page?: number;
   pageSize?: number;
   publishedOnly?: boolean;
@@ -152,10 +155,15 @@ async function ensureOk(res: Response): Promise<void> {
   if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
 }
 
-function query(params: Record<string, string | number | boolean | undefined>): string {
+function query(params: Record<string, string | number | boolean | string[] | undefined>): string {
   const usp = new URLSearchParams();
   for (const [key, value] of Object.entries(params)) {
-    if (value !== undefined) usp.set(key, String(value));
+    if (value === undefined) continue;
+    if (Array.isArray(value)) {
+      for (const v of value) usp.append(key, v);
+    } else {
+      usp.set(key, String(value));
+    }
   }
   const qs = usp.toString();
   return qs ? `?${qs}` : "";
@@ -217,6 +225,7 @@ export const api = {
         query: searchQuery,
         language,
         contentTypeKey: options.contentTypeKey,
+        contentTypeKeys: options.contentTypeKeys,
         page: options.page,
         pageSize: options.pageSize,
         publishedOnly: options.publishedOnly,

@@ -53,7 +53,11 @@ public interface IContentEditingService<TContentType>
     /// in their default order - callers only offer sorting for fields that are actually
     /// sortable, so this is a defensive fallback rather than a validation error.
     /// </param>
-    SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false);
+    /// <param name="contentTypeKeys">
+    /// Filters to any of several content types at once (e.g. a news type plus its variants).
+    /// Takes priority over <paramref name="contentTypeKey"/> when both are given.
+    /// </param>
+    SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null);
 
     /// <summary>Version history in <paramref name="language"/> (<c>null</c> = the item's master language).</summary>
     List<ContentSummaryDto<TContentType>> GetHistory(int id, string? language);
