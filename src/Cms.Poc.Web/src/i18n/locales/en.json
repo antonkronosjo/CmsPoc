@@ -101,6 +101,18 @@
     "sharedByAllLanguagesEdit": "Shared by all languages - edit in {{masterLanguage}}",
     "noTemplate": "No template defined for property \"{{propertyName}}\""
   },
+  "markdownEditor": {
+    "blockType": "Text style",
+    "paragraph": "Paragraph",
+    "heading": "Heading {{level}}",
+    "bold": "Bold (Ctrl+B)",
+    "italic": "Italic (Ctrl+I)",
+    "bulletList": "Bulleted list",
+    "link": "Link",
+    "linkUrl": "URL",
+    "applyLink": "Apply",
+    "removeLink": "Remove link"
+  },
   "contentPicker": {
     "clearSelection": "clear selection",
     "selectContent": "Select content",

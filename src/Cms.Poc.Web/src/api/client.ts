@@ -7,6 +7,7 @@ export const InputType = {
   Date: "Date",
   DateTime: "DateTime",
   ContentReference: "ContentReference",
+  Markdown: "Markdown",
 } as const;
 export type InputType = (typeof InputType)[keyof typeof InputType];
 

@@ -1,6 +1,7 @@
 import { Chip, Stack, Typography } from "@mui/material";
 import { useTranslation } from "react-i18next";
 import { getProperty } from "../../components/ContentArea/types";
+import MarkdownContent from "../../components/MarkdownContent";
 import ContentPageShell from "./ContentPageShell";
 
 export default function NewsPage() {
@@ -16,7 +17,7 @@ export default function NewsPage() {
           <Typography variant="h6" component="p" sx={{ fontWeight: 500, whiteSpace: "pre-line" }}>
             {getProperty(content, "Intro")}
           </Typography>
-          <Typography sx={{ whiteSpace: "pre-line" }}>{getProperty(content, "Body")}</Typography>
+          <MarkdownContent>{getProperty(content, "Body")}</MarkdownContent>
         </Stack>
       )}
     </ContentPageShell>

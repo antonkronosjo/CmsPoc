@@ -8,7 +8,7 @@ public class SpecialNewsContent : NewsContent
 {
 
     [CultureSpecific]
-    [ContentProperty(InputType.TextArea)]
+    [ContentProperty(InputType.Markdown)]
     [Required]
     public string SpecialBody { get; set; } = string.Empty;
 }

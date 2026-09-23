@@ -20,7 +20,7 @@ public class NewsContent : Content
     public string Intro { get; set; } = string.Empty;
 
     [CultureSpecific]
-    [ContentProperty(InputType.TextArea)]
+    [ContentProperty(InputType.Markdown)]
     [Required]
     public string Body { get; set; } = string.Empty;
 

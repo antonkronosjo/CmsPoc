@@ -20,10 +20,13 @@ public class EventContent : Content
     public string Intro { get; set; } = string.Empty;
 
     [CultureSpecific]
-    [ContentProperty(InputType.TextArea)]
+    [ContentProperty(InputType.Markdown)]
     [Required]
     public string Description { get; set; } = string.Empty;
 
     [ContentProperty(InputType.DateTime)]
     public DateTime StartDate { get; set; }
+
+    [ContentProperty(InputType.DateTime)]
+    public DateTime EndDate { get; set; }
 }

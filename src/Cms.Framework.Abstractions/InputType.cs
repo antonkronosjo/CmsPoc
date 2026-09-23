@@ -23,4 +23,10 @@ public enum InputType
     /// <see cref="ContentReference"/> property.
     /// </summary>
     ContentReference = 5,
+
+    /// <summary>
+    /// Renders as a WYSIWYG editor whose value is stored as a markdown string
+    /// (headings h2-h6, bold, italic, bullet lists and links).
+    /// </summary>
+    Markdown = 6,
 }

@@ -101,6 +101,18 @@
     "sharedByAllLanguagesEdit": "Delas av alla språk - redigera på {{masterLanguage}}",
     "noTemplate": "Ingen mall definierad för egenskapen \"{{propertyName}}\""
   },
+  "markdownEditor": {
+    "blockType": "Textstil",
+    "paragraph": "Stycke",
+    "heading": "Rubrik {{level}}",
+    "bold": "Fetstil (Ctrl+B)",
+    "italic": "Kursiv (Ctrl+I)",
+    "bulletList": "Punktlista",
+    "link": "Länk",
+    "linkUrl": "URL",
+    "applyLink": "Använd",
+    "removeLink": "Ta bort länk"
+  },
   "contentPicker": {
     "clearSelection": "rensa val",
     "selectContent": "Välj innehåll",

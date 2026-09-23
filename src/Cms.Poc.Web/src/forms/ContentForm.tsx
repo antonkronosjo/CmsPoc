@@ -6,6 +6,7 @@ import type { TFunction } from "i18next";
 import { api, InputType, type ContentPropertyValueDto, type ContentReference } from "../api/client";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 import ContentPicker from "./ContentPicker";
+import MarkdownTextField from "./MarkdownEditor";
 import dayjs from "../lib/dayjs";
 
 interface ContentFormProps {
@@ -177,6 +178,9 @@ const FormElementTemplate = forwardRef<FormElementHandle, FormElementTemplatePro
             onChange={(e) => handleChange(e.target.value)}
           />
         );
+
+      case InputType.Markdown:
+        return <MarkdownTextField {...commonProps} value={(valueDto.value as string) ?? ""} onChange={(e) => handleChange(e.target.value)} />;
 
       case InputType.Number:
         return (
