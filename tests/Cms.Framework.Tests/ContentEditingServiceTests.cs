@@ -152,6 +152,44 @@ public sealed class ContentEditingServiceTests : IDisposable
     }
 
     [Fact]
+    public void Search_sorts_by_an_arbitrary_field_name_ascending_and_descending()
+    {
+        foreach (var name in new[] { "Charlie", "Alpha", "Bravo" })
+        {
+            var news = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
+            news.Metadata.Name = name;
+            news.Properties["Heading"].Value = "Heading";
+            news.Properties["Body"].Value = "Body";
+            news.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
+            _fixture.Editing.Create(news);
+        }
+
+        var ascending = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: null, page: 1, pageSize: 20, sortBy: "name");
+        Assert.Equal(["Alpha", "Bravo", "Charlie"], ascending.Items.Select(x => x.Name));
+
+        var descending = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: null, page: 1, pageSize: 20, sortBy: "name", sortDescending: true);
+        Assert.Equal(["Charlie", "Bravo", "Alpha"], descending.Items.Select(x => x.Name));
+    }
+
+    [Fact]
+    public void Search_ignores_an_unknown_or_non_comparable_sortBy_and_falls_back_to_default_order()
+    {
+        var news = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");
+        news.Metadata.Name = "Only item";
+        news.Properties["Heading"].Value = "Heading";
+        news.Properties["Body"].Value = "Body";
+        news.Properties["RelatedContent"].Value = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent);
+        _fixture.Editing.Create(news);
+
+        var unknownField = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: null, page: 1, pageSize: 20, sortBy: "notAField");
+        Assert.Single(unknownField.Items);
+
+        // Languages is a List<string> - not IComparable - so sorting by it should be a no-op, not a throw.
+        var nonComparableField = _fixture.Editing.Search(query: null, language: "en", contentTypeKey: null, page: 1, pageSize: 20, sortBy: "languages");
+        Assert.Single(nonComparableField.Items);
+    }
+
+    [Fact]
     public void GetUpdateSchema_with_a_version_number_returns_that_version_not_the_current_one()
     {
         var creationSchema = _fixture.Editing.GetCreationSchema(ContentTypeKey.NewsContent, "en");

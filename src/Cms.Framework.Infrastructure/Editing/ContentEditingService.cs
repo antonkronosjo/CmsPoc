@@ -197,7 +197,7 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         return summary;
     }
 
-    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false)
+    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false)
     {
         var results = _contentRepository.Query<Content>(language, publishedOnly).ToList();
 
@@ -226,9 +226,13 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         if (contentTypeKey is { } typeFilter)
             summaries = summaries.Where(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, typeFilter)).ToList();
 
+        // Attached to every matching row, not just the current page, so that sorting by
+        // RootCreated or LastModified (both filled in here) sees every row's real value.
+        AttachLanguages(summaries);
+        AttachRootCreated(summaries);
+        summaries = ApplySort(summaries, sortBy, sortDescending);
+
         var items = summaries.Skip((page - 1) * pageSize).Take(pageSize).ToList();
-        AttachLanguages(items);
-        AttachRootCreated(items);
         ResolveUsers(items);
 
         return new SearchContentResult<TContentType>
@@ -236,6 +240,35 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             Items = items,
             TotalCount = summaries.Count,
         };
+    }
+
+    /// <summary>
+    /// Orders <paramref name="summaries"/> by an arbitrary <see cref="ContentSummaryDto{TContentType}"/>
+    /// property, found by name via reflection so every current and future field is sortable
+    /// without dedicated per-field code. Falls back to the input order, unsorted, when
+    /// <paramref name="sortBy"/> is blank, unknown, or names a property that isn't
+    /// <see cref="IComparable"/> (e.g. <c>Languages</c>) - the API caller decides which
+    /// fields to offer as sortable, so this is a silent fallback rather than a hard error.
+    /// </summary>
+    private static List<ContentSummaryDto<TContentType>> ApplySort(List<ContentSummaryDto<TContentType>> summaries, string? sortBy, bool sortDescending)
+    {
+        if (string.IsNullOrWhiteSpace(sortBy)) return summaries;
+
+        var property = typeof(ContentSummaryDto<TContentType>).GetProperty(sortBy, BindingFlags.Public | BindingFlags.Instance | BindingFlags.IgnoreCase);
+        var valueType = property is null ? null : Nullable.GetUnderlyingType(property.PropertyType) ?? property.PropertyType;
+        if (property is null || !typeof(IComparable).IsAssignableFrom(valueType))
+            return summaries;
+
+        // PropertyInfo.GetValue on a Nullable<T> property returns either null or a boxed T
+        // (never a boxed Nullable<T>), so every non-null value here already implements
+        // IComparable - only the null case needs handling.
+        IComparable? KeySelector(ContentSummaryDto<TContentType> s) => (IComparable?)property.GetValue(s);
+        var nullSafeComparer = Comparer<IComparable?>.Create((a, b) => a is null ? (b is null ? 0 : -1) : b is null ? 1 : a.CompareTo(b));
+
+        IOrderedEnumerable<ContentSummaryDto<TContentType>> ordered = sortDescending
+            ? summaries.OrderByDescending(KeySelector, nullSafeComparer)
+            : summaries.OrderBy(KeySelector, nullSafeComparer);
+        return ordered.ToList();
     }
 
     /// <summary>

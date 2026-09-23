@@ -179,12 +179,32 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
             // leaves native chrome (scrollbars, form controls) following the OS preference
             // instead of the app's own light/dark toggle. Pin it to the actual mode here.
             html: { colorScheme: mode },
+            // The gradient's radial-gradient() positions are baked into the string itself,
+            // so `background-position` can't animate them. Instead the gradient lives on a
+            // fixed ::before layer, scaled up slightly so its edges stay off-screen, and the
+            // whole layer is nudged with `transform` - that's what makes the drift visible.
+            "@keyframes frostedGlassDrift": {
+              "0%": { transform: "scale(1.08) translate3d(0%, 0%, 0)" },
+              "50%": { transform: "scale(1.08) translate3d(-3%, 3%, 0)" },
+              "100%": { transform: "scale(1.08) translate3d(0%, 0%, 0)" },
+            },
             body: frostedGlass
               ? {
                   backgroundColor: backgroundDefault,
-                  backgroundImage: backgroundGradient,
-                  backgroundAttachment: "fixed",
-                  backgroundRepeat: "no-repeat",
+                  position: "relative",
+                  "&::before": {
+                    content: '""',
+                    position: "fixed",
+                    inset: 0,
+                    zIndex: -1,
+                    backgroundImage: backgroundGradient,
+                    backgroundRepeat: "no-repeat",
+                    transformOrigin: "center center",
+                    animation: "frostedGlassDrift 24s ease-in-out infinite",
+                    "@media (prefers-reduced-motion: reduce)": {
+                      animation: "none",
+                    },
+                  },
                 }
               : { backgroundColor: backgroundDefault },
             // The custom sharp-corners theme mutes MUI's default focus styling, so make

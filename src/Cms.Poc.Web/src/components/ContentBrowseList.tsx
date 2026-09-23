@@ -15,6 +15,7 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  TableSortLabel,
   TextField,
   Typography,
 } from "@mui/material";
@@ -27,6 +28,32 @@ import { useContentTypes } from "../hooks/useContentTypes";
 import { useDebouncedCallback } from "../hooks/useDebouncedCallback";
 
 const PAGE_SIZE_OPTIONS = [10, 25, 50];
+
+/// One column header with a discrete sort arrow, driven by the shared sortBy/sortDescending
+/// state below - field is a ContentSummaryDto property name, sorted server-side (see
+/// IContentEditingService.Search), not client-side.
+function SortableHeaderCell({
+  label,
+  field,
+  sortBy,
+  sortDescending,
+  onSort,
+}: {
+  label: string;
+  field: string;
+  sortBy: string | undefined;
+  sortDescending: boolean;
+  onSort: (field: string) => void;
+}) {
+  const active = sortBy === field;
+  return (
+    <TableCell sortDirection={active ? (sortDescending ? "desc" : "asc") : false}>
+      <TableSortLabel active={active} direction={active && sortDescending ? "desc" : "asc"} onClick={() => onSort(field)}>
+        {label}
+      </TableSortLabel>
+    </TableCell>
+  );
+}
 
 interface ContentBrowseListProps {
   /// Restricts the list to items translated into this language and shows them in it. Leave
@@ -50,16 +77,28 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
   const [contentTypeName, setContentTypeName] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_OPTIONS[0]);
+  const [sortBy, setSortBy] = useState<string | undefined>(undefined);
+  const [sortDescending, setSortDescending] = useState(false);
   const debouncedSetTerm = useDebouncedCallback((value: string) => {
     setTerm(value);
     setPage(1);
   }, 250);
 
+  const handleSort = (field: string) => {
+    if (sortBy === field) {
+      setSortDescending((prev) => !prev);
+    } else {
+      setSortBy(field);
+      setSortDescending(false);
+    }
+    setPage(1);
+  };
+
   const { data: contentTypes = [] } = useContentTypes();
 
   const { data, isFetching } = useQuery({
-    queryKey: ["content-search", term, language, contentTypeName, page, pageSize, publishedOnly],
-    queryFn: () => api.searchContent(term, language, { contentTypeKey: contentTypeName || undefined, page, pageSize, publishedOnly }),
+    queryKey: ["content-search", term, language, contentTypeName, page, pageSize, publishedOnly, sortBy, sortDescending],
+    queryFn: () => api.searchContent(term, language, { contentTypeKey: contentTypeName || undefined, page, pageSize, publishedOnly, sortBy, sortDescending }),
   });
 
   const items = data?.items ?? [];
@@ -115,14 +154,53 @@ export default function ContentBrowseList({ language, onSelect, showTypeFilter =
         <Table size="small">
           <TableHead>
             <TableRow>
-              {language === undefined && <TableCell>{t("browseList.columns.id")}</TableCell>}
-              <TableCell>{t("browseList.columns.name")}</TableCell>
-              <TableCell>{t("browseList.columns.contentType")}</TableCell>
+              {language === undefined && (
+                <SortableHeaderCell label={t("browseList.columns.id")} field="id" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort} />
+              )}
+              <SortableHeaderCell label={t("browseList.columns.name")} field="name" sortBy={sortBy} sortDescending={sortDescending} onSort={handleSort} />
+              <SortableHeaderCell
+                label={t("browseList.columns.contentType")}
+                field="contentTypeKey"
+                sortBy={sortBy}
+                sortDescending={sortDescending}
+                onSort={handleSort}
+              />
+              {/* Languages is a list, not a single sortable value, so it gets a plain header. */}
               {language === undefined && <TableCell>{t("browseList.columns.languages")}</TableCell>}
-              {language !== undefined && <TableCell>{t("browseList.columns.version")}</TableCell>}
-              <TableCell>{t("browseList.columns.created")}</TableCell>
-              {language === undefined && <TableCell>{t("browseList.columns.lastModified")}</TableCell>}
-              {language !== undefined && !publishedOnly && <TableCell>{t("browseList.columns.status")}</TableCell>}
+              {language !== undefined && (
+                <SortableHeaderCell
+                  label={t("browseList.columns.version")}
+                  field="versionNumber"
+                  sortBy={sortBy}
+                  sortDescending={sortDescending}
+                  onSort={handleSort}
+                />
+              )}
+              <SortableHeaderCell
+                label={t("browseList.columns.created")}
+                field={language === undefined ? "rootCreated" : "created"}
+                sortBy={sortBy}
+                sortDescending={sortDescending}
+                onSort={handleSort}
+              />
+              {language === undefined && (
+                <SortableHeaderCell
+                  label={t("browseList.columns.lastModified")}
+                  field="lastModified"
+                  sortBy={sortBy}
+                  sortDescending={sortDescending}
+                  onSort={handleSort}
+                />
+              )}
+              {language !== undefined && !publishedOnly && (
+                <SortableHeaderCell
+                  label={t("browseList.columns.status")}
+                  field="livePublishedVersionNumber"
+                  sortBy={sortBy}
+                  sortDescending={sortDescending}
+                  onSort={handleSort}
+                />
+              )}
             </TableRow>
           </TableHead>
           <TableBody>

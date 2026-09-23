@@ -131,6 +131,10 @@ export interface SearchContentOptions {
   page?: number;
   pageSize?: number;
   publishedOnly?: boolean;
+  /// A ContentSummaryDto field name (case-insensitive), e.g. "name" or "lastModified". Unknown
+  /// names or non-comparable fields (like "languages") are ignored server-side, not an error.
+  sortBy?: string;
+  sortDescending?: boolean;
 }
 
 export interface PublishContentRequest {
@@ -217,6 +221,8 @@ export const api = {
         page: options.page,
         pageSize: options.pageSize,
         publishedOnly: options.publishedOnly,
+        sortBy: options.sortBy,
+        sortDescending: options.sortDescending,
       })}`,
     ).then((r) => json<SearchContentResult>(r)),
 
