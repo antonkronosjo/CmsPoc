@@ -135,7 +135,7 @@
     "backToBrowse": "Tillbaka till bläddra",
     "loadError": "Innehållet {{id}} kunde inte laddas.",
     "breadcrumbBrowse": "Innehåll",
-    "masterTag": "huvud",
+    "masterTag": "master",
     "newTag": "ny",
     "unsavedChangesTitle": "Osparade ändringar",
     "addLanguage": "Lägg till språk",
