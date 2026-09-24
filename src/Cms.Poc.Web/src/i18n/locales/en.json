@@ -180,7 +180,7 @@
     "heading": "All content"
   },
   "cmsCreatePage": {
-    "breadcrumbBrowse": "Content",
+    "breadcrumbBrowse": "CMS",
     "breadcrumbCreate": "Create",
     "heading": "Create content",
     "masterLanguage": "Master language: {{language}}",
@@ -196,7 +196,7 @@
     "leave": "Leave",
     "backToBrowse": "Back to browse",
     "loadError": "Content {{id}} could not be loaded.",
-    "breadcrumbBrowse": "Content",
+    "breadcrumbBrowse": "CMS",
     "masterTag": "master",
     "newTag": "new",
     "unsavedChangesTitle": "Unsaved changes",
@@ -230,7 +230,7 @@
   "cmsSettingsPage": {
     "savedToast": "Settings saved.",
     "saveFailed": "Failed to save settings.",
-    "breadcrumbBrowse": "Content",
+    "breadcrumbBrowse": "CMS",
     "breadcrumbSettings": "Settings",
     "heading": "Settings",
     "availableLanguages": "Available languages",

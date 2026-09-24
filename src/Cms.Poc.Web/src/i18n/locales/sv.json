@@ -180,7 +180,7 @@
     "heading": "Allt innehåll"
   },
   "cmsCreatePage": {
-    "breadcrumbBrowse": "Innehåll",
+    "breadcrumbBrowse": "CMS",
     "breadcrumbCreate": "Skapa",
     "heading": "Skapa innehåll",
     "masterLanguage": "Huvudspråk: {{language}}",
@@ -196,7 +196,7 @@
     "leave": "Lämna",
     "backToBrowse": "Tillbaka till bläddra",
     "loadError": "Innehållet {{id}} kunde inte laddas.",
-    "breadcrumbBrowse": "Innehåll",
+    "breadcrumbBrowse": "CMS",
     "masterTag": "master",
     "newTag": "ny",
     "unsavedChangesTitle": "Osparade ändringar",
@@ -230,7 +230,7 @@
   "cmsSettingsPage": {
     "savedToast": "Inställningarna sparades.",
     "saveFailed": "Det gick inte att spara inställningarna.",
-    "breadcrumbBrowse": "Innehåll",
+    "breadcrumbBrowse": "CMS",
     "breadcrumbSettings": "Inställningar",
     "heading": "Inställningar",
     "availableLanguages": "Tillgängliga språk",

@@ -1,6 +1,6 @@
 import { useState, type MouseEvent } from "react";
 import { IconButton, Menu, Tooltip } from "@mui/material";
-import { Palette } from "@mui/icons-material";
+import { Contrast } from "@mui/icons-material";
 import { useTranslation } from "react-i18next";
 import { useAppearanceMenuItems } from "./useAppearanceMenuItems";
 
@@ -18,7 +18,7 @@ export default function AppearanceMenu() {
           aria-label={t("nav.appearance")}
           color="inherit"
         >
-          <Palette />
+          <Contrast />
         </IconButton>
       </Tooltip>
       <Menu
