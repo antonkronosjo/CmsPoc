@@ -146,5 +146,88 @@ public sealed class PublishingTests : IDisposable
         Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), publishedOnlySearch.Items.Single(i => i.Id == created.Id).Properties["RelatedContent"]);
     }
 
+    [Fact]
+    public void FirstPublished_stays_at_the_first_go_live_when_newer_versions_are_published()
+    {
+        var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent);
+        var v2 = _fixture.Repository.Update(created);
+
+        var now = DateTime.UtcNow;
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: now.AddMinutes(-10), stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", v2.VersionNumber, startPublish: now.AddMinutes(-5), stopPublish: null);
+
+        var summary = _fixture.Editing.GetSummary(created.Id, "en")!;
+        Assert.Equal(v2.VersionNumber, summary.LivePublishedVersionNumber);
+        Assert.Equal(now.AddMinutes(-5), summary.StartPublish);
+        Assert.Equal(now.AddMinutes(-10), summary.FirstPublished);
+    }
+
+    [Fact]
+    public void Republishing_a_version_that_has_been_live_publishes_a_copy_and_keeps_its_start_date()
+    {
+        var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent);
+        var v2 = _fixture.Repository.Update(created);
+
+        var now = DateTime.UtcNow;
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: now.AddMinutes(-10), stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", v2.VersionNumber, startPublish: now.AddMinutes(-5), stopPublish: null);
+
+        var published = _fixture.Editing.Publish(created.Id, "en", 1, startPublish: null, stopPublish: null);
+
+        Assert.Equal(3, published);
+        var history = _fixture.Editing.GetHistory(created.Id, "en");
+        Assert.Equal(now.AddMinutes(-10), history.Single(h => h.VersionNumber == 1).StartPublish);
+        Assert.Equal(new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent), history.Single(h => h.VersionNumber == 3).Properties["RelatedContent"]);
+
+        var summary = _fixture.Editing.GetSummary(created.Id, "en")!;
+        Assert.Equal(3, summary.LivePublishedVersionNumber);
+        Assert.Equal(now.AddMinutes(-10), summary.FirstPublished);
+    }
+
+    [Fact]
+    public void Rescheduling_a_version_that_has_not_gone_live_yet_edits_it_in_place()
+    {
+        var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
+        var now = DateTime.UtcNow;
+
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: now.AddHours(1), stopPublish: null);
+        var published = _fixture.Editing.Publish(created.Id, "en", 1, startPublish: now.AddHours(2), stopPublish: null);
+
+        Assert.Equal(1, published);
+        var history = _fixture.Editing.GetHistory(created.Id, "en");
+        Assert.Single(history);
+        Assert.Equal(now.AddHours(2), history[0].StartPublish);
+    }
+
+    [Fact]
+    public void FirstPublished_is_null_while_the_only_publish_is_still_scheduled()
+    {
+        var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
+
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: DateTime.UtcNow.AddHours(1), stopPublish: null);
+
+        Assert.Null(_fixture.Editing.GetSummary(created.Id, "en")!.FirstPublished);
+    }
+
+    [Fact]
+    public void Search_date_filter_uses_first_published_not_the_live_versions_start()
+    {
+        var created = _fixture.Repository.Create(new NewsContent { Name = "A", Heading = "H", Body = "B", RelatedContent = new ContentReference<ContentTypeKey>(1, ContentTypeKey.NewsContent) }, "en");
+        created.RelatedContent = new ContentReference<ContentTypeKey>(2, ContentTypeKey.NewsContent);
+        var v2 = _fixture.Repository.Update(created);
+
+        var now = DateTime.UtcNow;
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: now.AddDays(-10), stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "en", v2.VersionNumber, startPublish: now.AddMinutes(-5), stopPublish: null);
+
+        var olderThanADay = _fixture.Editing.Search(query: null, "en", contentTypeKey: null, page: 1, pageSize: 20, publishedOnly: true, publishedTo: now.AddDays(-1));
+        Assert.Contains(olderThanADay.Items, i => i.Id == created.Id);
+
+        var lastDay = _fixture.Editing.Search(query: null, "en", contentTypeKey: null, page: 1, pageSize: 20, publishedOnly: true, publishedFrom: now.AddDays(-1));
+        Assert.DoesNotContain(lastDay.Items, i => i.Id == created.Id);
+    }
+
     public void Dispose() => _fixture.Dispose();
 }

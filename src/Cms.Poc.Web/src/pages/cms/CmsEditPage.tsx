@@ -280,7 +280,14 @@ function EditPanel({
   const { data: schema, isLoading } = useQuery({ queryKey, queryFn: () => api.getUpdateSchema(id, language, version) });
   const [draft, setDraft] = useState<UpdateContentSchema | undefined>(undefined);
   const [historyOpen, setHistoryOpen] = useState(false);
-  const publishActions = usePublishActions({ id, language });
+  // Republishing a previously live version publishes a new copy, so follow it to that copy's route.
+  const publishActions = usePublishActions({
+    id,
+    language,
+    onPublished: (versionNumber) => {
+      if (versionNumber !== schema?.metadata.versionNumber) onSelectVersion(versionNumber);
+    },
+  });
   const formRef = useRef<ContentFormHandle>(null);
   const active = draft ?? schema;
   const isMaster = language === masterLanguage;
@@ -408,7 +415,9 @@ function EditPanel({
                       fontWeight: 600,
                       lineHeight: "inherit",
                       textTransform: "none",
-                      "& .MuiButton-endIcon": { ml: 0.5 },
+                      "& .MuiButton-endIcon": { ml: 0.25, mr: 0 },
+                      // MUI's small-size rule pins the icon at 18px; size it to the text instead.
+                      "& .MuiButton-endIcon > *:nth-of-type(1)": { fontSize: "1.1em" },
                     }}
                   >
                     v{active.metadata.versionNumber}

@@ -67,9 +67,9 @@ public static class CmsEndpointRouteBuilderExtensions
                 : Results.NotFound());
 
         group.MapGet("/search", (IContentEditingService<TContentType> editing, string? query, string? language, TContentType? contentTypeKey, TContentType[]? contentTypeKeys, int? page, int? pageSize, bool? publishedOnly, string? sortBy, bool? sortDescending,
-                DateTime? startPublishFrom, DateTime? startPublishTo, string? propertyName, DateTime? propertyValueFrom, DateTime? propertyValueTo)
+                DateTime? publishedFrom, DateTime? publishedTo, string? propertyName, DateTime? propertyValueFrom, DateTime? propertyValueTo)
             => editing.Search(query, language, contentTypeKey, page ?? 1, pageSize ?? 20, publishedOnly ?? false, sortBy, sortDescending ?? false, contentTypeKeys,
-                startPublishFrom, startPublishTo, propertyName, propertyValueFrom, propertyValueTo));
+                publishedFrom, publishedTo, propertyName, propertyValueFrom, propertyValueTo));
 
         group.MapGet("/{id:int}/history", (IContentEditingService<TContentType> editing, int id, string? language)
             => editing.GetHistory(id, language));
@@ -77,11 +77,9 @@ public static class CmsEndpointRouteBuilderExtensions
         group.MapPost("/validate", (IContentEditingService<TContentType> editing, TContentType contentTypeKey, string propertyName, ContentPropertyValueDto value)
             => editing.ValidateProperty(contentTypeKey, propertyName, value));
 
-        group.MapPost("/{id:int}/publish", (IContentEditingService<TContentType> editing, int id, PublishContentRequest request) =>
-        {
-            editing.Publish(id, request.Language, request.VersionNumber, request.StartPublish, request.StopPublish);
-            return Results.NoContent();
-        });
+        // Returns the version actually published: republishing one that has already been live publishes a new copy of it.
+        group.MapPost("/{id:int}/publish", (IContentEditingService<TContentType> editing, int id, PublishContentRequest request)
+            => new { VersionNumber = editing.Publish(id, request.Language, request.VersionNumber, request.StartPublish, request.StopPublish) });
 
         group.MapPost("/{id:int}/unpublish", (IContentEditingService<TContentType> editing, int id, string language) =>
         {

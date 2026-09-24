@@ -80,6 +80,7 @@
     "publishOlderTitle": "Publish an older version?",
     "publishAnyway": "Publish anyway",
     "publishedToast": "Version {{versionNumber}} published.",
+    "publishedAsCopyToast": "Version {{sourceVersionNumber}} has been live before, so it was published as a new copy, version {{versionNumber}}.",
     "publishFailed": "Failed to publish.",
     "unpublishTitle": "Unpublish content?",
     "unpublishMessage": "This will take the currently live version offline immediately. Are you sure you want to continue?",

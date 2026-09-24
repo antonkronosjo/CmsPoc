@@ -108,6 +108,13 @@ public sealed class ContentSummaryDto<TContentType>
     /// </summary>
     public DateTime LastModified { get; set; }
 
+    /// <summary>
+    /// When <see cref="Language"/>'s branch of the item first went live, or <c>null</c> if it never has.
+    /// Stable across new versions, unlike <see cref="StartPublish"/> which belongs to this row's own
+    /// version. Filled by search, summary and history lookups.
+    /// </summary>
+    public DateTime? FirstPublished { get; set; }
+
     /// <summary>Who created this version, or <c>null</c> if unknown or user tracking is off.</summary>
     public UserRefDto? CreatedBy { get; set; }
 

@@ -71,7 +71,7 @@ export default function ContentList({
         sortDescending: true,
         ...(dateRangeField?.property
           ? { propertyName: dateRangeField.property, propertyValueFrom: dateFrom, propertyValueTo: dateTo }
-          : { startPublishFrom: dateFrom, startPublishTo: dateTo }),
+          : { publishedFrom: dateFrom, publishedTo: dateTo }),
       }),
     gcTime: 0,
     placeholderData: keepPreviousData,

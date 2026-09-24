@@ -57,21 +57,25 @@ public interface IContentEditingService<TContentType>
     /// Filters to any of several content types at once (e.g. a news type plus its variants).
     /// Takes priority over <paramref name="contentTypeKey"/> when both are given.
     /// </param>
-    /// <param name="startPublishFrom">Only items whose (live) StartPublish is on or after this instant.</param>
-    /// <param name="startPublishTo">Only items whose (live) StartPublish is on or before this instant.</param>
+    /// <param name="publishedFrom">Only items whose language branch first went live (<see cref="ContentSummaryDto{TContentType}.FirstPublished"/>) on or after this instant.</param>
+    /// <param name="publishedTo">Only items whose language branch first went live on or before this instant.</param>
     /// <param name="propertyName">
     /// A content type's own property name (case-insensitive) to range-filter by, e.g. an
     /// event's <c>StartDate</c>. Only <see cref="DateTime"/>-typed properties are comparable;
     /// items missing the property, or where it isn't a <see cref="DateTime"/>, are excluded.
     /// Ignored unless at least one of <paramref name="propertyValueFrom"/>/<paramref name="propertyValueTo"/> is given.
     /// </param>
-    SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null, DateTime? startPublishFrom = null, DateTime? startPublishTo = null, string? propertyName = null, DateTime? propertyValueFrom = null, DateTime? propertyValueTo = null);
+    SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null, DateTime? publishedFrom = null, DateTime? publishedTo = null, string? propertyName = null, DateTime? propertyValueFrom = null, DateTime? propertyValueTo = null);
 
     /// <summary>Version history in <paramref name="language"/> (<c>null</c> = the item's master language).</summary>
     List<ContentSummaryDto<TContentType>> GetHistory(int id, string? language);
 
-    /// <summary>Publishes a specific version of one language branch, replacing whatever was previously live in that language once its window is reached. Other languages are unaffected.</summary>
-    void Publish(int id, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
+    /// <summary>
+    /// Publishes a specific version of one language branch, replacing whatever was previously live in that language once its window is reached. Other languages are unaffected.
+    /// A version that has already been live is not republished in place: a copy of it is added as a new version and published instead.
+    /// Returns the version number actually published.
+    /// </summary>
+    int Publish(int id, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish);
 
     /// <summary>Stops whichever version is currently live in <paramref name="language"/> for this content item. No-op if none is.</summary>
     void Unpublish(int id, string language);

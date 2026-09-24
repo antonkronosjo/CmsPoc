@@ -37,6 +37,7 @@ export default function StatusIndicator({ metadata, variant = "chip", sx, ...chi
       sx={[
         {
           height: "auto",
+          borderRadius: "2px",
           "& .MuiChip-label": { px: "0.6em", py: "0.2em", lineHeight: 1.4 },
         },
         ...(Array.isArray(sx) ? sx : [sx]),

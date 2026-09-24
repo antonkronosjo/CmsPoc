@@ -44,6 +44,19 @@ public sealed class LanguageBranchTests : IDisposable
     }
 
     [Fact]
+    public void Each_language_has_its_own_first_published_date()
+    {
+        var created = CreateWithSwedishBranch();
+        var now = DateTime.UtcNow;
+
+        _fixture.Editing.Publish(created.Id, "en", 1, startPublish: now.AddDays(-3), stopPublish: null);
+        _fixture.Editing.Publish(created.Id, "sv", 1, startPublish: now.AddDays(-1), stopPublish: null);
+
+        Assert.Equal(now.AddDays(-3), _fixture.Editing.GetSummary(created.Id, "en")!.FirstPublished);
+        Assert.Equal(now.AddDays(-1), _fixture.Editing.GetSummary(created.Id, "sv")!.FirstPublished);
+    }
+
+    [Fact]
     public void Unpublishing_one_language_leaves_the_others_live()
     {
         var created = CreateWithSwedishBranch();

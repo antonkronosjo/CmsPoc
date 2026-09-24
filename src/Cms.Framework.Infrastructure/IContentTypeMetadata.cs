@@ -74,6 +74,9 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// <summary>The most recent <see cref="Content.Created"/> across every version, in every language branch, of each given item.</summary>
     IReadOnlyDictionary<int, DateTime> QueryLastModified(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
+    /// <summary>When each given item's language branch first went live. Branches that have never been live are absent.</summary>
+    IReadOnlyDictionary<(int RootId, string Language), DateTime> QueryFirstPublished(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
+
     /// <summary>
     /// The version number for this root in <paramref name="language"/>. When <paramref name="publishedOnly"/> is
     /// <c>false</c>, this is the most recent version number. When <c>true</c>, this is whichever version is
@@ -84,7 +87,10 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     /// <summary>Whether a version with this number exists for this root in <paramref name="language"/>.</summary>
     bool VersionExists(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber);
 
-    /// <summary>Sets (or replaces) the publish window for a specific version.</summary>
+    /// <summary>Adds a copy of <paramref name="versionNumber"/> as a new, unpublished version. Returns the new version number.</summary>
+    int CopyVersion(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, string? userId);
+
+    /// <summary>Sets (or replaces) the publish window for a specific version. A start date already reached cannot change.</summary>
     void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
 
     /// <summary>Stops whichever version is currently live for this root in <paramref name="language"/>. Returns <c>false</c> (no-op) if nothing is live.</summary>
@@ -152,11 +158,17 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
     public IReadOnlyDictionary<int, DateTime> QueryLastModified(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids)
         => _store.QueryLastModified(db, ids);
 
+    public IReadOnlyDictionary<(int RootId, string Language), DateTime> QueryFirstPublished(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids)
+        => _store.QueryFirstPublished(db, ids);
+
     public int? GetVersionNumber(CmsDbContext<TContentType> db, int rootId, string language, bool publishedOnly)
         => _store.GetVersionNumber(db, rootId, language, publishedOnly);
 
     public bool VersionExists(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber)
         => _store.VersionExists(db, rootId, language, versionNumber);
+
+    public int CopyVersion(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, string? userId)
+        => _store.CopyVersion(db, rootId, language, versionNumber, userId);
 
     public void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId)
         => _store.SetPublishSchedule(db, rootId, language, versionNumber, startPublish, stopPublish, userId);

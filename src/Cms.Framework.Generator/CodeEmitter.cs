@@ -484,6 +484,26 @@ internal static class CodeEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
 
+        // QueryFirstPublished - reliable only because a start date, once reached, is never changed (see SetPublishSchedule).
+        sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyDictionary<(int RootId, string Language), global::System.DateTime> QueryFirstPublished(CmsDbContext<{contentTypeEnum}> db, global::System.Collections.Generic.IReadOnlyCollection<int> ids)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine($"        var master = db.Set<{V}>()");
+        sb.AppendLine("            .Where(v => ids.Contains(v.RootId) && v.StartPublish != null && v.StartPublish <= now)");
+        sb.AppendLine("            .GroupBy(v => new { v.RootId, v.Root.MasterLanguage })");
+        sb.AppendLine("            .Select(g => new { g.Key.RootId, Language = g.Key.MasterLanguage, FirstPublished = g.Min(v => v.StartPublish) })");
+        sb.AppendLine("            .ToList();");
+        sb.AppendLine($"        var translations = db.Set<{Tr}>()");
+        sb.AppendLine("            .Where(t => ids.Contains(t.RootId) && t.StartPublish != null && t.StartPublish <= now)");
+        sb.AppendLine("            .GroupBy(t => new { t.RootId, t.Language })");
+        sb.AppendLine("            .Select(g => new { g.Key.RootId, g.Key.Language, FirstPublished = g.Min(t => t.StartPublish) })");
+        sb.AppendLine("            .ToList();");
+        sb.AppendLine("        return master");
+        sb.AppendLine("            .Concat(translations)");
+        sb.AppendLine("            .ToDictionary(x => (x.RootId, x.Language), x => x.FirstPublished!.Value);");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
         // GetVersionNumber
         sb.AppendLine($"    public int? GetVersionNumber(CmsDbContext<{contentTypeEnum}> db, int rootId, string language, bool publishedOnly)");
         sb.AppendLine("    {");
@@ -535,9 +555,11 @@ internal static class CodeEmitter
         sb.AppendLine($"    public void SetPublishSchedule(CmsDbContext<{contentTypeEnum}> db, int rootId, string language, int versionNumber, global::System.DateTime? startPublish, global::System.DateTime? stopPublish, string? userId)");
         sb.AppendLine("    {");
         sb.AppendLine("        var masterLanguage = db.ContentRoots.Where(r => r.Id == rootId).Select(r => r.MasterLanguage).FirstOrDefault();");
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
         sb.AppendLine("        if (language == masterLanguage)");
         sb.AppendLine("        {");
         sb.AppendLine($"            var version = db.Set<{V}>().Single(v => v.RootId == rootId && v.VersionNumber == versionNumber);");
+        sb.AppendLine("            EnsureStartUnchangedOnceReached(version.StartPublish, startPublish, now);");
         sb.AppendLine("            version.StartPublish = startPublish;");
         sb.AppendLine("            version.StopPublish = stopPublish;");
         sb.AppendLine("            version.PublishedBy = userId;");
@@ -545,11 +567,63 @@ internal static class CodeEmitter
         sb.AppendLine("        else");
         sb.AppendLine("        {");
         sb.AppendLine($"            var translation = db.Set<{Tr}>().Single(t => t.RootId == rootId && t.Language == language && t.VersionNumber == versionNumber);");
+        sb.AppendLine("            EnsureStartUnchangedOnceReached(translation.StartPublish, startPublish, now);");
         sb.AppendLine("            translation.StartPublish = startPublish;");
         sb.AppendLine("            translation.StopPublish = stopPublish;");
         sb.AppendLine("            translation.PublishedBy = userId;");
         sb.AppendLine("        }");
         sb.AppendLine("        db.SaveChanges();");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // A start date that has been reached is the record of when that version went live; first-published
+        // dates are derived from it, so it must never move. Republishing such a version goes through CopyVersion.
+        sb.AppendLine("    private static void EnsureStartUnchangedOnceReached(global::System.DateTime? current, global::System.DateTime? requested, global::System.DateTime now)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        if (current is { } start && start <= now && requested != current)");
+        sb.AppendLine("            throw new global::System.InvalidOperationException(\"A version's start publish date cannot be changed once it has been reached.\");");
+        sb.AppendLine("    }");
+        sb.AppendLine();
+
+        // CopyVersion
+        sb.AppendLine($"    public int CopyVersion(CmsDbContext<{contentTypeEnum}> db, int rootId, string language, int versionNumber, string? userId)");
+        sb.AppendLine("    {");
+        sb.AppendLine("        var root = db.ContentRoots.Single(r => r.Id == rootId);");
+        sb.AppendLine("        if (language == root.MasterLanguage)");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            var source = db.Set<{V}>().Single(v => v.RootId == rootId && v.VersionNumber == versionNumber);");
+        sb.AppendLine($"            var nextVersionNumber = db.Set<{V}>().Where(v => v.RootId == rootId).Max(v => v.VersionNumber) + 1;");
+        sb.AppendLine($"            db.Set<{V}>().Add(new {V}");
+        sb.AppendLine("            {");
+        sb.AppendLine("                Root = root,");
+        sb.AppendLine("                Name = source.Name,");
+        sb.AppendLine("                VersionNumber = nextVersionNumber,");
+        sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
+        sb.AppendLine("                CreatedBy = userId,");
+        foreach (var p in model.InvariantProperties.Concat(model.CultureSpecificProperties))
+            sb.AppendLine($"                {p.Name} = source.{p.Name},");
+        sb.AppendLine("            });");
+        sb.AppendLine("            db.SaveChanges();");
+        sb.AppendLine("            return nextVersionNumber;");
+        sb.AppendLine("        }");
+        sb.AppendLine("        else");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            var source = db.Set<{Tr}>().Single(t => t.RootId == rootId && t.Language == language && t.VersionNumber == versionNumber);");
+        sb.AppendLine($"            var nextVersionNumber = db.Set<{Tr}>().Where(t => t.RootId == rootId && t.Language == language).Max(t => t.VersionNumber) + 1;");
+        sb.AppendLine($"            db.Set<{Tr}>().Add(new {Tr}");
+        sb.AppendLine("            {");
+        sb.AppendLine("                Root = root,");
+        sb.AppendLine("                Name = source.Name,");
+        sb.AppendLine("                Language = language,");
+        sb.AppendLine("                VersionNumber = nextVersionNumber,");
+        sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
+        sb.AppendLine("                CreatedBy = userId,");
+        foreach (var p in model.CultureSpecificProperties)
+            sb.AppendLine($"                {p.Name} = source.{p.Name},");
+        sb.AppendLine("            });");
+        sb.AppendLine("            db.SaveChanges();");
+        sb.AppendLine("            return nextVersionNumber;");
+        sb.AppendLine("        }");
         sb.AppendLine("    }");
         sb.AppendLine();
 

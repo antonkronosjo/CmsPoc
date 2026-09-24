@@ -18,9 +18,11 @@ interface PublishTarget {
 interface UsePublishActionsOptions {
   language: string;
   id: number;
+  /// Called with the version actually published - a new copy's number when the requested one had been live before.
+  onPublished?: (versionNumber: number) => void;
 }
 
-export function usePublishActions({ id, language }: UsePublishActionsOptions) {
+export function usePublishActions({ id, language, onPublished }: UsePublishActionsOptions) {
   const { t } = useTranslation();
   const queryClient = useQueryClient();
   const { showToast } = useToast();
@@ -70,10 +72,15 @@ export function usePublishActions({ id, language }: UsePublishActionsOptions) {
     }
     setPublishing(true);
     try {
-      await api.publishContent(id, { language, versionNumber, startPublish, stopPublish });
+      const published = await api.publishContent(id, { language, versionNumber, startPublish, stopPublish });
       setPublishTarget(undefined);
       await invalidateAfterPublishChange();
-      showToast(t("publishDialog.publishedToast", { versionNumber }));
+      showToast(
+        published.versionNumber === versionNumber
+          ? t("publishDialog.publishedToast", { versionNumber })
+          : t("publishDialog.publishedAsCopyToast", { sourceVersionNumber: versionNumber, versionNumber: published.versionNumber }),
+      );
+      onPublished?.(published.versionNumber);
     } catch (error) {
       showToast(errorMessage(error, t("publishDialog.publishFailed")), "error");
     } finally {

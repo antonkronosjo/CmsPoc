@@ -115,6 +115,9 @@ export interface ContentSummaryDto {
   rootCreated: string;
   /// The most recent change to the item as a whole: the newest `created` across every version, in every language branch, not just `language`'s (default for version-history rows).
   lastModified: string;
+  /// When `language`'s branch of the item first went live, or null if it never has. Stable across new
+  /// versions, unlike `startPublish`, which belongs to this row's own version.
+  firstPublished: string | null;
   /// Null when user tracking is off or the reference was removed.
   createdBy: UserRefDto | null;
   publishedBy: UserRefDto | null;
@@ -138,9 +141,9 @@ export interface SearchContentOptions {
   /// names or non-comparable fields (like "languages") are ignored server-side, not an error.
   sortBy?: string;
   sortDescending?: boolean;
-  /// Only items whose (live) StartPublish falls on or after/before this instant (ISO string).
-  startPublishFrom?: string;
-  startPublishTo?: string;
+  /// Only items whose language branch first went live (firstPublished) on or after/before this instant (ISO string).
+  publishedFrom?: string;
+  publishedTo?: string;
   /// Range-filters by a named DateTime-typed content property (e.g. an event's "StartDate").
   /// Ignored unless propertyValueFrom and/or propertyValueTo is also given.
   propertyName?: string;
@@ -240,8 +243,8 @@ export const api = {
         publishedOnly: options.publishedOnly,
         sortBy: options.sortBy,
         sortDescending: options.sortDescending,
-        startPublishFrom: options.startPublishFrom,
-        startPublishTo: options.startPublishTo,
+        publishedFrom: options.publishedFrom,
+        publishedTo: options.publishedTo,
         propertyName: options.propertyName,
         propertyValueFrom: options.propertyValueFrom,
         propertyValueTo: options.propertyValueTo,
@@ -263,7 +266,8 @@ export const api = {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(request),
-    }).then(ensureOk),
+      // The version actually published - a new copy when the requested one has been live before.
+    }).then((r) => json<{ versionNumber: number }>(r)),
 
   unpublishContent: (id: number, language: string) =>
     fetch(`${API_BASE}/api/content/${id}/unpublish${query({ language })}`, { method: "POST" }).then(ensureOk),

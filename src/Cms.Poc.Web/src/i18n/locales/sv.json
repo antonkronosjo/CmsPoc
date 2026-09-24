@@ -80,6 +80,7 @@
     "publishOlderTitle": "Publicera en äldre version?",
     "publishAnyway": "Publicera ändå",
     "publishedToast": "Version {{versionNumber}} publicerades.",
+    "publishedAsCopyToast": "Version {{sourceVersionNumber}} har varit publicerad tidigare, så den publicerades som en ny kopia, version {{versionNumber}}.",
     "publishFailed": "Det gick inte att publicera.",
     "unpublishTitle": "Avpublicera innehåll?",
     "unpublishMessage": "Detta tar bort den publicerade versionen omedelbart. Vill du fortsätta?",

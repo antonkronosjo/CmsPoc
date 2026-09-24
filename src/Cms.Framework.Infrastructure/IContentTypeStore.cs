@@ -45,6 +45,12 @@ public interface IContentTypeStore<T, TContentType>
     IReadOnlyDictionary<int, DateTime> QueryLastModified(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
 
     /// <summary>
+    /// When each given item's language branch first went live: the earliest <see cref="Content.StartPublish"/>
+    /// already reached in that branch. Branches that have never been live are absent.
+    /// </summary>
+    IReadOnlyDictionary<(int RootId, string Language), DateTime> QueryFirstPublished(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids);
+
+    /// <summary>
     /// The version number for this root's branch in <paramref name="language"/>. When <paramref name="publishedOnly"/>
     /// is <c>false</c>, this is the most recent version number. When <c>true</c>, this is whichever version is
     /// currently live (per its publish window), or <c>null</c> if none is.
@@ -54,7 +60,16 @@ public interface IContentTypeStore<T, TContentType>
     /// <summary>Whether a version with this number exists for this root in <paramref name="language"/>.</summary>
     bool VersionExists(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber);
 
-    /// <summary>Sets (or replaces) the publish window for a specific version, recording <paramref name="userId"/> as <see cref="Content.PublishedBy"/>.</summary>
+    /// <summary>
+    /// Adds a new version to this root's branch in <paramref name="language"/> with the same content as
+    /// <paramref name="versionNumber"/> and no publish window. Returns the new version number.
+    /// </summary>
+    int CopyVersion(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, string? userId);
+
+    /// <summary>
+    /// Sets (or replaces) the publish window for a specific version, recording <paramref name="userId"/> as <see cref="Content.PublishedBy"/>.
+    /// Throws <see cref="InvalidOperationException"/> when that version's start date has already been reached and would change.
+    /// </summary>
     void SetPublishSchedule(CmsDbContext<TContentType> db, int rootId, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId);
 
     /// <summary>

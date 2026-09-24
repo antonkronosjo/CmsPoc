@@ -193,11 +193,12 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
             metadata.GetVersionNumber(_db, id, content.Language, publishedOnly: false));
         AttachLanguages([summary]);
         AttachRootCreated([summary]);
+        AttachFirstPublished([summary]);
         ResolveUsers([summary]);
         return summary;
     }
 
-    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null, DateTime? startPublishFrom = null, DateTime? startPublishTo = null, string? propertyName = null, DateTime? propertyValueFrom = null, DateTime? propertyValueTo = null)
+    public SearchContentResult<TContentType> Search(string? query, string? language, TContentType? contentTypeKey, int page, int pageSize, bool publishedOnly = false, string? sortBy = null, bool sortDescending = false, IReadOnlyCollection<TContentType>? contentTypeKeys = null, DateTime? publishedFrom = null, DateTime? publishedTo = null, string? propertyName = null, DateTime? propertyValueFrom = null, DateTime? propertyValueTo = null)
     {
         var results = _contentRepository.Query<Content>(language, publishedOnly).ToList();
 
@@ -228,10 +229,12 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         else if (contentTypeKey is { } typeFilter)
             summaries = summaries.Where(x => EqualityComparer<TContentType>.Default.Equals(x.ContentTypeKey, typeFilter)).ToList();
 
-        if (startPublishFrom is { } spFrom)
-            summaries = summaries.Where(x => x.StartPublish is { } sp && sp >= spFrom).ToList();
-        if (startPublishTo is { } spTo)
-            summaries = summaries.Where(x => x.StartPublish is { } sp && sp <= spTo).ToList();
+        // Before the date filter and sort, both of which read it.
+        AttachFirstPublished(summaries);
+        if (publishedFrom is { } pubFrom)
+            summaries = summaries.Where(x => x.FirstPublished is { } fp && fp >= pubFrom).ToList();
+        if (publishedTo is { } pubTo)
+            summaries = summaries.Where(x => x.FirstPublished is { } fp && fp <= pubTo).ToList();
 
         // Generic date-range filter over a named content property (e.g. an event's
         // StartDate) - values come through Properties as their real CLR type via
@@ -326,6 +329,17 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         }
     }
 
+    /// <summary>Fills <see cref="ContentSummaryDto{TContentType}.FirstPublished"/> per (item, language) with one batched query per content type present.</summary>
+    private void AttachFirstPublished(IReadOnlyCollection<ContentSummaryDto<TContentType>> summaries)
+    {
+        foreach (var group in summaries.GroupBy(s => s.ContentTypeKey))
+        {
+            var firstPublished = ResolveContentType(group.Key).QueryFirstPublished(_db, group.Select(s => s.Id).Distinct().ToList());
+            foreach (var summary in group)
+                summary.FirstPublished = firstPublished.TryGetValue((summary.Id, summary.Language), out var found) ? found : null;
+        }
+    }
+
     public List<ContentSummaryDto<TContentType>> GetHistory(int id, string? language)
     {
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
@@ -336,20 +350,27 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var latestVersionNumber = metadata.GetVersionNumber(_db, id, branch, publishedOnly: false);
 
         var history = metadata.QueryHistory(_db, id, language).Select(content => ToSummary(content, livePublishedVersionNumber, latestVersionNumber)).ToList();
+        AttachFirstPublished(history);
         ResolveUsers(history);
         return history;
     }
 
-    public void Publish(int id, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish)
+    public int Publish(int id, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish)
     {
         var userId = Authorize(CmsRole.Admin);
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
-        if (!metadata.VersionExists(_db, id, language, versionNumber))
-            throw new KeyNotFoundException($"Version '{versionNumber}' of content '{id}' does not exist in language '{language}'.");
+        var target = metadata.QueryHistory(_db, id, language).SingleOrDefault(x => x.VersionNumber == versionNumber)
+            ?? throw new KeyNotFoundException($"Version '{versionNumber}' of content '{id}' does not exist in language '{language}'.");
 
         var start = startPublish ?? DateTime.UtcNow;
+
+        // A version that has already been live keeps its start date as the record of when it
+        // went live (first-published dates are derived from it), so republishing it - e.g. a
+        // rollback - publishes a fresh copy instead of moving that date.
+        if (target.StartPublish is { } previousStart && previousStart <= DateTime.UtcNow)
+            versionNumber = metadata.CopyVersion(_db, id, language, versionNumber, userId);
 
         // Whatever was live before this takes effect must stop exactly when
         // this version's window begins - otherwise it could resurface as
@@ -359,6 +380,8 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
 
         foreach (var handler in _publishEventHandlers)
             handler.OnPublished(id, language, versionNumber, start, stopPublish);
+
+        return versionNumber;
     }
 
     public void Unpublish(int id, string language)
