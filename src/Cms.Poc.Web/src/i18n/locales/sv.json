@@ -223,6 +223,7 @@
     "saveOverNewerMessage": "Version {{versionNumber}} är inte den senaste (v{{latestVersionNumber}}). Att spara nu skapar version {{nextVersionNumber}} baserad på denna äldre data - ändringar gjorda sedan v{{versionNumber}} kommer inte med. Fortsätta?",
     "saveAnyway": "Spara ändå",
     "translationAddedToast": "{{language}}-översättningen lades till.",
+    "saveAndPublishSubmit": "Spara och publicera",
     "savedToast": "Sparat.",
     "saveFailed": "Det gick inte att spara.",
     "versionHistoryHeading": "Versionshistorik ({{language}})"

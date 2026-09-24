@@ -28,6 +28,12 @@ public interface IContentTypeMetadata<TContentType> where TContentType : struct,
     TContentType ContentTypeKey { get; }
     Type ClrType { get; }
 
+    /// <summary>Whether every save adds a new version. See <see cref="IContentTypeStore{T, TContentType}.IsVersioned"/>.</summary>
+    bool IsVersioned { get; }
+
+    /// <summary>Whether versions go live through an explicit publish. See <see cref="IContentTypeStore{T, TContentType}.IsPublishable"/>.</summary>
+    bool IsPublishable { get; }
+
     /// <summary>
     /// Hydrates full flat objects for the given root ids, in the given
     /// language. A real, pushed-down SQL query scoped to just these ids -
@@ -120,6 +126,8 @@ public sealed class ContentTypeMetadata<T, TContentType> : IContentTypeMetadata<
 
     public TContentType ContentTypeKey { get; }
     public Type ClrType => typeof(T);
+    public bool IsVersioned => _store.IsVersioned;
+    public bool IsPublishable => _store.IsPublishable;
 
     public IReadOnlyList<Content> QueryByIds(CmsDbContext<TContentType> db, IReadOnlyCollection<int> ids, string? language, bool publishedOnly = false)
         => _store.QueryCurrent(db, language, publishedOnly)

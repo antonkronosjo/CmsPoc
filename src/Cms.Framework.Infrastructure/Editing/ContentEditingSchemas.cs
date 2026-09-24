@@ -4,6 +4,12 @@ namespace Cms.Framework.Infrastructure.Editing;
 public sealed class ContentTypeInfoDto
 {
     public required string Key { get; set; }
+
+    /// <summary>Whether every save adds a new version. When <c>false</c> there is no version history to show.</summary>
+    public bool Versioned { get; set; }
+
+    /// <summary>Whether versions go live through an explicit publish. When <c>false</c> every save is live immediately.</summary>
+    public bool Publishable { get; set; }
 }
 
 public sealed class CreateContentMetadata<TContentType>
@@ -44,6 +50,12 @@ public sealed class UpdateContentMetadata<TContentType>
 
     /// <summary>Languages that have a branch (at least one version) for the item.</summary>
     public List<string> Languages { get; set; } = new();
+
+    /// <summary>The content type's <see cref="ContentTypeInfoDto.Versioned"/>.</summary>
+    public bool Versioned { get; set; }
+
+    /// <summary>The content type's <see cref="ContentTypeInfoDto.Publishable"/>.</summary>
+    public bool Publishable { get; set; }
 }
 
 /// <summary>

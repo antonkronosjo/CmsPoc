@@ -35,6 +35,10 @@ public static class CmsEndpointRouteBuilderExtensions
             {
                 return Results.StatusCode(StatusCodes.Status403Forbidden);
             }
+            catch (ContentTypeNotPublishableException ex)
+            {
+                return Results.Problem(ex.Message, statusCode: StatusCodes.Status409Conflict);
+            }
         });
 
         group.MapGet("/types", (IContentEditingService<TContentType> editing)

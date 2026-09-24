@@ -48,8 +48,12 @@ internal static class ContentTypeDiscovery
         if (contentTypeAttributeSymbol is null)
             return null;
 
-        if (!classSymbol.GetAttributes().Any(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, contentTypeAttributeSymbol)))
+        var contentTypeAttribute = classSymbol.GetAttributes().FirstOrDefault(a => SymbolEqualityComparer.Default.Equals(a.AttributeClass, contentTypeAttributeSymbol));
+        if (contentTypeAttribute is null)
             return null;
+
+        var isVersioned = GetNamedBool(contentTypeAttribute, "Versioned", defaultValue: true);
+        var isPublishable = GetNamedBool(contentTypeAttribute, "Publishable", defaultValue: true);
 
         var cultureSpecificAttributeSymbol =semanticModel.Compilation.GetTypeByMetadataName(CultureSpecificAttributeFullName);
 
@@ -95,7 +99,17 @@ internal static class ContentTypeDiscovery
 
         var fullyQualifiedName = classSymbol.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
 
-        return new ContentTypeModel(namespaceName, classSymbol.Name, fullyQualifiedName, invariant, cultureSpecific);
+        return new ContentTypeModel(namespaceName, classSymbol.Name, fullyQualifiedName, invariant, cultureSpecific, isVersioned, isPublishable);
+    }
+
+    private static bool GetNamedBool(AttributeData attribute, string name, bool defaultValue)
+    {
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (argument.Key == name && argument.Value.Value is bool value)
+                return value;
+        }
+        return defaultValue;
     }
 
     private static bool DerivesFrom(INamedTypeSymbol classSymbol, INamedTypeSymbol baseTypeSymbol)

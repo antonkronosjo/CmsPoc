@@ -37,7 +37,12 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
     private string? Authorize(CmsRole requiredRole) => CmsAuthorization.Authorize(_userAdapter, requiredRole);
 
     public IReadOnlyList<ContentTypeInfoDto> GetContentTypes()
-        => _contentTypes.Select(x => new ContentTypeInfoDto { Key = x.ContentTypeKey.ToString() }).ToList();
+        => _contentTypes.Select(x => new ContentTypeInfoDto
+        {
+            Key = x.ContentTypeKey.ToString(),
+            Versioned = x.IsVersioned,
+            Publishable = x.IsPublishable,
+        }).ToList();
 
     public CreateContentSchema<TContentType> GetCreationSchema(TContentType contentTypeKey, string language)
     {
@@ -114,6 +119,8 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
                 LivePublishedVersionNumber = livePublishedVersionNumber,
                 LatestVersionNumber = latestVersionNumber,
                 Languages = LanguagesOf(metadata, content.Id),
+                Versioned = metadata.IsVersioned,
+                Publishable = metadata.IsPublishable,
             },
             Properties = BuildPropertySchema(content.GetType(), content, blankCultureSpecific),
         };
@@ -130,7 +137,9 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         instance.Language = request.Metadata.Language;
         ApplyPropertyValues(instance, request.Properties);
 
-        return metadata.Create(_db, instance, request.Metadata.Language, userId);
+        var created = metadata.Create(_db, instance, request.Metadata.Language, userId);
+        if (!metadata.IsPublishable) GoLive(metadata, created, userId);
+        return created;
     }
 
     public Content Update(UpdateContentSchema<TContentType> request)
@@ -153,7 +162,23 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         ApplyPropertyValues(instance, request.Properties, cultureSpecificOnly: !isMaster);
 
         var metadata = ResolveContentTypeByClrType(instance.GetType());
-        return metadata.Update(_db, instance, userId);
+        var updated = metadata.Update(_db, instance, userId);
+        if (!metadata.IsPublishable) GoLive(metadata, updated, userId);
+        return updated;
+    }
+
+    /// <summary>
+    /// A type that isn't publishable has no publish step: every save goes live
+    /// immediately, through the same path as a manual publish (so publish event
+    /// handlers still run). An in-place save of a row that is already live leaves
+    /// its publish window - and so its first-published date - as it is.
+    /// </summary>
+    private void GoLive(IContentTypeMetadata<TContentType> metadata, Content saved, string? userId)
+    {
+        var now = DateTime.UtcNow;
+        var isLive = saved.StartPublish is { } start && start <= now && (saved.StopPublish is null || saved.StopPublish > now);
+        if (!isLive)
+            PublishCore(metadata, saved.Id, saved.Language, saved.VersionNumber, startPublish: null, stopPublish: null, userId);
     }
 
     public List<string> ValidateProperty(TContentType contentTypeKey, string propertyName, ContentPropertyValueDto value)
@@ -361,16 +386,32 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
+        if (!metadata.IsPublishable)
+            throw new ContentTypeNotPublishableException(metadata.ContentTypeKey.ToString());
+
+        return PublishCore(metadata, id, language, versionNumber, startPublish, stopPublish, userId);
+    }
+
+    private int PublishCore(IContentTypeMetadata<TContentType> metadata, int id, string language, int versionNumber, DateTime? startPublish, DateTime? stopPublish, string? userId)
+    {
         var target = metadata.QueryHistory(_db, id, language).SingleOrDefault(x => x.VersionNumber == versionNumber)
             ?? throw new KeyNotFoundException($"Version '{versionNumber}' of content '{id}' does not exist in language '{language}'.");
 
-        var start = startPublish ?? DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        var start = startPublish ?? now;
 
         // A version that has already been live keeps its start date as the record of when it
         // went live (first-published dates are derived from it), so republishing it - e.g. a
-        // rollback - publishes a fresh copy instead of moving that date.
-        if (target.StartPublish is { } previousStart && previousStart <= DateTime.UtcNow)
-            versionNumber = metadata.CopyVersion(_db, id, language, versionNumber, userId);
+        // rollback - publishes a fresh copy instead of moving that date. A type that isn't
+        // versioned has no copy to make: showing its row again keeps that original start
+        // instead (a future start for such a row is still refused by SetPublishSchedule).
+        if (target.StartPublish is { } previousStart && previousStart <= now)
+        {
+            if (metadata.IsVersioned)
+                versionNumber = metadata.CopyVersion(_db, id, language, versionNumber, userId);
+            else if (start <= now)
+                start = previousStart;
+        }
 
         // Whatever was live before this takes effect must stop exactly when
         // this version's window begins - otherwise it could resurface as
@@ -390,6 +431,9 @@ internal sealed class ContentEditingService<TContentType> : IContentEditingServi
         var root = _db.ContentRoots.SingleOrDefault(x => x.Id == id)
             ?? throw new KeyNotFoundException($"Content '{id}' does not exist.");
         var metadata = ResolveContentType(root.ContentTypeKey);
+        if (!metadata.IsPublishable)
+            throw new ContentTypeNotPublishableException(metadata.ContentTypeKey.ToString());
+
         var live = metadata.GetVersionNumber(_db, id, language, publishedOnly: true);
         if (live is null) return;
 

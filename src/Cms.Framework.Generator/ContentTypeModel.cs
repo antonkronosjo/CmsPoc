@@ -23,13 +23,17 @@ internal sealed class ContentTypeModel
         string className,
         string fullyQualifiedName,
         List<PropertyModel> invariantProperties,
-        List<PropertyModel> cultureSpecificProperties)
+        List<PropertyModel> cultureSpecificProperties,
+        bool isVersioned,
+        bool isPublishable)
     {
         Namespace = @namespace;
         ClassName = className;
         FullyQualifiedName = fullyQualifiedName;
         InvariantProperties = invariantProperties;
         CultureSpecificProperties = cultureSpecificProperties;
+        IsVersioned = isVersioned;
+        IsPublishable = isPublishable;
     }
 
     public string Namespace { get; }
@@ -37,6 +41,15 @@ internal sealed class ContentTypeModel
     public string FullyQualifiedName { get; }
     public List<PropertyModel> InvariantProperties { get; }
     public List<PropertyModel> CultureSpecificProperties { get; }
+
+    /// <summary><c>[ContentType(Versioned = ...)]</c>, default <c>true</c>. Changes emitted behavior only, never the storage shape.</summary>
+    public bool IsVersioned { get; }
+
+    /// <summary><c>[ContentType(Publishable = ...)]</c>, default <c>true</c>. Changes emitted behavior only, never the storage shape.</summary>
+    public bool IsPublishable { get; }
+
+    /// <summary>Whether reads and in-place writes resolve each branch to its effective (published-or-latest) version.</summary>
+    public bool UsesEffectiveVersion => !IsVersioned || !IsPublishable;
 
     public string VersionTypeName => ClassName + "Version";
     public string TranslationTypeName => ClassName + "Translation";
@@ -47,6 +60,8 @@ internal sealed class ContentTypeModel
     public override bool Equals(object? obj)
         => obj is ContentTypeModel other
            && other.FullyQualifiedName == FullyQualifiedName
+           && other.IsVersioned == IsVersioned
+           && other.IsPublishable == IsPublishable
            && PropertiesEqual(other.InvariantProperties, InvariantProperties)
            && PropertiesEqual(other.CultureSpecificProperties, CultureSpecificProperties);
 

@@ -23,6 +23,12 @@ internal static class CodeEmitter
 
     private const string ContentTypeEnumName = "ContentTypeKey";
 
+    /// <summary>C# predicate (over a {Type}Version <c>v</c>) for a version whose publish window contains <c>now</c>.</summary>
+    private const string MasterWindow = "v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now)";
+
+    /// <summary>C# predicate (over a {Type}Translation <c>t</c>) for a version whose publish window contains <c>now</c>.</summary>
+    private const string TranslationWindow = "t.StartPublish != null && t.StartPublish <= now && (t.StopPublish == null || t.StopPublish > now)";
+
     /// <summary>Fully qualified name of the enum <see cref="EmitContentTypeEnum"/> emits into <paramref name="enumNamespace"/>.</summary>
     public static string ContentTypeEnumFullName(string enumNamespace) => $"global::{enumNamespace}.{ContentTypeEnumName}";
 
@@ -183,8 +189,14 @@ internal static class CodeEmitter
         var V = model.VersionTypeName;
         var Tr = model.TranslationTypeName;
         var C = model.FullyQualifiedName;
-        const string masterWindow = "v.StartPublish != null && v.StartPublish <= now && (v.StopPublish == null || v.StopPublish > now)";
-        const string translationWindow = "t.StartPublish != null && t.StartPublish <= now && (t.StopPublish == null || t.StopPublish > now)";
+        const string masterWindow = MasterWindow;
+        const string translationWindow = TranslationWindow;
+
+        // A branch's current row within a grouping `g` of its versions: the effective
+        // (published, else latest) version while either flag is off, otherwise the latest.
+        string BranchCurrentExpression(string x, string window) => model.UsesEffectiveVersion
+            ? $"g.Where({x} => {window}).OrderByDescending({x} => {x}.StartPublish).FirstOrDefault() ?? g.OrderByDescending({x} => {x}.VersionNumber).First()"
+            : $"g.OrderByDescending({x} => {x}.VersionNumber).First()";
 
         var sb = new StringBuilder();
         AppendHeader(sb);
@@ -197,6 +209,10 @@ internal static class CodeEmitter
         sb.AppendLine($"public sealed class {model.StoreTypeName} : global::Cms.Framework.Infrastructure.IContentTypeStore<{C}, {contentTypeEnum}>");
         sb.AppendLine("{");
         sb.AppendLine($"    public {contentTypeEnum} ContentTypeKey => {contentTypeEnum}.{model.ClassName};");
+        sb.AppendLine();
+        sb.AppendLine($"    public bool IsVersioned => {(model.IsVersioned ? "true" : "false")};");
+        sb.AppendLine();
+        sb.AppendLine($"    public bool IsPublishable => {(model.IsPublishable ? "true" : "false")};");
         sb.AppendLine();
 
         // ToMasterContent
@@ -249,6 +265,35 @@ internal static class CodeEmitter
         sb.AppendLine("    }");
         sb.AppendLine();
 
+        if (model.UsesEffectiveVersion)
+        {
+            // ResolveTranslationSource - the same published-or-latest rule, for one non-master branch.
+            sb.AppendLine($"    private static {Tr} ResolveTranslationSource(global::System.Collections.Generic.List<{Tr}> branchVersions)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+            sb.AppendLine("        var published = branchVersions");
+            sb.AppendLine($"            .Where(t => {translationWindow})");
+            sb.AppendLine("            .OrderByDescending(t => t.StartPublish)");
+            sb.AppendLine("            .FirstOrDefault();");
+            sb.AppendLine("        return published ?? branchVersions.OrderByDescending(t => t.VersionNumber).First();");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+
+            // EffectiveVersionNumber - the version a branch resolves to while versioning or publishing is off.
+            sb.AppendLine($"    private static int? EffectiveVersionNumber(CmsDbContext<{contentTypeEnum}> db, int rootId, string language, string? masterLanguage)");
+            sb.AppendLine("    {");
+            sb.AppendLine("        if (language == masterLanguage)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            var masterVersions = db.Set<{V}>().Where(v => v.RootId == rootId).ToList();");
+            sb.AppendLine("            return masterVersions.Count == 0 ? null : ResolveMasterSource(masterVersions).VersionNumber;");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            sb.AppendLine($"        var branchVersions = db.Set<{Tr}>().Where(t => t.RootId == rootId && t.Language == language).ToList();");
+            sb.AppendLine("        return branchVersions.Count == 0 ? null : ResolveTranslationSource(branchVersions).VersionNumber;");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
+
         // Create
         sb.AppendLine($"    public {C} Create(CmsDbContext<{contentTypeEnum}> db, {C} content, string language, string? userId)");
         sb.AppendLine("    {");
@@ -283,101 +328,36 @@ internal static class CodeEmitter
         sb.AppendLine("        // Each language is its own branch: numbering, history and publish state are per language.");
         sb.AppendLine("        var root = db.ContentRoots.Single(r => r.Id == content.Id);");
         sb.AppendLine();
-        sb.AppendLine("        if (content.Language == root.MasterLanguage)");
-        sb.AppendLine("        {");
-        sb.AppendLine($"            var nextVersionNumber = (db.Set<{V}>().Where(v => v.RootId == content.Id).Select(v => (int?)v.VersionNumber).Max() ?? 0) + 1;");
-        sb.AppendLine($"            var version = new {V}");
-        sb.AppendLine("            {");
-        sb.AppendLine("                Root = root,");
-        sb.AppendLine("                Name = content.Name,");
-        sb.AppendLine("                VersionNumber = nextVersionNumber,");
-        sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
-        sb.AppendLine("                CreatedBy = userId,");
-        foreach (var p in model.InvariantProperties.Concat(model.CultureSpecificProperties))
-            sb.AppendLine($"                {p.Name} = content.{p.Name},");
-        sb.AppendLine("            };");
-        sb.AppendLine($"            db.Set<{V}>().Add(version);");
-        sb.AppendLine("            db.SaveChanges();");
-        sb.AppendLine("            return ToMasterContent(version);");
-        sb.AppendLine("        }");
-        sb.AppendLine("        else");
-        sb.AppendLine("        {");
-        sb.AppendLine($"            var nextVersionNumber = (db.Set<{Tr}>().Where(t => t.RootId == content.Id && t.Language == content.Language).Select(t => (int?)t.VersionNumber).Max() ?? 0) + 1;");
-        sb.AppendLine($"            var translation = new {Tr}");
-        sb.AppendLine("            {");
-        sb.AppendLine("                Root = root,");
-        sb.AppendLine("                Name = content.Name,");
-        sb.AppendLine("                Language = content.Language,");
-        sb.AppendLine("                VersionNumber = nextVersionNumber,");
-        sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
-        sb.AppendLine("                CreatedBy = userId,");
-        foreach (var p in model.CultureSpecificProperties)
-            sb.AppendLine($"                {p.Name} = content.{p.Name},");
-        sb.AppendLine("            };");
-        sb.AppendLine($"            db.Set<{Tr}>().Add(translation);");
-        sb.AppendLine("            db.SaveChanges();");
-        sb.AppendLine();
-        sb.AppendLine($"            var masterVersions = db.Set<{V}>().Where(v => v.RootId == content.Id).ToList();");
-        sb.AppendLine("            return ToTranslationContent(translation, ResolveMasterSource(masterVersions));");
-        sb.AppendLine("        }");
+        if (model.IsVersioned) EmitAppendVersionUpdateBody(sb, model);
+        else EmitInPlaceUpdateBody(sb, model);
         sb.AppendLine("    }");
         sb.AppendLine();
 
         // QueryCurrent
         sb.AppendLine($"    public global::System.Linq.IQueryable<{C}> QueryCurrent(CmsDbContext<{contentTypeEnum}> db, string? language, bool publishedOnly = false)");
         sb.AppendLine("    {");
-        sb.AppendLine("        if (!publishedOnly)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            return language is null");
-        sb.AppendLine($"                ? db.Set<{C}>().Where(x => x.Language == x.MasterLanguage)");
-        sb.AppendLine($"                : db.Set<{C}>().Where(x => x.Language == language);");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
-        sb.AppendLine();
-        sb.AppendLine("        if (language is null)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            // Each item's own master-language branch, only when that branch is itself live.");
-        sb.AppendLine($"            return db.Set<{V}>()");
-        sb.AppendLine($"                .Where(v => {masterWindow})");
-        sb.AppendLine("                .Include(v => v.Root)");
-        sb.AppendLine("                .ToList()");
-        sb.AppendLine("                .GroupBy(v => v.RootId)");
-        sb.AppendLine("                .Select(g => ToMasterContent(g.OrderByDescending(v => v.StartPublish).First()))");
-        sb.AppendLine("                .AsQueryable();");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        // Roots whose master language is the one requested: read their own live master row.");
-        sb.AppendLine($"        var liveMaster = db.Set<{V}>()");
-        sb.AppendLine($"            .Where(v => {masterWindow})");
-        sb.AppendLine("            .Include(v => v.Root)");
-        sb.AppendLine("            .ToList()");
-        sb.AppendLine("            .Where(v => v.Root.MasterLanguage == language)");
-        sb.AppendLine("            .GroupBy(v => v.RootId)");
-        sb.AppendLine("            .Select(g => ToMasterContent(g.OrderByDescending(v => v.StartPublish).First()));");
-        sb.AppendLine();
-        sb.AppendLine("        // Every other root: read the live translation for this language, own window, and");
-        sb.AppendLine("        // resolve its invariant values live from that root's master branch.");
-        sb.AppendLine($"        var liveTranslations = db.Set<{Tr}>()");
-        sb.AppendLine($"            .Where(t => t.Language == language && {translationWindow})");
-        sb.AppendLine("            .Include(t => t.Root)");
-        sb.AppendLine("            .ToList()");
-        sb.AppendLine("            .GroupBy(t => t.RootId)");
-        sb.AppendLine("            .Select(g => g.OrderByDescending(t => t.StartPublish).First())");
-        sb.AppendLine("            .ToList();");
-        sb.AppendLine();
-        sb.AppendLine("        var translatedRootIds = liveTranslations.Select(t => t.RootId).ToList();");
-        sb.AppendLine($"        var masterVersionsByRoot = db.Set<{V}>()");
-        sb.AppendLine("            .Where(v => translatedRootIds.Contains(v.RootId))");
-        sb.AppendLine("            .ToList()");
-        sb.AppendLine("            .GroupBy(v => v.RootId)");
-        sb.AppendLine("            .ToDictionary(g => g.Key, g => g.ToList());");
-        sb.AppendLine();
-        sb.AppendLine("        var resolvedTranslations = liveTranslations.Select(t => ToTranslationContent(t, ResolveMasterSource(masterVersionsByRoot[t.RootId])));");
-        sb.AppendLine();
-        sb.AppendLine("        return liveMaster.Concat(resolvedTranslations).AsQueryable();");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        if (!model.IsPublishable)
+        {
+            sb.AppendLine("        // Not publishable: each branch's effective version is always its live one, so both modes read the same rows.");
+            sb.AppendLine("        return language is null");
+            sb.AppendLine($"            ? db.Set<{C}>().Where(x => x.Language == x.MasterLanguage)");
+            sb.AppendLine($"            : db.Set<{C}>().Where(x => x.Language == language);");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
+        else
+        {
+            sb.AppendLine("        if (!publishedOnly)");
+            sb.AppendLine("        {");
+            sb.AppendLine("            return language is null");
+            sb.AppendLine($"                ? db.Set<{C}>().Where(x => x.Language == x.MasterLanguage)");
+            sb.AppendLine($"                : db.Set<{C}>().Where(x => x.Language == language);");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+            EmitLiveQueryBody(sb, model);
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
 
         // QueryHistory
         sb.AppendLine($"    public global::System.Collections.Generic.IReadOnlyList<{C}> QueryHistory(CmsDbContext<{contentTypeEnum}> db, int id, string? language)");
@@ -434,15 +414,15 @@ internal static class CodeEmitter
         sb.AppendLine("            .GroupBy(v => v.RootId)");
         sb.AppendLine("            .Select(g =>");
         sb.AppendLine("            {");
-        sb.AppendLine("                var latest = g.OrderByDescending(v => v.VersionNumber).First();");
-        sb.AppendLine($"                var live = g.Where(v => {masterWindow}).OrderByDescending(v => v.StartPublish).Select(v => (int?)v.VersionNumber).FirstOrDefault();");
+        sb.AppendLine($"                var latest = {BranchCurrentExpression("v", masterWindow)};");
+        sb.AppendLine(model.IsPublishable ? $"                var live = g.Where(v => {masterWindow}).OrderByDescending(v => v.StartPublish).Select(v => (int?)v.VersionNumber).FirstOrDefault();" : "                var live = (int?)latest.VersionNumber;");
         sb.AppendLine("                return (RootId: g.Key, Status: new global::Cms.Framework.Infrastructure.LanguageStatusDto");
         sb.AppendLine("                {");
         sb.AppendLine("                    Language = masterLanguageByRoot[g.Key],");
         sb.AppendLine("                    VersionNumber = latest.VersionNumber,");
         sb.AppendLine("                    StartPublish = latest.StartPublish,");
         sb.AppendLine("                    LivePublishedVersionNumber = live,");
-        sb.AppendLine("                    HasBeenPublished = g.Any(v => v.StartPublish != null),");
+        sb.AppendLine(model.IsPublishable ? "                    HasBeenPublished = g.Any(v => v.StartPublish != null)," : "                    HasBeenPublished = true,");
         sb.AppendLine("                });");
         sb.AppendLine("            })");
         sb.AppendLine("            .ToList();");
@@ -452,15 +432,15 @@ internal static class CodeEmitter
         sb.AppendLine("            .GroupBy(t => new { t.RootId, t.Language })");
         sb.AppendLine("            .Select(g =>");
         sb.AppendLine("            {");
-        sb.AppendLine("                var latest = g.OrderByDescending(t => t.VersionNumber).First();");
-        sb.AppendLine($"                var live = g.Where(t => {translationWindow}).OrderByDescending(t => t.StartPublish).Select(t => (int?)t.VersionNumber).FirstOrDefault();");
+        sb.AppendLine($"                var latest = {BranchCurrentExpression("t", translationWindow)};");
+        sb.AppendLine(model.IsPublishable ? $"                var live = g.Where(t => {translationWindow}).OrderByDescending(t => t.StartPublish).Select(t => (int?)t.VersionNumber).FirstOrDefault();" : "                var live = (int?)latest.VersionNumber;");
         sb.AppendLine("                return (RootId: g.Key.RootId, Status: new global::Cms.Framework.Infrastructure.LanguageStatusDto");
         sb.AppendLine("                {");
         sb.AppendLine("                    Language = g.Key.Language,");
         sb.AppendLine("                    VersionNumber = latest.VersionNumber,");
         sb.AppendLine("                    StartPublish = latest.StartPublish,");
         sb.AppendLine("                    LivePublishedVersionNumber = live,");
-        sb.AppendLine("                    HasBeenPublished = g.Any(t => t.StartPublish != null),");
+        sb.AppendLine(model.IsPublishable ? "                    HasBeenPublished = g.Any(t => t.StartPublish != null)," : "                    HasBeenPublished = true,");
         sb.AppendLine("                });");
         sb.AppendLine("            });");
         sb.AppendLine();
@@ -508,38 +488,20 @@ internal static class CodeEmitter
         sb.AppendLine($"    public int? GetVersionNumber(CmsDbContext<{contentTypeEnum}> db, int rootId, string language, bool publishedOnly)");
         sb.AppendLine("    {");
         sb.AppendLine("        var masterLanguage = db.ContentRoots.Where(r => r.Id == rootId).Select(r => r.MasterLanguage).FirstOrDefault();");
-        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
-        sb.AppendLine();
-        sb.AppendLine("        if (!publishedOnly)");
-        sb.AppendLine("        {");
-        sb.AppendLine("            if (language == masterLanguage)");
-        sb.AppendLine($"                return db.Set<{V}>()");
-        sb.AppendLine("                    .Where(v => v.RootId == rootId)");
-        sb.AppendLine("                    .OrderByDescending(v => v.VersionNumber)");
-        sb.AppendLine("                    .Select(v => (int?)v.VersionNumber)");
-        sb.AppendLine("                    .FirstOrDefault();");
-        sb.AppendLine();
-        sb.AppendLine($"            return db.Set<{Tr}>()");
-        sb.AppendLine("                .Where(t => t.RootId == rootId && t.Language == language)");
-        sb.AppendLine("                .OrderByDescending(t => t.VersionNumber)");
-        sb.AppendLine("                .Select(t => (int?)t.VersionNumber)");
-        sb.AppendLine("                .FirstOrDefault();");
-        sb.AppendLine("        }");
-        sb.AppendLine();
-        sb.AppendLine("        if (language == masterLanguage)");
-        sb.AppendLine($"            return db.Set<{V}>()");
-        sb.AppendLine($"                .Where(v => v.RootId == rootId && {masterWindow})");
-        sb.AppendLine("                .OrderByDescending(v => v.StartPublish)");
-        sb.AppendLine("                .Select(v => (int?)v.VersionNumber)");
-        sb.AppendLine("                .FirstOrDefault();");
-        sb.AppendLine();
-        sb.AppendLine($"        return db.Set<{Tr}>()");
-        sb.AppendLine($"            .Where(t => t.RootId == rootId && t.Language == language && {translationWindow})");
-        sb.AppendLine("            .OrderByDescending(t => t.StartPublish)");
-        sb.AppendLine("            .Select(t => (int?)t.VersionNumber)");
-        sb.AppendLine("            .FirstOrDefault();");
-        sb.AppendLine("    }");
-        sb.AppendLine();
+        if (!model.IsPublishable)
+        {
+            sb.AppendLine();
+            sb.AppendLine("        // Not publishable: the effective version is both the current and the live one.");
+            sb.AppendLine("        return EffectiveVersionNumber(db, rootId, language, masterLanguage);");
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
+        else
+        {
+            EmitPublishableGetVersionNumberBody(sb, model);
+            sb.AppendLine("    }");
+            sb.AppendLine();
+        }
 
         // VersionExists
         sb.AppendLine($"    public bool VersionExists(CmsDbContext<{contentTypeEnum}> db, int rootId, string language, int versionNumber)");
@@ -700,6 +662,202 @@ internal static class CodeEmitter
         return sb.ToString();
     }
 
+    /// <summary>
+    /// The <c>publishedOnly</c> half of <c>QueryCurrent</c> for a publishable type:
+    /// each branch's version whose publish window contains now, omitting branches with none.
+    /// </summary>
+    private static void EmitLiveQueryBody(StringBuilder sb, ContentTypeModel model)
+    {
+        var V = model.VersionTypeName;
+        var Tr = model.TranslationTypeName;
+        const string masterWindow = MasterWindow;
+        const string translationWindow = TranslationWindow;
+
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine();
+        sb.AppendLine("        if (language is null)");
+        sb.AppendLine("        {");
+        sb.AppendLine("            // Each item's own master-language branch, only when that branch is itself live.");
+        sb.AppendLine($"            return db.Set<{V}>()");
+        sb.AppendLine($"                .Where(v => {masterWindow})");
+        sb.AppendLine("                .Include(v => v.Root)");
+        sb.AppendLine("                .ToList()");
+        sb.AppendLine("                .GroupBy(v => v.RootId)");
+        sb.AppendLine("                .Select(g => ToMasterContent(g.OrderByDescending(v => v.StartPublish).First()))");
+        sb.AppendLine("                .AsQueryable();");
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        // Roots whose master language is the one requested: read their own live master row.");
+        sb.AppendLine($"        var liveMaster = db.Set<{V}>()");
+        sb.AppendLine($"            .Where(v => {masterWindow})");
+        sb.AppendLine("            .Include(v => v.Root)");
+        sb.AppendLine("            .ToList()");
+        sb.AppendLine("            .Where(v => v.Root.MasterLanguage == language)");
+        sb.AppendLine("            .GroupBy(v => v.RootId)");
+        sb.AppendLine("            .Select(g => ToMasterContent(g.OrderByDescending(v => v.StartPublish).First()));");
+        sb.AppendLine();
+        sb.AppendLine("        // Every other root: read the live translation for this language, own window, and");
+        sb.AppendLine("        // resolve its invariant values live from that root's master branch.");
+        sb.AppendLine($"        var liveTranslations = db.Set<{Tr}>()");
+        sb.AppendLine($"            .Where(t => t.Language == language && {translationWindow})");
+        sb.AppendLine("            .Include(t => t.Root)");
+        sb.AppendLine("            .ToList()");
+        sb.AppendLine("            .GroupBy(t => t.RootId)");
+        sb.AppendLine("            .Select(g => g.OrderByDescending(t => t.StartPublish).First())");
+        sb.AppendLine("            .ToList();");
+        sb.AppendLine();
+        sb.AppendLine("        var translatedRootIds = liveTranslations.Select(t => t.RootId).ToList();");
+        sb.AppendLine($"        var masterVersionsByRoot = db.Set<{V}>()");
+        sb.AppendLine("            .Where(v => translatedRootIds.Contains(v.RootId))");
+        sb.AppendLine("            .ToList()");
+        sb.AppendLine("            .GroupBy(v => v.RootId)");
+        sb.AppendLine("            .ToDictionary(g => g.Key, g => g.ToList());");
+        sb.AppendLine();
+        sb.AppendLine("        var resolvedTranslations = liveTranslations.Select(t => ToTranslationContent(t, ResolveMasterSource(masterVersionsByRoot[t.RootId])));");
+        sb.AppendLine();
+        sb.AppendLine("        return liveMaster.Concat(resolvedTranslations).AsQueryable();");
+    }
+
+    /// <summary>
+    /// <c>GetVersionNumber</c> for a publishable type: the live version by publish window,
+    /// and as the current one the latest - or, when not versioned, the effective version.
+    /// </summary>
+    private static void EmitPublishableGetVersionNumberBody(StringBuilder sb, ContentTypeModel model)
+    {
+        var V = model.VersionTypeName;
+        var Tr = model.TranslationTypeName;
+        const string masterWindow = MasterWindow;
+        const string translationWindow = TranslationWindow;
+
+        sb.AppendLine("        var now = global::System.DateTime.UtcNow;");
+        sb.AppendLine();
+        sb.AppendLine("        if (!publishedOnly)");
+        sb.AppendLine("        {");
+        if (model.UsesEffectiveVersion)
+        {
+            sb.AppendLine("            return EffectiveVersionNumber(db, rootId, language, masterLanguage);");
+        }
+        else
+        {
+            sb.AppendLine("            if (language == masterLanguage)");
+            sb.AppendLine($"                return db.Set<{V}>()");
+            sb.AppendLine("                    .Where(v => v.RootId == rootId)");
+            sb.AppendLine("                    .OrderByDescending(v => v.VersionNumber)");
+            sb.AppendLine("                    .Select(v => (int?)v.VersionNumber)");
+            sb.AppendLine("                    .FirstOrDefault();");
+            sb.AppendLine();
+            sb.AppendLine($"            return db.Set<{Tr}>()");
+            sb.AppendLine("                .Where(t => t.RootId == rootId && t.Language == language)");
+            sb.AppendLine("                .OrderByDescending(t => t.VersionNumber)");
+            sb.AppendLine("                .Select(t => (int?)t.VersionNumber)");
+            sb.AppendLine("                .FirstOrDefault();");
+        }
+        sb.AppendLine("        }");
+        sb.AppendLine();
+        sb.AppendLine("        if (language == masterLanguage)");
+        sb.AppendLine($"            return db.Set<{V}>()");
+        sb.AppendLine($"                .Where(v => v.RootId == rootId && {masterWindow})");
+        sb.AppendLine("                .OrderByDescending(v => v.StartPublish)");
+        sb.AppendLine("                .Select(v => (int?)v.VersionNumber)");
+        sb.AppendLine("                .FirstOrDefault();");
+        sb.AppendLine();
+        sb.AppendLine($"        return db.Set<{Tr}>()");
+        sb.AppendLine($"            .Where(t => t.RootId == rootId && t.Language == language && {translationWindow})");
+        sb.AppendLine("            .OrderByDescending(t => t.StartPublish)");
+        sb.AppendLine("            .Select(t => (int?)t.VersionNumber)");
+        sb.AppendLine("            .FirstOrDefault();");
+    }
+
+    /// <summary><c>Update</c> for a versioned type: adds a new version to the saved branch.</summary>
+    private static void EmitAppendVersionUpdateBody(StringBuilder sb, ContentTypeModel model)
+    {
+        var V = model.VersionTypeName;
+        var Tr = model.TranslationTypeName;
+
+        sb.AppendLine("        if (content.Language == root.MasterLanguage)");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            var nextVersionNumber = (db.Set<{V}>().Where(v => v.RootId == content.Id).Select(v => (int?)v.VersionNumber).Max() ?? 0) + 1;");
+        sb.AppendLine($"            var version = new {V}");
+        sb.AppendLine("            {");
+        sb.AppendLine("                Root = root,");
+        sb.AppendLine("                Name = content.Name,");
+        sb.AppendLine("                VersionNumber = nextVersionNumber,");
+        sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
+        sb.AppendLine("                CreatedBy = userId,");
+        foreach (var p in model.InvariantProperties.Concat(model.CultureSpecificProperties))
+            sb.AppendLine($"                {p.Name} = content.{p.Name},");
+        sb.AppendLine("            };");
+        sb.AppendLine($"            db.Set<{V}>().Add(version);");
+        sb.AppendLine("            db.SaveChanges();");
+        sb.AppendLine("            return ToMasterContent(version);");
+        sb.AppendLine("        }");
+        sb.AppendLine("        else");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            var nextVersionNumber = (db.Set<{Tr}>().Where(t => t.RootId == content.Id && t.Language == content.Language).Select(t => (int?)t.VersionNumber).Max() ?? 0) + 1;");
+        sb.AppendLine($"            var translation = new {Tr}");
+        sb.AppendLine("            {");
+        sb.AppendLine("                Root = root,");
+        sb.AppendLine("                Name = content.Name,");
+        sb.AppendLine("                Language = content.Language,");
+        sb.AppendLine("                VersionNumber = nextVersionNumber,");
+        sb.AppendLine("                Created = global::System.DateTime.UtcNow,");
+        sb.AppendLine("                CreatedBy = userId,");
+        foreach (var p in model.CultureSpecificProperties)
+            sb.AppendLine($"                {p.Name} = content.{p.Name},");
+        sb.AppendLine("            };");
+        sb.AppendLine($"            db.Set<{Tr}>().Add(translation);");
+        sb.AppendLine("            db.SaveChanges();");
+        sb.AppendLine();
+        sb.AppendLine($"            var masterVersions = db.Set<{V}>().Where(v => v.RootId == content.Id).ToList();");
+        sb.AppendLine("            return ToTranslationContent(translation, ResolveMasterSource(masterVersions));");
+        sb.AppendLine("        }");
+    }
+
+    /// <summary>
+    /// <c>Update</c> for a type that isn't versioned: overwrites each branch's
+    /// effective version (published, else latest) instead of adding a new one.
+    /// Its version number and publish window are left as they are, so a live
+    /// row stays live with the new values; any newer, unpublished rows left
+    /// from when the type was versioned are kept, untouched, as history.
+    /// </summary>
+    private static void EmitInPlaceUpdateBody(StringBuilder sb, ContentTypeModel model)
+    {
+        var V = model.VersionTypeName;
+        var Tr = model.TranslationTypeName;
+
+        sb.AppendLine("        // Not versioned: overwrite the branch's effective version in place.");
+        sb.AppendLine("        if (content.Language == root.MasterLanguage)");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            var version = ResolveMasterSource(db.Set<{V}>().Where(v => v.RootId == content.Id).ToList());");
+        sb.AppendLine("            version.Name = content.Name;");
+        sb.AppendLine("            version.Created = global::System.DateTime.UtcNow;");
+        sb.AppendLine("            version.CreatedBy = userId;");
+        foreach (var p in model.InvariantProperties.Concat(model.CultureSpecificProperties))
+            sb.AppendLine($"            version.{p.Name} = content.{p.Name};");
+        sb.AppendLine("            db.SaveChanges();");
+        sb.AppendLine("            return ToMasterContent(version);");
+        sb.AppendLine("        }");
+        sb.AppendLine("        else");
+        sb.AppendLine("        {");
+        sb.AppendLine($"            var branchVersions = db.Set<{Tr}>().Where(t => t.RootId == content.Id && t.Language == content.Language).ToList();");
+        sb.AppendLine("            var translation = branchVersions.Count == 0 ? null : ResolveTranslationSource(branchVersions);");
+        sb.AppendLine("            if (translation is null)");
+        sb.AppendLine("            {");
+        sb.AppendLine($"                translation = new {Tr} {{ Root = root, Language = content.Language, VersionNumber = 1 }};");
+        sb.AppendLine($"                db.Set<{Tr}>().Add(translation);");
+        sb.AppendLine("            }");
+        sb.AppendLine("            translation.Name = content.Name;");
+        sb.AppendLine("            translation.Created = global::System.DateTime.UtcNow;");
+        sb.AppendLine("            translation.CreatedBy = userId;");
+        foreach (var p in model.CultureSpecificProperties)
+            sb.AppendLine($"            translation.{p.Name} = content.{p.Name};");
+        sb.AppendLine("            db.SaveChanges();");
+        sb.AppendLine();
+        sb.AppendLine($"            var masterVersions = db.Set<{V}>().Where(v => v.RootId == content.Id).ToList();");
+        sb.AppendLine("            return ToTranslationContent(translation, ResolveMasterSource(masterVersions));");
+        sb.AppendLine("        }");
+    }
+
     public static string EmitRegistration(IReadOnlyList<ContentTypeModel> models, string enumNamespace)
     {
         var contentTypeEnum = ContentTypeEnumFullName(enumNamespace);
@@ -741,6 +899,8 @@ internal static class CodeEmitter
     /// or with nothing published, latest - from the item's master branch).
     /// This is always the "current" shape; <c>publishedOnly</c> queries are
     /// resolved separately, in code, since they need each branch's own window.
+    /// While the type isn't versioned or isn't publishable, "latest" above is
+    /// the branch's effective version (published, else latest) instead.
     /// </summary>
     private static string BuildReadSql(ContentTypeModel model)
     {
@@ -763,6 +923,21 @@ $@"COALESCE(
         (SELECT v4.Id FROM {model.VersionTableName} v4 WHERE v4.RootId = r.Id ORDER BY v4.VersionNumber DESC LIMIT 1)
     )";
 
+        // Which row is each branch's current one: the latest, or - while
+        // versioning or publishing is off - the effective (published, else
+        // latest) version, by the same rule as the master source above.
+        var masterCurrent = model.UsesEffectiveVersion
+            ? $"v.Id = ({masterSourceId})"
+            : $"v.VersionNumber = (SELECT MAX(v2.VersionNumber) FROM {model.VersionTableName} v2 WHERE v2.RootId = r.Id)";
+        var translationCurrent = model.UsesEffectiveVersion
+            ? $@"t.Id = COALESCE(
+        (SELECT t3.Id FROM {model.TranslationTableName} t3
+         WHERE t3.RootId = r.Id AND t3.Language = t.Language AND t3.StartPublish IS NOT NULL AND datetime(t3.StartPublish) <= datetime('now') AND (t3.StopPublish IS NULL OR datetime(t3.StopPublish) > datetime('now'))
+         ORDER BY t3.StartPublish DESC LIMIT 1),
+        (SELECT t4.Id FROM {model.TranslationTableName} t4 WHERE t4.RootId = r.Id AND t4.Language = t.Language ORDER BY t4.VersionNumber DESC LIMIT 1)
+    )"
+            : $"t.VersionNumber = (SELECT MAX(t2.VersionNumber) FROM {model.TranslationTableName} t2 WHERE t2.RootId = r.Id AND t2.Language = t.Language)";
+
         return
 $@"SELECT
     r.Id AS Id,
@@ -777,7 +952,7 @@ $@"SELECT
     v.PublishedBy AS PublishedBy{masterInvariantCols}{masterCultureCols}
 FROM ContentRoots r
 JOIN {model.VersionTableName} v ON v.RootId = r.Id
-    AND v.VersionNumber = (SELECT MAX(v2.VersionNumber) FROM {model.VersionTableName} v2 WHERE v2.RootId = r.Id)
+    AND {masterCurrent}
 WHERE r.ContentTypeKey = '{model.ClassName}'
 
 UNION ALL
@@ -795,7 +970,7 @@ SELECT
     t.PublishedBy AS PublishedBy{resolvedInvariantCols}{translationCultureCols}
 FROM ContentRoots r
 JOIN {model.TranslationTableName} t ON t.RootId = r.Id
-    AND t.VersionNumber = (SELECT MAX(t2.VersionNumber) FROM {model.TranslationTableName} t2 WHERE t2.RootId = r.Id AND t2.Language = t.Language)
+    AND {translationCurrent}
 JOIN {model.VersionTableName} mv ON mv.Id = ({masterSourceId})
 WHERE r.ContentTypeKey = '{model.ClassName}'";
     }

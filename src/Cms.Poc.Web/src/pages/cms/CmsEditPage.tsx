@@ -329,6 +329,8 @@ function EditPanel({
   const isLive = active.metadata.versionNumber === active.metadata.livePublishedVersionNumber;
   const isNotLatest =
     active.metadata.latestVersionNumber != null && active.metadata.versionNumber !== active.metadata.latestVersionNumber;
+  // A type that isn't publishable goes live on every save; one that isn't versioned has no history to browse.
+  const { publishable, versioned } = active.metadata;
 
   return (
     <>
@@ -348,6 +350,7 @@ function EditPanel({
               onChange={(name) => setDraft({ ...active, metadata: { ...active.metadata, name } })}
             />
             {!isNewLanguageBranch &&
+              publishable &&
               (isLive ? (
                 <Tooltip title={t("cmsEditPage.unpublishTooltip")}>
                   <span>
@@ -398,32 +401,34 @@ function EditPanel({
             >
               <MetaItem label={t("cmsEditPage.metaId")} value={active.metadata.id} />
               <MetaItem label={t("cmsEditPage.metaContentType")} value={active.metadata.contentTypeKey} />
-              <MetaItem
-                label={t("cmsEditPage.metaVersion")}
-                value={
-                  <Button
-                    size="small"
-                    variant="text"
-                    color="primary"
-                    endIcon={<History fontSize="small" />}
-                    onClick={() => setHistoryOpen(true)}
-                    sx={{
-                      minWidth: 0,
-                      py: 0,
-                      px: 0,
-                      fontSize: "inherit",
-                      fontWeight: 600,
-                      lineHeight: "inherit",
-                      textTransform: "none",
-                      "& .MuiButton-endIcon": { ml: 0.25, mr: 0 },
-                      // MUI's small-size rule pins the icon at 18px; size it to the text instead.
-                      "& .MuiButton-endIcon > *:nth-of-type(1)": { fontSize: "1.1em" },
-                    }}
-                  >
-                    v{active.metadata.versionNumber}
-                  </Button>
-                }
-              />
+              {versioned && (
+                <MetaItem
+                  label={t("cmsEditPage.metaVersion")}
+                  value={
+                    <Button
+                      size="small"
+                      variant="text"
+                      color="primary"
+                      endIcon={<History fontSize="small" />}
+                      onClick={() => setHistoryOpen(true)}
+                      sx={{
+                        minWidth: 0,
+                        py: 0,
+                        px: 0,
+                        fontSize: "inherit",
+                        fontWeight: 600,
+                        lineHeight: "inherit",
+                        textTransform: "none",
+                        "& .MuiButton-endIcon": { ml: 0.25, mr: 0 },
+                        // MUI's small-size rule pins the icon at 18px; size it to the text instead.
+                        "& .MuiButton-endIcon > *:nth-of-type(1)": { fontSize: "1.1em" },
+                      }}
+                    >
+                      v{active.metadata.versionNumber}
+                    </Button>
+                  }
+                />
+              )}
               <MetaItem label={t("cmsEditPage.metaStatus")} value={<StatusIndicator metadata={active.metadata} sx={{ fontSize: "inherit" }} />} />
               <MetaItem label={t("cmsEditPage.metaStartPublish")} value={formatDate(active.metadata.startPublish, t)} />
               <MetaItem label={t("cmsEditPage.metaStopPublish")} value={formatDate(active.metadata.stopPublish, t)} />
@@ -454,7 +459,13 @@ function EditPanel({
             language={language}
             masterLanguage={masterLanguage}
             properties={displayProperties}
-            submitText={isNewLanguageBranch ? t("cmsEditPage.addTranslationSubmit", { language }) : t("common.save")}
+            submitText={
+              isNewLanguageBranch
+                ? t("cmsEditPage.addTranslationSubmit", { language })
+                : publishable
+                  ? t("common.save")
+                  : t("cmsEditPage.saveAndPublishSubmit")
+            }
             submitDisabled={!hasChanges}
             submitDisabledReason={t("cmsEditPage.noChangesDetected")}
             onChange={(key, value) =>
@@ -496,7 +507,7 @@ function EditPanel({
           />
         </Stack>
       </Box>
-      <Drawer anchor="right" open={historyOpen} onClose={() => setHistoryOpen(false)}>
+      <Drawer anchor="right" open={versioned && historyOpen} onClose={() => setHistoryOpen(false)}>
         <Box sx={{ maxWidth: "100vw" }}>
           <Typography variant="h6" sx={{ p: 3, pb: 2 }}>
             {t("cmsEditPage.versionHistoryHeading", { language })}

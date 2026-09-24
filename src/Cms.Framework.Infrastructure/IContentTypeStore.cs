@@ -14,6 +14,18 @@ public interface IContentTypeStore<T, TContentType>
     /// <summary>The discriminator stored on <see cref="ContentRoot{TContentType}.ContentTypeKey"/> for this type.</summary>
     TContentType ContentTypeKey { get; }
 
+    /// <summary>
+    /// From <c>[ContentType(Versioned = ...)]</c>. When <c>false</c>, <see cref="Update"/> overwrites each
+    /// branch's effective version (published, else latest) in place instead of adding a new one.
+    /// </summary>
+    bool IsVersioned { get; }
+
+    /// <summary>
+    /// From <c>[ContentType(Publishable = ...)]</c>. When <c>false</c>, each branch's effective version
+    /// (published, else latest) is treated as its live one, whatever its publish window.
+    /// </summary>
+    bool IsPublishable { get; }
+
     /// <summary>Creates the item. <paramref name="userId"/> is the opaque id recorded as <see cref="Content.CreatedBy"/>, or <c>null</c> when user tracking is off.</summary>
     T Create(CmsDbContext<TContentType> db, T content, string language, string? userId);
 

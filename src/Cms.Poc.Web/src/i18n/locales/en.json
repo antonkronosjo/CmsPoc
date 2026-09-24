@@ -223,6 +223,7 @@
     "saveOverNewerMessage": "Version {{versionNumber}} is not the latest (v{{latestVersionNumber}}). Saving now will create version {{nextVersionNumber}} based on this older data - any changes made since v{{versionNumber}} won't be reflected. Continue?",
     "saveAnyway": "Save anyway",
     "translationAddedToast": "{{language}} translation added.",
+    "saveAndPublishSubmit": "Save & publish",
     "savedToast": "Saved.",
     "saveFailed": "Failed to save.",
     "versionHistoryHeading": "Version history ({{language}})"

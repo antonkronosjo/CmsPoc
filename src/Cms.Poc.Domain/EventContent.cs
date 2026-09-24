@@ -3,7 +3,7 @@ using Cms.Framework.Abstractions;
 
 namespace Cms.Poc.Domain;
 
-[ContentType]
+[ContentType(Versioned = false, Publishable = true)]
 public class EventContent : Content
 {
     [CultureSpecific]

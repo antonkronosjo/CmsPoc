@@ -30,6 +30,10 @@ export interface ContentPropertyValueDto {
 /// A registered content type.
 export interface ContentTypeInfo {
   key: string;
+  /// Whether every save adds a new version. When false there is no version history to show.
+  versioned: boolean;
+  /// Whether versions go live through an explicit publish. When false every save is live immediately.
+  publishable: boolean;
 }
 
 export interface LanguageSettingsDto {
@@ -65,6 +69,10 @@ export interface UpdateContentMetadata {
   latestVersionNumber: number | null;
   /// Languages that have a version branch.
   languages: string[];
+  /// The content type's ContentTypeInfo.versioned.
+  versioned: boolean;
+  /// The content type's ContentTypeInfo.publishable.
+  publishable: boolean;
 }
 
 /// Returned by the update-schema GET, required as-is for the update PUT
